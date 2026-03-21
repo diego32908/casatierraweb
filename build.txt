@@ -1,0 +1,2008 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fmodern\fcharset0 Courier;\f1\froman\fcharset0 Times-Roman;\f2\froman\fcharset0 Times-Bold;
+\f3\fmodern\fcharset0 Courier-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red109\green109\blue109;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c50196\c50196\c50196;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{circle\}}{\leveltext\leveltemplateid2\'01\uc0\u9702 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{circle\}}{\leveltext\leveltemplateid102\'01\uc0\u9702 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
+{\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid5}
+{\list\listtemplateid6\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid501\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid6}
+{\list\listtemplateid7\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid601\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid7}
+{\list\listtemplateid8\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid701\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{circle\}}{\leveltext\leveltemplateid702\'01\uc0\u9702 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid8}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}{\listoverride\listid6\listoverridecount0\ls6}{\listoverride\listid7\listoverridecount0\ls7}{\listoverride\listid8\listoverridecount0\ls8}}
+\margl1440\margr1440\vieww30040\viewh16580\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs26 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 # Casa Tierra / Tierra Oaxaca \'97 V3 Heavy Base\
+# Framework Reset: Next.js App Router + TypeScript + Tailwind + Supabase + Stripe\
+\
+> Built from the PRD/API notes plus the visual direction references:\
+> - **Cadena / websitedesign.pdf** \uc0\u8594  centered logo, uppercase nav, editorial whitespace, soft neutral background\
+> - **Patagonia / productdesign.pdf** \uc0\u8594  practical product-grid logic, strong typography, clean utility-first PDP\
+> - **sizesexample.pdf** \uc0\u8594  two-box product detail pattern: size grid box + size/fit box\
+> - **PRD/master notes** \uc0\u8594  Next.js, Supabase, Stripe, admin routes, variant-level inventory, flat-rate shipping, pickup, subscribers, custom requests\
+\
+---\
+\
+## 0) File Structure\
+\
+```txt\
+app/\
+  (store)/\
+    layout.tsx\
+    page.tsx\
+    products/[slug]/page.tsx\
+  admin/\
+    layout.tsx\
+    page.tsx\
+    inventory/page.tsx\
+    orders/page.tsx\
+    leads/page.tsx\
+  api/\
+    products/route.ts\
+    checkout/route.ts\
+    webhooks/stripe/route.ts\
+  globals.css\
+  layout.tsx\
+\
+components/\
+  shell/site-header.tsx\
+  product/product-detail.tsx\
+  product/size-selector-box.tsx\
+  product/size-fit-box.tsx\
+  admin/admin-guard.tsx\
+\
+lib/\
+  supabase/\
+    server.ts\
+    client.ts\
+  stripe.ts\
+  constants.ts\
+  utils.ts\
+\
+types/\
+  store.ts\
+\
+supabase/\
+  schema.sql\
+\
+.env.example\
+\
+middleware.ts\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 1) 
+\f3\fs39 supabase/schema.sql
+\f2\fs36 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 -- Enable extension\
+create extension if not exists pgcrypto;\
+\
+-- Enums\
+do $$ begin\
+  create type product_category as enum (\
+    'men',\
+    'women',\
+    'kids',\
+    'pottery',\
+    'accessories',\
+    'home_decor',\
+    'shoes'\
+  );\
+exception\
+  when duplicate_object then null;\
+end $$;\
+\
+do $$ begin\
+  create type size_mode as enum (\
+    'none',\
+    'alpha',\
+    'numeric',\
+    'kids',\
+    'shoes_us',\
+    'custom'\
+  );\
+exception\
+  when duplicate_object then null;\
+end $$;\
+\
+do $$ begin\
+  create type fulfillment_type as enum (\
+    'shipping',\
+    'pickup'\
+  );\
+exception\
+  when duplicate_object then null;\
+end $$;\
+\
+do $$ begin\
+  create type order_status as enum (\
+    'PAID',\
+    'READY_FOR_PICKUP',\
+    'SHIPPED',\
+    'COMPLETED',\
+    'CANCELLED'\
+  );\
+exception\
+  when duplicate_object then null;\
+end $$;\
+\
+do $$ begin\
+  create type custom_request_status as enum (\
+    'new',\
+    'reviewing',\
+    'contacted',\
+    'closed'\
+  );\
+exception\
+  when duplicate_object then null;\
+end $$;\
+\
+-- Products\
+create table if not exists public.products (\
+  id uuid primary key default gen_random_uuid(),\
+  slug text not null unique,\
+  sku text unique,\
+  name_en text not null,\
+  name_es text not null,\
+  description_en text,\
+  description_es text,\
+  category product_category not null,\
+  gender_tag text,\
+  size_mode size_mode not null default 'none',\
+  base_price_cents integer not null check (base_price_cents >= 0),\
+  compare_at_price_cents integer check (compare_at_price_cents is null or compare_at_price_cents >= base_price_cents),\
+  featured boolean not null default false,\
+  is_active boolean not null default true,\
+  material text,\
+  care_notes text,\
+  primary_image_url text,\
+  image_urls text[] not null default '\{\}',\
+  sort_order integer not null default 0,\
+  seo_title text,\
+  seo_description text,\
+  created_at timestamptz not null default now(),\
+  updated_at timestamptz not null default now()\
+);\
+\
+create index if not exists idx_products_category on public.products(category);\
+create index if not exists idx_products_featured on public.products(featured);\
+create index if not exists idx_products_active on public.products(is_active);\
+\
+-- Product Variants\
+create table if not exists public.product_variants (\
+  id uuid primary key default gen_random_uuid(),\
+  product_id uuid not null references public.products(id) on delete cascade,\
+  variant_sku text unique,\
+  color_name text,\
+  color_hex text,\
+  size_label text not null,\
+  size_sort integer not null default 0,\
+  stock integer not null default 0 check (stock >= 0),\
+  low_stock_threshold integer not null default 5 check (low_stock_threshold >= 0),\
+  price_override_cents integer check (price_override_cents is null or price_override_cents >= 0),\
+  is_default boolean not null default false,\
+\
+  -- optional footwear conversions\
+  us_size text,\
+  eu_size text,\
+  uk_size text,\
+  mx_size text,\
+  jp_size text,\
+\
+  -- optional apparel measurements (stored as JSON for flexibility)\
+  measurements_cm jsonb,\
+  measurements_in jsonb,\
+\
+  created_at timestamptz not null default now(),\
+  updated_at timestamptz not null default now(),\
+\
+  unique(product_id, size_label, color_name)\
+);\
+\
+create index if not exists idx_variants_product_id on public.product_variants(product_id);\
+create index if not exists idx_variants_stock on public.product_variants(stock);\
+\
+-- Orders\
+create table if not exists public.orders (\
+  id uuid primary key default gen_random_uuid(),\
+  stripe_checkout_session_id text unique,\
+  stripe_payment_intent_id text,\
+  customer_name text not null,\
+  email text not null,\
+  phone text,\
+  fulfillment fulfillment_type not null,\
+  shipping_address jsonb,\
+  pickup_location text,\
+  subtotal_cents integer not null check (subtotal_cents >= 0),\
+  shipping_cents integer not null default 0 check (shipping_cents >= 0),\
+  discount_cents integer not null default 0 check (discount_cents >= 0),\
+  total_cents integer not null check (total_cents >= 0),\
+  currency text not null default 'usd',\
+  status order_status not null default 'PAID',\
+  notes text,\
+  created_at timestamptz not null default now(),\
+  updated_at timestamptz not null default now()\
+);\
+\
+create index if not exists idx_orders_status on public.orders(status);\
+create index if not exists idx_orders_created_at on public.orders(created_at desc);\
+\
+-- Order Items\
+create table if not exists public.order_items (\
+  id uuid primary key default gen_random_uuid(),\
+  order_id uuid not null references public.orders(id) on delete cascade,\
+  product_id uuid not null references public.products(id),\
+  variant_id uuid references public.product_variants(id),\
+  product_name_snapshot text not null,\
+  variant_label_snapshot text,\
+  unit_price_cents integer not null check (unit_price_cents >= 0),\
+  quantity integer not null check (quantity > 0),\
+  line_total_cents integer not null check (line_total_cents >= 0),\
+  image_url_snapshot text,\
+  created_at timestamptz not null default now()\
+);\
+\
+create index if not exists idx_order_items_order_id on public.order_items(order_id);\
+\
+-- Subscribers / popup leads\
+create table if not exists public.subscribers (\
+  id uuid primary key default gen_random_uuid(),\
+  email text not null unique,\
+  phone text,\
+  source text not null default 'popup',\
+  discount_code text,\
+  created_at timestamptz not null default now()\
+);\
+\
+-- Custom Requests\
+create table if not exists public.custom_requests (\
+  id uuid primary key default gen_random_uuid(),\
+  customer_name text,\
+  email text not null,\
+  phone text,\
+  description text not null,\
+  reference_image_url text,\
+  status custom_request_status not null default 'new',\
+  admin_notes text,\
+  created_at timestamptz not null default now(),\
+  updated_at timestamptz not null default now()\
+);\
+\
+-- Optional waitlist table because PDP logic uses "Get Notified"\
+create table if not exists public.waitlist (\
+  id uuid primary key default gen_random_uuid(),\
+  product_id uuid not null references public.products(id) on delete cascade,\
+  variant_id uuid references public.product_variants(id) on delete cascade,\
+  email text not null,\
+  created_at timestamptz not null default now(),\
+  unique(product_id, variant_id, email)\
+);\
+\
+-- Admin profile table\
+create table if not exists public.admin_profiles (\
+  id uuid primary key,\
+  email text not null unique,\
+  full_name text,\
+  role text not null default 'admin',\
+  created_at timestamptz not null default now()\
+);\
+\
+-- updated_at trigger\
+create or replace function public.set_updated_at()\
+returns trigger as $$\
+begin\
+  new.updated_at = now();\
+  return new;\
+end;\
+$$ language plpgsql;\
+\
+drop trigger if exists trg_products_updated_at on public.products;\
+create trigger trg_products_updated_at\
+before update on public.products\
+for each row execute function public.set_updated_at();\
+\
+drop trigger if exists trg_variants_updated_at on public.product_variants;\
+create trigger trg_variants_updated_at\
+before update on public.product_variants\
+for each row execute function public.set_updated_at();\
+\
+drop trigger if exists trg_orders_updated_at on public.orders;\
+create trigger trg_orders_updated_at\
+before update on public.orders\
+for each row execute function public.set_updated_at();\
+\
+drop trigger if exists trg_custom_requests_updated_at on public.custom_requests;\
+create trigger trg_custom_requests_updated_at\
+before update on public.custom_requests\
+for each row execute function public.set_updated_at();\
+\
+-- RLS\
+alter table public.products enable row level security;\
+alter table public.product_variants enable row level security;\
+alter table public.orders enable row level security;\
+alter table public.order_items enable row level security;\
+alter table public.subscribers enable row level security;\
+alter table public.custom_requests enable row level security;\
+alter table public.waitlist enable row level security;\
+alter table public.admin_profiles enable row level security;\
+\
+-- Public read for active products + variants\
+drop policy if exists "public can read active products" on public.products;\
+create policy "public can read active products"\
+on public.products\
+for select\
+using (is_active = true);\
+\
+drop policy if exists "public can read variants for active products" on public.product_variants;\
+create policy "public can read variants for active products"\
+on public.product_variants\
+for select\
+using (\
+  exists (\
+    select 1\
+    from public.products p\
+    where p.id = product_variants.product_id\
+      and p.is_active = true\
+  )\
+);\
+\
+-- Public insert for subscribers/custom requests/waitlist\
+drop policy if exists "public can insert subscribers" on public.subscribers;\
+create policy "public can insert subscribers"\
+on public.subscribers\
+for insert\
+with check (true);\
+\
+drop policy if exists "public can insert custom requests" on public.custom_requests;\
+create policy "public can insert custom requests"\
+on public.custom_requests\
+for insert\
+with check (true);\
+\
+drop policy if exists "public can insert waitlist" on public.waitlist;\
+create policy "public can insert waitlist"\
+on public.waitlist\
+for insert\
+with check (true);\
+\
+-- Admin full access via auth.uid() match\
+drop policy if exists "admins manage products" on public.products;\
+create policy "admins manage products"\
+on public.products\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage variants" on public.product_variants;\
+create policy "admins manage variants"\
+on public.product_variants\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage orders" on public.orders;\
+create policy "admins manage orders"\
+on public.orders\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage order_items" on public.order_items;\
+create policy "admins manage order_items"\
+on public.order_items\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins read subscribers" on public.subscribers;\
+create policy "admins read subscribers"\
+on public.subscribers\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage custom requests" on public.custom_requests;\
+create policy "admins manage custom requests"\
+on public.custom_requests\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage waitlist" on public.waitlist;\
+create policy "admins manage waitlist"\
+on public.waitlist\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\
+drop policy if exists "admins manage admin profiles" on public.admin_profiles;\
+create policy "admins manage admin profiles"\
+on public.admin_profiles\
+for all\
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))\
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 2) 
+\f3\fs39 types/store.ts
+\f2\fs36 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export type ProductCategory =\
+  | "men"\
+  | "women"\
+  | "kids"\
+  | "pottery"\
+  | "accessories"\
+  | "home_decor"\
+  | "shoes";\
+\
+export type SizeMode =\
+  | "none"\
+  | "alpha"\
+  | "numeric"\
+  | "kids"\
+  | "shoes_us"\
+  | "custom";\
+\
+export type FulfillmentType = "shipping" | "pickup";\
+\
+export type OrderStatus =\
+  | "PAID"\
+  | "READY_FOR_PICKUP"\
+  | "SHIPPED"\
+  | "COMPLETED"\
+  | "CANCELLED";\
+\
+export type CustomRequestStatus = "new" | "reviewing" | "contacted" | "closed";\
+\
+export interface Product \{\
+  id: string;\
+  slug: string;\
+  sku: string | null;\
+  name_en: string;\
+  name_es: string;\
+  description_en: string | null;\
+  description_es: string | null;\
+  category: ProductCategory;\
+  gender_tag: string | null;\
+  size_mode: SizeMode;\
+  base_price_cents: number;\
+  compare_at_price_cents: number | null;\
+  featured: boolean;\
+  is_active: boolean;\
+  material: string | null;\
+  care_notes: string | null;\
+  primary_image_url: string | null;\
+  image_urls: string[];\
+  sort_order: number;\
+  seo_title: string | null;\
+  seo_description: string | null;\
+  created_at: string;\
+  updated_at: string;\
+\}\
+\
+export interface VariantMeasurementsCm \{\
+  bust?: string;\
+  underbust?: string;\
+  waist?: string;\
+  hip?: string;\
+  inseam?: string;\
+  foot_length?: string;\
+  notes?: string;\
+\}\
+\
+export interface VariantMeasurementsIn \{\
+  bust?: string;\
+  underbust?: string;\
+  waist?: string;\
+  hip?: string;\
+  inseam?: string;\
+  foot_length?: string;\
+  notes?: string;\
+\}\
+\
+export interface ProductVariant \{\
+  id: string;\
+  product_id: string;\
+  variant_sku: string | null;\
+  color_name: string | null;\
+  color_hex: string | null;\
+  size_label: string;\
+  size_sort: number;\
+  stock: number;\
+  low_stock_threshold: number;\
+  price_override_cents: number | null;\
+  is_default: boolean;\
+  us_size: string | null;\
+  eu_size: string | null;\
+  uk_size: string | null;\
+  mx_size: string | null;\
+  jp_size: string | null;\
+  measurements_cm: VariantMeasurementsCm | null;\
+  measurements_in: VariantMeasurementsIn | null;\
+  created_at: string;\
+  updated_at: string;\
+\}\
+\
+export interface ProductWithVariants extends Product \{\
+  variants: ProductVariant[];\
+\}\
+\
+export interface ShippingAddress \{\
+  line1: string;\
+  line2?: string | null;\
+  city: string;\
+  state: string;\
+  postal_code: string;\
+  country: string;\
+\}\
+\
+export interface Order \{\
+  id: string;\
+  stripe_checkout_session_id: string | null;\
+  stripe_payment_intent_id: string | null;\
+  customer_name: string;\
+  email: string;\
+  phone: string | null;\
+  fulfillment: FulfillmentType;\
+  shipping_address: ShippingAddress | null;\
+  pickup_location: string | null;\
+  subtotal_cents: number;\
+  shipping_cents: number;\
+  discount_cents: number;\
+  total_cents: number;\
+  currency: string;\
+  status: OrderStatus;\
+  notes: string | null;\
+  created_at: string;\
+  updated_at: string;\
+\}\
+\
+export interface OrderItem \{\
+  id: string;\
+  order_id: string;\
+  product_id: string;\
+  variant_id: string | null;\
+  product_name_snapshot: string;\
+  variant_label_snapshot: string | null;\
+  unit_price_cents: number;\
+  quantity: number;\
+  line_total_cents: number;\
+  image_url_snapshot: string | null;\
+  created_at: string;\
+\}\
+\
+export interface Subscriber \{\
+  id: string;\
+  email: string;\
+  phone: string | null;\
+  source: string;\
+  discount_code: string | null;\
+  created_at: string;\
+\}\
+\
+export interface CustomRequest \{\
+  id: string;\
+  customer_name: string | null;\
+  email: string;\
+  phone: string | null;\
+  description: string;\
+  reference_image_url: string | null;\
+  status: CustomRequestStatus;\
+  admin_notes: string | null;\
+  created_at: string;\
+  updated_at: string;\
+\}\
+\
+export interface WaitlistEntry \{\
+  id: string;\
+  product_id: string;\
+  variant_id: string | null;\
+  email: string;\
+  created_at: string;\
+\}\
+\
+export interface AdminProfile \{\
+  id: string;\
+  email: string;\
+  full_name: string | null;\
+  role: string;\
+  created_at: string;\
+\}\
+\
+export interface CheckoutCartItemInput \{\
+  productId: string;\
+  variantId: string;\
+  quantity: number;\
+\}\
+\
+export interface CheckoutRequestBody \{\
+  customerName: string;\
+  email: string;\
+  phone?: string;\
+  fulfillment: FulfillmentType;\
+  shippingAddress?: ShippingAddress | null;\
+  items: CheckoutCartItemInput[];\
+  discountCode?: string | null;\
+  locale?: "en" | "es";\
+\}\
+\
+export interface CheckoutMetadata \{\
+  customerName: string;\
+  email: string;\
+  phone?: string;\
+  fulfillment: FulfillmentType;\
+  shippingAddress?: string;\
+  items: string;\
+  locale?: "en" | "es";\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 3) 
+\f3\fs39 .env.example
+\f2\fs36 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 # App\
+NEXT_PUBLIC_SITE_URL=http://localhost:3000\
+NEXT_PUBLIC_BRAND_NAME=Tierra Oaxaca\
+\
+# Supabase\
+NEXT_PUBLIC_SUPABASE_URL=\
+NEXT_PUBLIC_SUPABASE_ANON_KEY=\
+SUPABASE_SERVICE_ROLE_KEY=\
+\
+# Stripe\
+STRIPE_SECRET_KEY=\
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=\
+STRIPE_WEBHOOK_SECRET=\
+\
+# Email / future restock\
+RESEND_API_KEY=\
+\
+# Admin / app constants\
+FLAT_SHIPPING_RATE_CENTS=899\
+PICKUP_LOCATION_LABEL=1600 E Holt Ave Ste D24-D26, Pomona, CA 91767\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 4) Core Constants\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 lib/constants.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME || "Tierra Oaxaca";\
+export const FLAT_SHIPPING_RATE_CENTS = Number(process.env.FLAT_SHIPPING_RATE_CENTS || 899);\
+export const PICKUP_LOCATION_LABEL =\
+  process.env.PICKUP_LOCATION_LABEL ||\
+  "1600 E Holt Ave Ste D24-D26, Pomona, CA 91767";\
+\
+export const STORE_NAV = ["NEW", "SHOP", "COLLECTIONS"] as const;\
+\
+export const APP_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"] as const;\
+export const SHOE_SIZES_US_MENS = ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "12"] as const;\
+\
+export const LOW_STOCK_THRESHOLD = 5;\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 5) Supabase + Stripe Helpers\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 lib/supabase/server.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ createClient \} from "@supabase/supabase-js";\
+\
+export function createServerSupabaseClient() \{\
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;\
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;\
+\
+  return createClient(url, serviceRoleKey, \{\
+    auth: \{ persistSession: false, autoRefreshToken: false \},\
+  \});\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 lib/supabase/client.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ createClient \} from "@supabase/supabase-js";\
+\
+export const supabaseBrowser = createClient(\
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,\
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!\
+);\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 lib/stripe.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import Stripe from "stripe";\
+\
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, \{\
+  apiVersion: "2025-02-24.acacia",\
+\});\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 lib/utils.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export function formatPrice(cents: number, currency = "USD") \{\
+  return new Intl.NumberFormat("en-US", \{\
+    style: "currency",\
+    currency,\
+  \}).format(cents / 100);\
+\}\
+\
+export function cn(...parts: Array<string | false | null | undefined>) \{\
+  return parts.filter(Boolean).join(" ");\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 6) App Shell\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/layout.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import "./globals.css";\
+import type \{ Metadata \} from "next";\
+import \{ BRAND_NAME \} from "@/lib/constants";\
+\
+export const metadata: Metadata = \{\
+  title: BRAND_NAME,\
+  description: "Boutique artisan storefront for clothing, shoes, pottery, and cultural pieces.",\
+\};\
+\
+export default function RootLayout(\{ children \}: \{ children: React.ReactNode \}) \{\
+  return (\
+    <html lang="en">\
+      <body className="bg-stone-50 text-stone-900 antialiased">\
+        \{children\}\
+      </body>\
+    </html>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/(store)/layout.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ SiteHeader \} from "@/components/shell/site-header";\
+\
+export default function StoreLayout(\{ children \}: \{ children: React.ReactNode \}) \{\
+  return (\
+    <div className="min-h-screen">\
+      <SiteHeader />\
+      <main>\{children\}</main>\
+    </div>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 components/shell/site-header.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import Link from "next/link";\
+import \{ Search, Heart, ShoppingBag \} from "lucide-react";\
+import \{ BRAND_NAME, STORE_NAV \} from "@/lib/constants";\
+\
+export function SiteHeader() \{\
+  return (\
+    <header className="sticky top-0 z-40 border-b border-stone-300 bg-stone-50/95 backdrop-blur">\
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-8">\
+        <nav className="hidden md:flex items-center gap-7 text-[12px] tracking-[0.22em] text-stone-700">\
+          \{STORE_NAV.map((item) => (\
+            <Link key=\{item\} href=\{`/$\{item.toLowerCase()\}`\} className="uppercase hover:text-stone-950">\
+              \{item\}\
+            </Link>\
+          ))\}\
+        </nav>\
+\
+        <div className="absolute left-1/2 -translate-x-1/2 text-center">\
+          <Link\
+            href="/"\
+            className="font-serif text-3xl tracking-[0.22em] text-stone-800"\
+          >\
+            \{BRAND_NAME\}\
+          </Link>\
+        </div>\
+\
+        <div className="ml-auto flex items-center gap-4 text-stone-700">\
+          <button aria-label="Search"><Search className="h-4 w-4" /></button>\
+          <button aria-label="Favorites"><Heart className="h-4 w-4" /></button>\
+          <button aria-label="Cart"><ShoppingBag className="h-4 w-4" /></button>\
+        </div>\
+      </div>\
+    </header>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/globals.css
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 @tailwind base;\
+@tailwind components;\
+@tailwind utilities;\
+\
+:root \{\
+  --background: 247 245 241;\
+  --foreground: 33 28 24;\
+  --muted: 137 124 109;\
+  --line: 205 196 187;\
+  --brand-earth: 140 93 58;\
+  --brand-sand: 228 221 210;\
+  --brand-olive: 120 130 92;\
+  --brand-terracotta: 175 94 64;\
+  --brand-cream: 243 238 230;\
+\}\
+\
+html,\
+body \{\
+  height: 100%;\
+\}\
+\
+body \{\
+  background: rgb(var(--background));\
+  color: rgb(var(--foreground));\
+\}\
+\
+.font-serif \{\
+  font-family: Georgia, "Times New Roman", serif;\
+\}\
+\
+.table-line \{\
+  @apply border-b border-stone-200;\
+\}\
+\
+.panel \{\
+  @apply border border-stone-300 bg-white;\
+\}\
+\
+.upper-nav \{\
+  @apply text-[12px] uppercase tracking-[0.22em] text-stone-700;\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 7) Product Detail Page \'97 Two-Box System\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/(store)/products/[slug]/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ notFound \} from "next/navigation";\
+import \{ createServerSupabaseClient \} from "@/lib/supabase/server";\
+import \{ ProductDetail \} from "@/components/product/product-detail";\
+\
+export default async function ProductPage(\{\
+  params,\
+\}: \{\
+  params: Promise<\{ slug: string \}>;\
+\}) \{\
+  const \{ slug \} = await params;\
+  const supabase = createServerSupabaseClient();\
+\
+  const \{ data: product, error \} = await supabase\
+    .from("products")\
+    .select("*, variants:product_variants(*)")\
+    .eq("slug", slug)\
+    .eq("is_active", true)\
+    .single();\
+\
+  if (error || !product) return notFound();\
+\
+  return (\
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">\
+      <ProductDetail product=\{product\} />\
+    </div>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 components/product/product-detail.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 "use client";\
+\
+import \{ useMemo, useState \} from "react";\
+import type \{ ProductWithVariants, ProductVariant \} from "@/types/store";\
+import \{ formatPrice \} from "@/lib/utils";\
+import \{ SizeSelectorBox \} from "./size-selector-box";\
+import \{ SizeFitBox \} from "./size-fit-box";\
+\
+export function ProductDetail(\{ product \}: \{ product: ProductWithVariants \}) \{\
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(\
+    product.variants.find((v) => v.is_default)?.id ?? product.variants[0]?.id ?? null\
+  );\
+\
+  const selectedVariant = useMemo<ProductVariant | undefined>(\
+    () => product.variants.find((v) => v.id === selectedVariantId),\
+    [product.variants, selectedVariantId]\
+  );\
+\
+  const activePrice = selectedVariant?.price_override_cents ?? product.base_price_cents;\
+\
+  return (\
+    <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr]">\
+      <section className="space-y-4">\
+        <div className="aspect-[4/5] overflow-hidden border border-stone-300 bg-white">\
+          \{product.primary_image_url ? (\
+            // eslint-disable-next-line @next/next/no-img-element\
+            <img\
+              src=\{product.primary_image_url\}\
+              alt=\{product.name_en\}\
+              className="h-full w-full object-contain"\
+            />\
+          ) : (\
+            <div className="flex h-full items-center justify-center text-stone-400">\
+              No image\
+            </div>\
+          )\}\
+        </div>\
+      </section>\
+\
+      <section className="space-y-8">\
+        <div className="space-y-2">\
+          <p className="upper-nav">\{product.category\}</p>\
+          <h1 className="text-4xl font-semibold tracking-tight">\{product.name_en\}</h1>\
+          <p className="text-xl">\{formatPrice(activePrice)\}</p>\
+          <p className="max-w-xl text-sm leading-6 text-stone-600">\
+            \{product.description_en\}\
+          </p>\
+        </div>\
+\
+        <div className="space-y-4">\
+          <SizeSelectorBox\
+            product=\{product\}\
+            variants=\{product.variants\}\
+            selectedVariantId=\{selectedVariantId\}\
+            onSelectVariant=\{setSelectedVariantId\}\
+          />\
+\
+          <SizeFitBox product=\{product\} selectedVariant=\{selectedVariant ?? null\} />\
+        </div>\
+\
+        <button\
+          className="h-12 w-full rounded-full bg-stone-900 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-300"\
+          disabled=\{!selectedVariant || selectedVariant.stock <= 0\}\
+        >\
+          Add to Bag\
+        </button>\
+      </section>\
+    </div>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 components/product/size-selector-box.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 "use client";\
+\
+import \{ Bell \} from "lucide-react";\
+import type \{ Product, ProductVariant \} from "@/types/store";\
+import \{ cn \} from "@/lib/utils";\
+\
+interface Props \{\
+  product: Product;\
+  variants: ProductVariant[];\
+  selectedVariantId: string | null;\
+  onSelectVariant: (variantId: string) => void;\
+\}\
+\
+export function SizeSelectorBox(\{\
+  product,\
+  variants,\
+  selectedVariantId,\
+  onSelectVariant,\
+\}: Props) \{\
+  return (\
+    <section className="panel">\
+      <div className="flex items-center justify-between border-b border-stone-300 px-5 py-4">\
+        <div>\
+          <h2 className="text-lg font-semibold">Select a size</h2>\
+          <p className="text-sm text-stone-500">True to size</p>\
+        </div>\
+        <button className="text-sm font-medium text-stone-600">Size and fit</button>\
+      </div>\
+\
+      <div className="grid">\
+        \{variants\
+          .sort((a, b) => a.size_sort - b.size_sort)\
+          .map((variant) => \{\
+            const isSelected = variant.id === selectedVariantId;\
+            const isOut = variant.stock <= 0;\
+            const isLow = variant.stock > 0 && variant.stock <= variant.low_stock_threshold;\
+\
+            return (\
+              <div\
+                key=\{variant.id\}\
+                className=\{cn(\
+                  "grid grid-cols-[1fr_auto] items-center gap-3 border-b border-stone-200 px-5 py-4",\
+                  isSelected && "bg-stone-50"\
+                )\}\
+              >\
+                <button\
+                  onClick=\{() => !isOut && onSelectVariant(variant.id)\}\
+                  disabled=\{isOut\}\
+                  className=\{cn(\
+                    "flex items-center justify-between text-left",\
+                    isOut && "cursor-not-allowed opacity-60"\
+                  )\}\
+                >\
+                  <div className="space-y-1">\
+                    <div className="text-base font-medium">\{variant.size_label\}</div>\
+                    \{isOut ? (\
+                      <div className="text-sm text-stone-500">Out of stock. Get notified.</div>\
+                    ) : isLow ? (\
+                      <div className="text-sm text-amber-700">Low stock</div>\
+                    ) : null\}\
+                  </div>\
+\
+                  \{isSelected && !isOut ? (\
+                    <span className="rounded-full border border-stone-900 px-2 py-0.5 text-[11px] uppercase tracking-[0.18em]">\
+                      Selected\
+                    </span>\
+                  ) : null\}\
+                </button>\
+\
+                \{isOut ? (\
+                  <button\
+                    className="inline-flex items-center gap-2 text-sm text-stone-700"\
+                    aria-label=\{`Get notified for $\{product.name_en\} $\{variant.size_label\}`\}\
+                  >\
+                    <Bell className="h-4 w-4" />\
+                    <span>Get Notified</span>\
+                  </button>\
+                ) : (\
+                  <span className="text-sm text-stone-400">\
+                    \{variant.stock <= 5 ? `$\{variant.stock\} left` : ""\}\
+                  </span>\
+                )\}\
+              </div>\
+            );\
+          \})\}\
+      </div>\
+    </section>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 components/product/size-fit-box.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 "use client";\
+\
+import \{ useMemo, useState \} from "react";\
+import type \{ Product, ProductVariant \} from "@/types/store";\
+\
+export function SizeFitBox(\{\
+  product,\
+  selectedVariant,\
+\}: \{\
+  product: Product;\
+  selectedVariant: ProductVariant | null;\
+\}) \{\
+  const [unit, setUnit] = useState<"cm" | "in">("cm");\
+\
+  const isShoes = product.category === "shoes" || product.size_mode === "shoes_us";\
+  const measurementData = useMemo(() => \{\
+    if (!selectedVariant) return null;\
+    return unit === "cm"\
+      ? selectedVariant.measurements_cm\
+      : selectedVariant.measurements_in;\
+  \}, [selectedVariant, unit]);\
+\
+  return (\
+    <section className="panel">\
+      <div className="flex items-center justify-between border-b border-stone-300 px-5 py-4">\
+        <h2 className="text-lg font-semibold">Size and Fit</h2>\
+\
+        \{!isShoes ? (\
+          <div className="inline-flex rounded-full border border-stone-300 p-1 text-sm">\
+            <button\
+              onClick=\{() => setUnit("cm")\}\
+              className=\{`rounded-full px-4 py-1 $\{unit === "cm" ? "bg-stone-900 text-white" : ""\}`\}\
+            >\
+              Centimeters\
+            </button>\
+            <button\
+              onClick=\{() => setUnit("in")\}\
+              className=\{`rounded-full px-4 py-1 $\{unit === "in" ? "bg-stone-900 text-white" : ""\}`\}\
+            >\
+              Inches\
+            </button>\
+          </div>\
+        ) : null\}\
+      </div>\
+\
+      \{isShoes ? (\
+        <div className="overflow-x-auto px-5 py-5">\
+          <table className="min-w-full text-left text-sm">\
+            <thead>\
+              <tr className="table-line">\
+                <th className="py-3 pr-6 font-medium">System</th>\
+                <th className="py-3 pr-6 font-medium">Value</th>\
+              </tr>\
+            </thead>\
+            <tbody>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">US</td>\
+                <td className="py-3">\{selectedVariant?.us_size ?? selectedVariant?.size_label ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">EU</td>\
+                <td className="py-3">\{selectedVariant?.eu_size ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">UK</td>\
+                <td className="py-3">\{selectedVariant?.uk_size ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">MX</td>\
+                <td className="py-3">\{selectedVariant?.mx_size ?? "-"\}</td>\
+              </tr>\
+              <tr>\
+                <td className="py-3 pr-6 text-stone-500">JP</td>\
+                <td className="py-3">\{selectedVariant?.jp_size ?? "-"\}</td>\
+              </tr>\
+            </tbody>\
+          </table>\
+        </div>\
+      ) : (\
+        <div className="overflow-x-auto px-5 py-5">\
+          <table className="min-w-full text-left text-sm">\
+            <thead>\
+              <tr className="table-line">\
+                <th className="py-3 pr-6 font-medium">Measurement</th>\
+                <th className="py-3 font-medium">\{selectedVariant?.size_label ?? "Selected Size"\}</th>\
+              </tr>\
+            </thead>\
+            <tbody>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">Bust</td>\
+                <td className="py-3">\{measurementData?.bust ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">Underbust</td>\
+                <td className="py-3">\{measurementData?.underbust ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">Waist</td>\
+                <td className="py-3">\{measurementData?.waist ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">Hip</td>\
+                <td className="py-3">\{measurementData?.hip ?? "-"\}</td>\
+              </tr>\
+              <tr className="table-line">\
+                <td className="py-3 pr-6 text-stone-500">Inseam</td>\
+                <td className="py-3">\{measurementData?.inseam ?? "-"\}</td>\
+              </tr>\
+              <tr>\
+                <td className="py-3 pr-6 text-stone-500">Notes</td>\
+                <td className="py-3">\{measurementData?.notes ?? "True to size"\}</td>\
+              </tr>\
+            </tbody>\
+          </table>\
+        </div>\
+      )\}\
+    </section>\
+  );\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 8) Admin Skeleton\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 components/admin/admin-guard.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ redirect \} from "next/navigation";\
+import \{ createServerSupabaseClient \} from "@/lib/supabase/server";\
+\
+export async function AdminGuard(\{ children \}: \{ children: React.ReactNode \}) \{\
+  const supabase = createServerSupabaseClient();\
+\
+  // V3 skeleton:\
+  // Replace this with cookie/session-aware Supabase auth helper in real app wiring.\
+  const \{\
+    data: \{ user \},\
+  \} = await supabase.auth.getUser();\
+\
+  if (!user) redirect("/");\
+\
+  const \{ data: profile \} = await supabase\
+    .from("admin_profiles")\
+    .select("id")\
+    .eq("id", user.id)\
+    .single();\
+\
+  if (!profile) redirect("/");\
+\
+  return <>\{children\}</>;\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/admin/layout.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import Link from "next/link";\
+import \{ AdminGuard \} from "@/components/admin/admin-guard";\
+\
+const adminNav = [\
+  \{ href: "/admin/inventory", label: "Inventory" \},\
+  \{ href: "/admin/orders", label: "Orders" \},\
+  \{ href: "/admin/leads", label: "Leads" \},\
+];\
+\
+export default async function AdminLayout(\{\
+  children,\
+\}: \{\
+  children: React.ReactNode;\
+\}) \{\
+  return (\
+    <AdminGuard>\
+      <div className="min-h-screen bg-stone-50">\
+        <div className="mx-auto grid min-h-screen max-w-7xl md:grid-cols-[220px_1fr]">\
+          <aside className="border-r border-stone-300 p-6">\
+            <p className="mb-8 text-xs uppercase tracking-[0.22em] text-stone-500">\
+              Admin\
+            </p>\
+            <nav className="space-y-3">\
+              \{adminNav.map((item) => (\
+                <Link\
+                  key=\{item.href\}\
+                  href=\{item.href\}\
+                  className="block rounded-md px-3 py-2 text-sm text-stone-700 hover:bg-white"\
+                >\
+                  \{item.label\}\
+                </Link>\
+              ))\}\
+            </nav>\
+          </aside>\
+\
+          <main className="p-6 md:p-10">\{children\}</main>\
+        </div>\
+      </div>\
+    </AdminGuard>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/admin/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ redirect \} from "next/navigation";\
+\
+export default function AdminIndexPage() \{\
+  redirect("/admin/inventory");\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/admin/inventory/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export default function AdminInventoryPage() \{\
+  return (\
+    <section className="space-y-6">\
+      <header>\
+        <h1 className="text-3xl font-semibold">Inventory</h1>\
+        <p className="mt-2 text-sm text-stone-500">\
+          Manage products, variants, stock, low-stock flags, and featured placement.\
+        </p>\
+      </header>\
+\
+      <div className="panel p-6">\
+        <p className="text-sm text-stone-600">\
+          V3 base only: table, filters, CSV import, duplicate product flow, and image ordering come next.\
+        </p>\
+      </div>\
+    </section>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/admin/orders/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export default function AdminOrdersPage() \{\
+  return (\
+    <section className="space-y-6">\
+      <header>\
+        <h1 className="text-3xl font-semibold">Orders</h1>\
+        <p className="mt-2 text-sm text-stone-500">\
+          Review checkout results, fulfillment type, customer contact, and order status lifecycle.\
+        </p>\
+      </header>\
+\
+      <div className="panel p-6">\
+        <p className="text-sm text-stone-600">\
+          V3 base only: status pipeline is PAID \uc0\u8594  READY_FOR_PICKUP / SHIPPED \u8594  COMPLETED.\
+        </p>\
+      </div>\
+    </section>\
+  );\
+\}\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\b\fs30\fsmilli15210 \cf0 app/admin/leads/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export default function AdminLeadsPage() \{\
+  return (\
+    <section className="space-y-6">\
+      <header>\
+        <h1 className="text-3xl font-semibold">Leads</h1>\
+        <p className="mt-2 text-sm text-stone-500">\
+          Subscribers, popup captures, waitlist signups, and custom requests.\
+        </p>\
+      </header>\
+\
+      <div className="panel p-6">\
+        <p className="text-sm text-stone-600">\
+          V3 base only: split this into subscribers / waitlist / requests tables in V4 polish.\
+        </p>\
+      </div>\
+    </section>\
+  );\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 9) API \'97 Products\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/api/products/route.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ NextResponse \} from "next/server";\
+import \{ createServerSupabaseClient \} from "@/lib/supabase/server";\
+\
+export async function GET() \{\
+  try \{\
+    const supabase = createServerSupabaseClient();\
+\
+    const \{ data, error \} = await supabase\
+      .from("products")\
+      .select("*, variants:product_variants(*)")\
+      .eq("is_active", true)\
+      .order("sort_order", \{ ascending: true \});\
+\
+    if (error) \{\
+      return NextResponse.json(\{ error: error.message \}, \{ status: 500 \});\
+    \}\
+\
+    return NextResponse.json(\{ products: data \});\
+  \} catch (error) \{\
+    console.error("GET /api/products error", error);\
+    return NextResponse.json(\{ error: "Internal server error" \}, \{ status: 500 \});\
+  \}\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 10) API \'97 Checkout\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/api/checkout/route.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ NextRequest, NextResponse \} from "next/server";\
+import \{ stripe \} from "@/lib/stripe";\
+import \{ createServerSupabaseClient \} from "@/lib/supabase/server";\
+import \{ FLAT_SHIPPING_RATE_CENTS, PICKUP_LOCATION_LABEL \} from "@/lib/constants";\
+import type \{ CheckoutRequestBody \} from "@/types/store";\
+\
+export async function POST(request: NextRequest) \{\
+  try \{\
+    const body = (await request.json()) as CheckoutRequestBody;\
+\
+    if (!body.customerName || !body.email || !body.items?.length) \{\
+      return NextResponse.json(\{ error: "Missing required checkout fields" \}, \{ status: 400 \});\
+    \}\
+\
+    const supabase = createServerSupabaseClient();\
+\
+    const variantIds = body.items.map((item) => item.variantId);\
+\
+    const \{ data: variants, error \} = await supabase\
+      .from("product_variants")\
+      .select("*, product:products(*)")\
+      .in("id", variantIds);\
+\
+    if (error || !variants?.length) \{\
+      return NextResponse.json(\{ error: "Unable to load cart items" \}, \{ status: 400 \});\
+    \}\
+\
+    let subtotal = 0;\
+\
+    const line_items = body.items.map((cartItem) => \{\
+      const variant = variants.find((v) => v.id === cartItem.variantId);\
+      if (!variant) throw new Error(`Variant not found: $\{cartItem.variantId\}`);\
+      if (variant.stock < cartItem.quantity) \{\
+        throw new Error(`Insufficient stock for $\{variant.size_label\}`);\
+      \}\
+\
+      const unitAmount = variant.price_override_cents ?? variant.product.base_price_cents;\
+      subtotal += unitAmount * cartItem.quantity;\
+\
+      return \{\
+        quantity: cartItem.quantity,\
+        price_data: \{\
+          currency: "usd",\
+          unit_amount: unitAmount,\
+          product_data: \{\
+            name: variant.product.name_en,\
+            description: variant.size_label,\
+            images: variant.product.primary_image_url ? [variant.product.primary_image_url] : [],\
+          \},\
+        \},\
+      \};\
+    \});\
+\
+    const shippingAmount =\
+      body.fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0;\
+\
+    const session = await stripe.checkout.sessions.create(\{\
+      mode: "payment",\
+      customer_email: body.email,\
+      line_items,\
+      success_url: `$\{process.env.NEXT_PUBLIC_SITE_URL\}/checkout/success?session_id=\{CHECKOUT_SESSION_ID\}`,\
+      cancel_url: `$\{process.env.NEXT_PUBLIC_SITE_URL\}/cart`,\
+      metadata: \{\
+        customerName: body.customerName,\
+        email: body.email,\
+        phone: body.phone ?? "",\
+        fulfillment: body.fulfillment,\
+        shippingAddress: JSON.stringify(body.shippingAddress ?? null),\
+        items: JSON.stringify(body.items),\
+        locale: body.locale ?? "en",\
+        pickupLocation:\
+          body.fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : "",\
+      \},\
+      shipping_options:\
+        body.fulfillment === "shipping"\
+          ? [\
+              \{\
+                shipping_rate_data: \{\
+                  display_name: "Flat Rate Shipping",\
+                  fixed_amount: \{ amount: shippingAmount, currency: "usd" \},\
+                  type: "fixed_amount",\
+                \},\
+              \},\
+            ]\
+          : [],\
+    \});\
+\
+    return NextResponse.json(\{ url: session.url \});\
+  \} catch (error) \{\
+    console.error("POST /api/checkout error", error);\
+    return NextResponse.json(\
+      \{ error: error instanceof Error ? error.message : "Checkout failed" \},\
+      \{ status: 500 \}\
+    );\
+  \}\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 11) API \'97 Stripe Webhook\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/api/webhooks/stripe/route.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ headers \} from "next/headers";\
+import \{ NextResponse \} from "next/server";\
+import Stripe from "stripe";\
+import \{ stripe \} from "@/lib/stripe";\
+import \{ createServerSupabaseClient \} from "@/lib/supabase/server";\
+import \{ FLAT_SHIPPING_RATE_CENTS, PICKUP_LOCATION_LABEL \} from "@/lib/constants";\
+import type \{ CheckoutCartItemInput, FulfillmentType \} from "@/types/store";\
+\
+export async function POST(request: Request) \{\
+  const body = await request.text();\
+  const signature = (await headers()).get("stripe-signature");\
+\
+  if (!signature) \{\
+    return NextResponse.json(\{ error: "Missing stripe signature" \}, \{ status: 400 \});\
+  \}\
+\
+  let event: Stripe.Event;\
+\
+  try \{\
+    event = stripe.webhooks.constructEvent(\
+      body,\
+      signature,\
+      process.env.STRIPE_WEBHOOK_SECRET!\
+    );\
+  \} catch (error) \{\
+    console.error("Stripe webhook verification failed", error);\
+    return NextResponse.json(\{ error: "Invalid signature" \}, \{ status: 400 \});\
+  \}\
+\
+  if (event.type !== "checkout.session.completed") \{\
+    return NextResponse.json(\{ received: true \});\
+  \}\
+\
+  const session = event.data.object as Stripe.Checkout.Session;\
+  const supabase = createServerSupabaseClient();\
+\
+  try \{\
+    const items = JSON.parse(session.metadata?.items ?? "[]") as CheckoutCartItemInput[];\
+    const fulfillment = (session.metadata?.fulfillment ?? "shipping") as FulfillmentType;\
+    const shippingAddress = JSON.parse(session.metadata?.shippingAddress ?? "null");\
+\
+    const variantIds = items.map((item) => item.variantId);\
+\
+    const \{ data: variants, error: variantsError \} = await supabase\
+      .from("product_variants")\
+      .select("*, product:products(*)")\
+      .in("id", variantIds);\
+\
+    if (variantsError || !variants) \{\
+      throw new Error("Could not load variants during webhook");\
+    \}\
+\
+    let subtotal = 0;\
+    const orderItemsPayload = items.map((cartItem) => \{\
+      const variant = variants.find((v) => v.id === cartItem.variantId);\
+      if (!variant) throw new Error(`Missing variant $\{cartItem.variantId\}`);\
+      if (variant.stock < cartItem.quantity) \{\
+        throw new Error(`Stock conflict for variant $\{cartItem.variantId\}`);\
+      \}\
+\
+      const unitPrice = variant.price_override_cents ?? variant.product.base_price_cents;\
+      const lineTotal = unitPrice * cartItem.quantity;\
+      subtotal += lineTotal;\
+\
+      return \{\
+        product_id: variant.product_id,\
+        variant_id: variant.id,\
+        product_name_snapshot: variant.product.name_en,\
+        variant_label_snapshot: [variant.color_name, variant.size_label].filter(Boolean).join(" / "),\
+        unit_price_cents: unitPrice,\
+        quantity: cartItem.quantity,\
+        line_total_cents: lineTotal,\
+        image_url_snapshot: variant.product.primary_image_url,\
+      \};\
+    \});\
+\
+    const shippingCents = fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0;\
+    const totalCents = subtotal + shippingCents;\
+\
+    const \{ data: createdOrder, error: orderError \} = await supabase\
+      .from("orders")\
+      .insert(\{\
+        stripe_checkout_session_id: session.id,\
+        stripe_payment_intent_id:\
+          typeof session.payment_intent === "string" ? session.payment_intent : null,\
+        customer_name: session.metadata?.customerName ?? "Customer",\
+        email: session.metadata?.email ?? session.customer_email ?? "",\
+        phone: session.metadata?.phone || null,\
+        fulfillment,\
+        shipping_address: shippingAddress,\
+        pickup_location: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,\
+        subtotal_cents: subtotal,\
+        shipping_cents: shippingCents,\
+        discount_cents: 0,\
+        total_cents: totalCents,\
+        status: "PAID",\
+      \})\
+      .select("*")\
+      .single();\
+\
+    if (orderError || !createdOrder) \{\
+      throw new Error(orderError?.message || "Failed to create order");\
+    \}\
+\
+    const \{ error: orderItemsError \} = await supabase.from("order_items").insert(\
+      orderItemsPayload.map((item) => (\{\
+        ...item,\
+        order_id: createdOrder.id,\
+      \}))\
+    );\
+\
+    if (orderItemsError) \{\
+      throw new Error(orderItemsError.message);\
+    \}\
+\
+    // decrement stock\
+    for (const cartItem of items) \{\
+      const variant = variants.find((v) => v.id === cartItem.variantId);\
+      if (!variant) continue;\
+\
+      const newStock = Math.max(0, variant.stock - cartItem.quantity);\
+\
+      const \{ error: stockError \} = await supabase\
+        .from("product_variants")\
+        .update(\{ stock: newStock \})\
+        .eq("id", variant.id);\
+\
+      if (stockError) \{\
+        throw new Error(stockError.message);\
+      \}\
+    \}\
+\
+    return NextResponse.json(\{ received: true \});\
+  \} catch (error) \{\
+    console.error("Stripe webhook processing failed", error);\
+    return NextResponse.json(\{ error: "Webhook processing failed" \}, \{ status: 500 \});\
+  \}\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 12) Middleware Skeleton\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 middleware.ts
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 import \{ NextResponse \} from "next/server";\
+import type \{ NextRequest \} from "next/server";\
+\
+export function middleware(request: NextRequest) \{\
+  // V3 skeleton:\
+  // real admin auth should be handled with Supabase auth middleware + cookie/session sync.\
+  return NextResponse.next();\
+\}\
+\
+export const config = \{\
+  matcher: ["/admin/:path*"],\
+\};\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 13) Minimal Home Page Placeholder\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f3\fs30\fsmilli15210 \cf0 app/(store)/page.tsx
+\f2\fs28 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b0\fs26 \cf0 export default function HomePage() \{\
+  return (\
+    <div className="mx-auto max-w-7xl px-4 py-16 md:px-8">\
+      <section className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] md:items-center">\
+        <div className="space-y-6">\
+          <p className="upper-nav">New Collection</p>\
+          <h1 className="max-w-xl text-5xl font-semibold leading-tight">\
+            Tierra Oaxaca\
+          </h1>\
+          <p className="max-w-lg text-sm leading-7 text-stone-600">\
+            Boutique artisan clothing, shoes, pottery, and culturally rooted pieces.\
+          </p>\
+          <button className="h-11 rounded-none bg-stone-800 px-8 text-sm uppercase tracking-[0.18em] text-white">\
+            Shop Designs\
+          </button>\
+        </div>\
+\
+        <div className="aspect-[4/5] border border-stone-300 bg-white" />\
+      </section>\
+    </div>\
+  );\
+\}\
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs24 \cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 14) What This V3 Heavy Base Already Solves\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Framework reset
+\f1\b0  to Next.js App Router\
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Typed schema
+\f1\b0  for products, variants with stock, orders, order items, subscribers, custom requests\
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Variant-level inventory
+\f1\b0 \
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Flat shipping / pickup support
+\f1\b0 \
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Stripe checkout session creation
+\f1\b0 \
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Stripe webhook order creation
+\f1\b0 \
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Webhook-driven inventory decrement
+\f1\b0 \
+\ls1\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Clean anti-slop shell
+\f1\b0 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls1\ilvl1\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 centered logo\
+\ls1\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 uppercase nav\
+\ls1\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 neutral editorial spacing\
+\ls1\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 white product canvas\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Two-box PDP logic
+\f1\b0 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls1\ilvl1\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Box 1 = size selector + out-of-stock + get notified\
+\ls1\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Box 2 = size-and-fit table for shoes and apparel\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Protected admin skeleton
+\f1\b0 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls1\ilvl1
+\f0\fs26 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 /admin/inventory
+\f1\fs24 \
+\ls1\ilvl1
+\f0\fs26 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 /admin/orders
+\f1\fs24 \
+\ls1\ilvl1
+\f0\fs26 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 /admin/leads
+\f1\fs24 \
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 15) V4 Punch-List for Claude\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\fs28 \cf0 A) Visual Soul / Brand Finish\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should add:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls2\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 stronger 
+\f2\b Tierra Oaxaca
+\f1\b0  identity without turning it into clutter\
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 richer editorial art direction inspired by pottery, textiles, adobe, talavera, and warm Mexican craft references\
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 restrained use of the earthy palette:\
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls2\ilvl1\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 sand / cream base\
+\ls2\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 terracotta accents\
+\ls2\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 olive accents\
+\ls2\ilvl1\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 occasional cobalt / sunflower style accent, used sparingly\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls2\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 serif display moments for logo and hero headlines\
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 higher-end product framing so it feels 
+\f2\b boutique
+\f1\b0  and not mass-template\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 B) Responsive Polish\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should improve:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls3\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 mobile header interactions\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 product page stacking behavior\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 sticky add-to-bag behavior on small screens\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 image gallery behavior on narrow devices\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 table responsiveness for size-and-fit\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 admin table responsiveness\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 empty states / loading / skeleton states\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 C) Premium Motion\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should add:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls4\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 subtle page transitions\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 tasteful hover elevation on cards\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 image fade / reveal transitions\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 smooth accordion and drawer motion\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 sticky header micro-motion\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 cart + search drawer animations\
+\ls4\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 zero overdone parallax nonsense\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 D) PDP Upgrade Pass\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should refine:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls5\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 thumbnail gallery / zoom\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 color selection chips\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 variant grouping by color then size\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \'93saved for later\'94 / favorites UI\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 waitlist modal\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 low-stock urgency styling\
+\ls5\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 bilingual PDP copy switch\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 E) Admin Upgrade Pass\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should build:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls6\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 real product CRUD forms\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 CSV import UI\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 drag-and-drop image ordering\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 duplicate product action\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 orders table with status actions\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 leads split into subscribers / waitlist / requests\
+\ls6\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 notification badges for new orders / new requests\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f2\b\fs28 \cf0 F) Commerce / Quality Pass\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b0\fs24 \cf0 Claude should finish:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls7\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 form validation with zod\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 rate limiting for public inserts\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 webhook idempotency guard\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 order confirmation page\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 search autocomplete\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 favorites persistence\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 discount popup + floating reopen tab\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 EN / ES global state + persisted locale\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 email workflows for waitlist and subscribers\
+\ls7\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Supabase storage upload flow for product and request images\
+\pard\pardeftab720\partightenfactor0
+\cf3 \strokec3 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f2\b\fs36 \cf0 \strokec2 16) Build Notes for Handover\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls8\ilvl0
+\f1\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Standardize brand name before final polish:\
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls8\ilvl1
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 recommended canonical frontend name:
+\f1\b0  
+\f0\fs26 Tierra Oaxaca
+\f1\fs24 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls8\ilvl1\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 keep legal/store metadata configurable through env or admin settings later\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls8\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Keep 
+\f2\b variant-level stock
+\f1\b0  as source of truth\
+\ls8\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Keep the 
+\f2\b anti-slop base
+\f1\b0  simple now; do not let V4 break the information architecture\
+\ls8\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 V4 should decorate and deepen, not rewrite the business logic\
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs26 \cf0 \
+}

@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 247 245 241;
+  --foreground: 33 28 24;
+  --muted: 137 124 109;
+  --line: 205 196 187;
+  --brand-earth: 140 93 58;
+  --brand-sand: 228 221 210;
+  --brand-olive: 120 130 92;
+  --brand-terracotta: 175 94 64;
+  --brand-cream: 243 238 230;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+}
+
+.font-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.table-line {
+  @apply border-b border-stone-200;
+}
+
+.panel {
+  @apply border border-stone-300 bg-white;
+}
+
+.upper-nav {
+  @apply text-[12px] uppercase tracking-[0.22em] text-stone-700;
+}
