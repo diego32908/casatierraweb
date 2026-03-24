@@ -1,4 +1,7 @@
 .next
 node_modules
 .env.local
+.DS_Store*.tsbuildinfo
+*.tsbuildinfo
+claude-master-spec.md
 .DS_Store

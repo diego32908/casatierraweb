@@ -9,11 +9,16 @@ export type ProductCategory =
 
 export type SizeMode =
   | "none"
+  | "one_size"
   | "alpha"
   | "numeric"
   | "kids"
   | "shoes_us"
   | "custom";
+
+export type Audience = "mens" | "womens" | "kids" | "unisex";
+
+export type FitStyle = "fitted" | "relaxed" | "oversized";
 
 export type FulfillmentType = "shipping" | "pickup";
 
@@ -48,6 +53,9 @@ export interface Product {
   sort_order: number;
   seo_title: string | null;
   seo_description: string | null;
+  fit_note: string | null;
+  audience: Audience;
+  fit_style: FitStyle | null;
   created_at: string;
   updated_at: string;
 }

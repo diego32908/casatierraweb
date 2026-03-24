@@ -84,9 +84,20 @@ create table if not exists public.products (
   sort_order integer not null default 0,
   seo_title text,
   seo_description text,
+  -- Phase 2: optional product-level fit note (e.g. "Runs small. We recommend sizing up.")
+  fit_note text,
+  -- Phase 3: audience signals who the product is for — drives size label copy
+  -- Run: ALTER TABLE public.products ADD COLUMN IF NOT EXISTS audience TEXT CHECK (audience IN ('mens','womens','kids','unisex')) NOT NULL DEFAULT 'unisex';
+  audience text not null default 'unisex' check (audience in ('mens', 'womens', 'kids', 'unisex')),
+  -- Phase 3: garment cut style — null for non-apparel
+  -- Run: ALTER TABLE public.products ADD COLUMN IF NOT EXISTS fit_style TEXT CHECK (fit_style IN ('fitted','relaxed','oversized'));
+  fit_style text check (fit_style in ('fitted', 'relaxed', 'oversized')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Phase 3: one_size added to size_mode enum
+-- Run: ALTER TYPE size_mode ADD VALUE IF NOT EXISTS 'one_size';
 
 create index if not exists idx_products_category on public.products(category);
 create index if not exists idx_products_featured on public.products(featured);
@@ -202,6 +213,22 @@ create table if not exists public.waitlist (
   unique(product_id, variant_id, email)
 );
 
+-- Site settings key-value store
+-- Each row is one editable content block. value is JSONB for flexibility.
+-- Phase 3: Run the following to create this table:
+-- CREATE TABLE IF NOT EXISTS public.site_settings (
+--   key TEXT PRIMARY KEY,
+--   label TEXT NOT NULL,
+--   value JSONB NOT NULL DEFAULT '{}',
+--   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- );
+create table if not exists public.site_settings (
+  key text primary key,
+  label text not null,
+  value jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
 -- Admin profile table
 create table if not exists public.admin_profiles (
   id uuid primary key,
@@ -240,6 +267,11 @@ create trigger trg_custom_requests_updated_at
 before update on public.custom_requests
 for each row execute function public.set_updated_at();
 
+drop trigger if exists trg_site_settings_updated_at on public.site_settings;
+create trigger trg_site_settings_updated_at
+before update on public.site_settings
+for each row execute function public.set_updated_at();
+
 -- RLS
 alter table public.products enable row level security;
 alter table public.product_variants enable row level security;
@@ -249,6 +281,29 @@ alter table public.subscribers enable row level security;
 alter table public.custom_requests enable row level security;
 alter table public.waitlist enable row level security;
 alter table public.admin_profiles enable row level security;
+alter table public.site_settings enable row level security;
+
+-- Public read for site settings (homepage needs unauthenticated access)
+drop policy if exists "public can read site settings" on public.site_settings;
+create policy "public can read site settings"
+on public.site_settings
+for select
+using (true);
+
+-- Admin write for site settings
+drop policy if exists "admins manage site settings" on public.site_settings;
+create policy "admins manage site settings"
+on public.site_settings
+for all
+using (exists (select 1 from public.admin_profiles a where a.id = auth.uid()))
+with check (exists (select 1 from public.admin_profiles a where a.id = auth.uid()));
+
+-- Seed initial content blocks (idempotent)
+insert into public.site_settings (key, label, value) values
+  ('hero', 'Homepage Hero', '{"image_url": null, "heading": null, "subheading": null, "cta_label": "Shop Now", "cta_url": "/shop"}'),
+  ('editorial_break', 'Editorial Break Image', '{"image_url": null}'),
+  ('popup', 'Popup / Signup Overlay', '{"image_url": null, "enabled": false}')
+on conflict (key) do nothing;
 
 -- Public read for active products + variants
 drop policy if exists "public can read active products" on public.products;
