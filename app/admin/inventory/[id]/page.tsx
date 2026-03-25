@@ -44,6 +44,7 @@ export default async function EditProductPage({ params }: Props) {
           productId={product.id}
           variants={product.variants}
           sizeMode={product.size_mode}
+          audience={product.audience}
         />
       ) : (
         <div className="panel p-6">

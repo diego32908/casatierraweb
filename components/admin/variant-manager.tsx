@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
-import type { ProductVariant, SizeMode } from "@/types/store";
+import type { ProductVariant, SizeMode, Audience } from "@/types/store";
 import { upsertVariant, deleteVariant } from "@/app/actions/products";
 import { getStockStatus } from "@/lib/stock";
+import { getCanonicalSizes, type CanonicalSize } from "@/lib/sizing";
 import { cn } from "@/lib/utils";
 
 const inputCls =
@@ -208,25 +209,119 @@ function ColorPicker({ initialName, initialHex }: ColorPickerProps) {
   );
 }
 
+// ── SizeLabelPicker ────────────────────────────────────────────────────────
+// Module-level — renders canonical size options or falls back to free text.
+interface SizeLabelPickerProps {
+  canonicalSizes: CanonicalSize[];
+  initialLabel?: string | null;
+  initialSort?: number | null;
+}
+
+function SizeLabelPicker({ canonicalSizes, initialLabel, initialSort }: SizeLabelPickerProps) {
+  const isCustomInit =
+    !!initialLabel && !canonicalSizes.find((s) => s.label === initialLabel);
+
+  const [mode, setMode] = useState<"canonical" | "custom">(
+    isCustomInit ? "custom" : "canonical"
+  );
+  const [selectedLabel, setSelectedLabel] = useState(
+    isCustomInit ? "" : (initialLabel ?? "")
+  );
+  const [customLabel, setCustomLabel] = useState(isCustomInit ? (initialLabel ?? "") : "");
+
+  const canonical = canonicalSizes.find((s) => s.label === selectedLabel);
+  const submitLabel = mode === "canonical" ? selectedLabel : customLabel;
+  const submitSort  = mode === "canonical" ? (canonical?.sort ?? 0) : 0;
+
+  return (
+    <div className="space-y-1.5">
+      <input type="hidden" name="size_label" value={submitLabel} />
+      <input type="hidden" name="size_sort"  value={submitSort}  />
+
+      {mode === "canonical" ? (
+        <>
+          <label className={labelCls}>Size *</label>
+          <select
+            value={selectedLabel}
+            onChange={(e) => setSelectedLabel(e.target.value)}
+            className={inputCls}
+            required
+          >
+            <option value="">— select —</option>
+            {canonicalSizes.map((s) => (
+              <option key={s.label} value={s.label}>{s.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => { setMode("custom"); setSelectedLabel(""); }}
+            className="text-[11px] text-stone-400 underline underline-offset-2 hover:text-stone-600"
+          >
+            Enter custom size instead
+          </button>
+        </>
+      ) : (
+        <>
+          <label className={labelCls}>Size label *</label>
+          <input
+            value={customLabel}
+            onChange={(e) => setCustomLabel(e.target.value)}
+            placeholder="e.g. 32×30, 8.5W, One Size"
+            required
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={() => { setMode("canonical"); setCustomLabel(""); }}
+            className="text-[11px] text-stone-400 underline underline-offset-2 hover:text-stone-600"
+          >
+            ← Use standard sizes
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── VariantFields ──────────────────────────────────────────────────────────
 interface FieldsProps {
   variant?: ProductVariant;
   showShoeFields: boolean;
+  canonicalSizes: CanonicalSize[] | null;
 }
 
-function VariantFields({ variant, showShoeFields }: FieldsProps) {
+function VariantFields({ variant, showShoeFields, canonicalSizes }: FieldsProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-      <div>
-        <label className={labelCls}>Size label *</label>
-        <input
-          name="size_label"
-          required
-          defaultValue={variant?.size_label}
-          placeholder="e.g. M, 32, 8.5, One Size"
-          className={inputCls}
+      {canonicalSizes ? (
+        <SizeLabelPicker
+          canonicalSizes={canonicalSizes}
+          initialLabel={variant?.size_label}
+          initialSort={variant?.size_sort}
         />
-      </div>
+      ) : (
+        <>
+          <div>
+            <label className={labelCls}>Size label *</label>
+            <input
+              name="size_label"
+              required
+              defaultValue={variant?.size_label}
+              placeholder="e.g. M, 32, 8.5, One Size"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Sort order</label>
+            <input
+              name="size_sort"
+              type="number"
+              defaultValue={variant?.size_sort ?? 0}
+              className={inputCls}
+            />
+          </div>
+        </>
+      )}
       <div>
         <label className={labelCls}>Stock</label>
         <input
@@ -244,15 +339,6 @@ function VariantFields({ variant, showShoeFields }: FieldsProps) {
           type="number"
           min="0"
           defaultValue={variant?.low_stock_threshold ?? 5}
-          className={inputCls}
-        />
-      </div>
-      <div>
-        <label className={labelCls}>Sort order</label>
-        <input
-          name="size_sort"
-          type="number"
-          defaultValue={variant?.size_sort ?? 0}
           className={inputCls}
         />
       </div>
@@ -331,9 +417,10 @@ interface Props {
   productId: string;
   variants: ProductVariant[];
   sizeMode: SizeMode;
+  audience: Audience;
 }
 
-export function VariantManager({ productId, variants, sizeMode }: Props) {
+export function VariantManager({ productId, variants, sizeMode, audience }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -341,6 +428,7 @@ export function VariantManager({ productId, variants, sizeMode }: Props) {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const showShoeFields = sizeMode === "shoes_us";
+  const canonicalSizes = getCanonicalSizes({ audience, size_mode: sizeMode });
 
   function handleAddSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -461,7 +549,7 @@ export function VariantManager({ productId, variants, sizeMode }: Props) {
               onSubmit={(e) => handleEditSubmit(e, v.id)}
               className="space-y-3 rounded border border-stone-300 bg-stone-50 p-4"
             >
-              <VariantFields variant={v} showShoeFields={showShoeFields} />
+              <VariantFields variant={v} showShoeFields={showShoeFields} canonicalSizes={canonicalSizes} />
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -538,7 +626,7 @@ export function VariantManager({ productId, variants, sizeMode }: Props) {
           <p className="text-xs font-medium uppercase tracking-[0.15em] text-stone-500">
             New variant
           </p>
-          <VariantFields showShoeFields={showShoeFields} />
+          <VariantFields showShoeFields={showShoeFields} canonicalSizes={canonicalSizes} />
           <div className="flex gap-2">
             <button
               type="submit"
