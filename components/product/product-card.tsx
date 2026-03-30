@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
+import { HeartButton } from "./heart-button";
 
 type ColorStub = { color_name: string | null; color_hex: string | null };
 
@@ -43,63 +46,75 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const overflow = colors.length - 5;
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block">
-      {/* Image */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-stone-100 mb-3">
-        {product.primary_image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.primary_image_url}
-            alt={product.name_en}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="h-full w-full bg-stone-200 transition-transform duration-500 group-hover:scale-105" />
-        )}
-
+    <div className="group relative">
+      {/* Image area: relative + aspect-ratio defines the positioning context.
+          overflow-hidden is on an inner absolute layer so the heart is never clipped. */}
+      <div className="relative aspect-[3/4] mb-3">
+        {/* Image layer — overflow-hidden only here */}
+        <div className="absolute inset-0 overflow-hidden bg-stone-100">
+          <Link href={`/products/${product.slug}`} className="block h-full w-full">
+            {product.primary_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={product.primary_image_url}
+                alt={product.name_en}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="h-full w-full bg-stone-200 transition-transform duration-500 group-hover:scale-105" />
+            )}
+          </Link>
+        </div>
+        {/* Heart — top-right of image, never clipped */}
+        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 20 }}>
+          <HeartButton productId={product.id} size={18} />
+        </div>
       </div>
 
-      {/* Name */}
-      <p className="text-sm font-medium text-stone-900 leading-snug">{product.name_en}</p>
+      <Link href={`/products/${product.slug}`} className="block">
+        {/* Name */}
+        <p className="text-sm font-medium text-stone-900 leading-snug">{product.name_en}</p>
 
-      {/* Color chips — square, shown when 2+ distinct colors */}
-      {showColors && (
-        <div className="mt-2 flex items-center gap-2">
-          {visibleColors.map((c) => (
-            <span
-              key={c.name}
-              title={c.name}
-              className="h-3.5 w-3.5 shrink-0"
-              style={{
-                backgroundColor: c.hex ?? "#d6d3d1",
-                border: c.hex && NEEDS_BORDER.has(c.hex) ? "1px solid #d6d3d1" : "1px solid transparent",
-              }}
-            />
-          ))}
-          {overflow > 0 && (
-            <span className="text-[10px] text-stone-400 ml-0.5">+{overflow}</span>
+        {/* Color chips — square, shown when 2+ distinct colors */}
+        {showColors && (
+          <div className="mt-2 flex items-center gap-2">
+            {visibleColors.map((c) => (
+              <span
+                key={c.name}
+                title={c.name}
+                className="h-3.5 w-3.5 shrink-0"
+                style={{
+                  backgroundColor: c.hex ?? "#d6d3d1",
+                  border:
+                    c.hex && NEEDS_BORDER.has(c.hex)
+                      ? "1px solid #d6d3d1"
+                      : "1px solid transparent",
+                }}
+              />
+            ))}
+            {overflow > 0 && (
+              <span className="text-[10px] text-stone-400 ml-0.5">+{overflow}</span>
+            )}
+          </div>
+        )}
+
+        {/* Price */}
+        <div className="mt-1.5 flex items-center gap-3">
+          {onSale ? (
+            <>
+              <span className="text-[11px] text-stone-400 line-through">
+                {formatPrice(product.compare_at_price_cents!)}
+              </span>
+              <span className="inline-flex items-baseline gap-2 bg-stone-900 px-2 py-0.5 text-white">
+                <span className="text-xs font-semibold">-{pctOff}%</span>
+                <span className="text-xs font-semibold">{formatPrice(product.base_price_cents)}</span>
+              </span>
+            </>
+          ) : (
+            <p className="text-sm text-stone-500">{formatPrice(product.base_price_cents)}</p>
           )}
         </div>
-      )}
-
-      {/* Price */}
-      <div className="mt-1.5 flex items-center gap-3">
-        {onSale ? (
-          <>
-            {/* Original — very subtle */}
-            <span className="text-[11px] text-stone-400 line-through">
-              {formatPrice(product.compare_at_price_cents!)}
-            </span>
-            {/* Unified black sale block */}
-            <span className="inline-flex items-baseline gap-2 bg-stone-900 px-2 py-0.5 text-white">
-              <span className="text-xs font-semibold">-{pctOff}%</span>
-              <span className="text-xs font-semibold">{formatPrice(product.base_price_cents)}</span>
-            </span>
-          </>
-        ) : (
-          <p className="text-sm text-stone-500">{formatPrice(product.base_price_cents)}</p>
-        )}
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

@@ -1,26 +1,42 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AdminGuard } from "@/components/admin/admin-guard";
+import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 
 const adminNav = [
-  { href: "/admin/inventory", label: "Inventory" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/leads", label: "Leads" },
-  { href: "/admin/content", label: "Content" },
+  { href: "/admin/inventory",   label: "Inventory" },
+  { href: "/admin/orders",      label: "Orders" },
+  { href: "/admin/customers",   label: "Customers" },
+  { href: "/admin/leads",       label: "Leads" },
+  { href: "/admin/subscribers", label: "Subscribers" },
+  { href: "/admin/content",     label: "Content" },
 ];
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  // Login page gets a bare full-screen wrapper — no sidebar, no guard
+  if (pathname === "/admin/login") {
+    return <div className="min-h-screen bg-stone-50">{children}</div>;
+  }
+
   return (
     <AdminGuard>
       <div className="min-h-screen bg-stone-50">
         <div className="mx-auto grid min-h-screen max-w-7xl md:grid-cols-[220px_1fr]">
           <aside className="border-r border-stone-300 p-6">
-            <p className="mb-8 text-xs uppercase tracking-[0.22em] text-stone-500">
-              Admin
-            </p>
+            <div className="mb-8 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.22em] text-stone-500">
+                Admin
+              </p>
+              <AdminLogoutButton />
+            </div>
             <nav className="space-y-3">
               {adminNav.map((item) => (
                 <Link

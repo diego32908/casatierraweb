@@ -8,6 +8,8 @@ import { getStockStatus } from "@/lib/stock";
 import { sizeSelectorLabel } from "@/lib/sizing";
 import { SizeSelectorBox } from "./size-selector-box";
 import { SizeChartSection } from "./size-chart-section";
+import { useCart } from "@/components/cart/cart-context";
+import { HeartButton } from "./heart-button";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,8 @@ function OneSizeStockPill({ stock, threshold }: { stock: number; threshold: numb
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function ProductDetail({ product }: { product: ProductWithVariants }) {
+  const { addItem } = useCart();
+  const [addedToCart, setAddedToCart] = useState(false);
   const chartRef = useRef<HTMLElement>(null);
 
   function scrollToChart() {
@@ -109,6 +113,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
       : stockStatus !== "sold_out";
 
   function getButtonLabel(): string {
+    if (addedToCart) return "Added to Bag";
     if (isNone) return "Add to Bag";
     if (isOneSize) {
       return stockStatus === "sold_out" ? "Sold Out" : "Add to Bag";
@@ -116,6 +121,23 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
     if (product.variants.length === 0) return "Out of Stock";
     if (!selectedVariant) return sizeSelectorLabel(product);
     return stockStatus === "sold_out" ? "Sold Out" : "Add to Bag";
+  }
+
+  function handleAddToBag() {
+    if (!canAddToBag) return;
+    addItem({
+      product_id: product.id,
+      variant_id: isNone ? null : (selectedVariant?.id ?? null),
+      slug: product.slug,
+      product_name: product.name_en,
+      price_cents: activePrice,
+      primary_image_url: product.primary_image_url ?? null,
+      selected_color_name: isNone ? null : (selectedVariant?.color_name ?? null),
+      selected_color_hex: isNone ? null : (selectedVariant?.color_hex ?? null),
+      selected_size: isNone ? null : (selectedVariant?.size_label ?? null),
+    });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
   }
 
   const audienceLabel = productAudienceLabel(product);
@@ -183,9 +205,16 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           {/* Name + audience label + price */}
           <div className="space-y-2">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-stone-900">
-                {product.name_en}
-              </h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-3xl font-semibold tracking-tight text-stone-900">
+                  {product.name_en}
+                </h1>
+                <HeartButton
+                  productId={product.id}
+                  className="mt-2 shrink-0"
+                  size={20}
+                />
+              </div>
               {audienceLabel && (
                 <p className="mt-1 text-xs uppercase tracking-[0.18em] text-stone-400">
                   {audienceLabel}
@@ -240,6 +269,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           <button
             className="h-12 w-full rounded-full bg-stone-900 text-sm font-medium text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-300"
             disabled={!canAddToBag}
+            onClick={handleAddToBag}
           >
             {getButtonLabel()}
           </button>

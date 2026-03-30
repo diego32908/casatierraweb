@@ -3,15 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --background: 247 245 241;
-  --foreground: 33 28 24;
-  --muted: 137 124 109;
-  --line: 205 196 187;
-  --brand-earth: 140 93 58;
-  --brand-sand: 228 221 210;
-  --brand-olive: 120 130 92;
+  /* ── Neutral base ──────────────────────────────────── */
+  --background:       255 255 255;   /* #FFFFFF — white */
+  --background-panel: 255 255 255;   /* #FFFFFF — white */
+  --foreground:       17 17 17;      /* #111111 — near-black */
+  --border:           234 234 234;   /* #EAEAEA — subtle divider */
+
+  /* ── Brand accents (reserved) ──────────────────────── */
+  --brand-earth:      140 93 58;
+  --brand-sand:       228 221 210;
+  --brand-olive:      120 130 92;
   --brand-terracotta: 175 94 64;
-  --brand-cream: 243 238 230;
+  --brand-cream:      243 238 230;
 }
 
 html,
@@ -24,10 +27,23 @@ body {
   color: rgb(var(--foreground));
 }
 
+/* ── Serif role: brand, headline, story ─────────────── */
 .font-serif {
   font-family: Georgia, "Times New Roman", serif;
 }
 
+/* ── Eyebrow / section label ────────────────────────── */
+/* Sans, uppercase, airy — used for section intros, location lines, category hints */
+.eyebrow {
+  @apply text-[11px] font-medium uppercase tracking-[0.25em] text-stone-400;
+}
+
+/* Legacy alias — preserved for backward compat */
+.upper-nav {
+  @apply text-[11px] font-medium uppercase tracking-[0.25em] text-stone-400;
+}
+
+/* ── Admin panel card ───────────────────────────────── */
 .table-line {
   @apply border-b border-stone-200;
 }
@@ -36,6 +52,12 @@ body {
   @apply border border-stone-300 bg-white;
 }
 
-.upper-nav {
-  @apply text-[12px] uppercase tracking-[0.22em] text-stone-700;
+/* ── Moving announcement strip ──────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
 }

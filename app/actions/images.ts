@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/server-auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ export async function uploadProductImage(
   purpose: "primary" | "gallery",
   formData: FormData
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };
@@ -81,6 +83,7 @@ export async function removeProductImage(
   url: string,
   field: "primary" | "gallery"
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
 
   if (field === "primary") {
@@ -116,6 +119,7 @@ export async function promoteToMainImage(
   productId: string,
   url: string
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const { error } = await supabase
     .from("products")
@@ -133,6 +137,7 @@ export async function saveGalleryOrder(
   productId: string,
   urls: string[]
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const { error } = await supabase
     .from("products")
@@ -161,6 +166,7 @@ export async function uploadCategoryCardImage(
   cardKey: string,
   formData: FormData
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };
@@ -204,6 +210,37 @@ export async function uploadCategoryCardImage(
   return {};
 }
 
+/**
+ * Clear the image for one category card (sets image_url to null).
+ */
+export async function clearCategoryCardImage(
+  cardKey: string
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = createServerSupabaseClient();
+
+  const { data: row } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "category_cards")
+    .single();
+
+  const existingCards: CardRow[] = (row?.value as { cards?: CardRow[] })?.cards ?? DEFAULT_CARDS;
+  const updatedCards = existingCards.map((c) =>
+    c.key === cardKey ? { ...c, image_url: null } : c
+  );
+
+  const { error: dbError } = await supabase
+    .from("site_settings")
+    .upsert({ key: "category_cards", label: "Category Cards", value: { cards: updatedCards } });
+
+  if (dbError) return { error: dbError.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/content");
+  return {};
+}
+
 // ─── Site image actions ───────────────────────────────────────────────────────
 
 /**
@@ -217,6 +254,7 @@ export async function uploadSiteImage(
   imageField: string,
   formData: FormData
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };

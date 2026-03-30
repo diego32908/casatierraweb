@@ -17,18 +17,13 @@ const EDITORIAL_DEFAULTS = {
   image_url: null as string | null,
 };
 
-// Static category definitions — image_url is overlaid from site_settings at runtime
-const CATEGORIES = [
-  { key: "shoes",   label: "Shoes",        hint: "Footwear",        href: "/shop" },
-  { key: "apparel", label: "Apparel",      hint: "Clothing",        href: "/shop" },
-  { key: "home",    label: "Home & Goods", hint: "Pottery & Décor", href: "/shop" },
-] as const;
 
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
 
-  const [{ data: featured }, { data: latest }, { data: siteSettings }] =
+  const [{ data: featured }, { data: selected }, { data: siteSettings }] =
     await Promise.all([
+      // Best Sellers — featured products, 2 rows of 4 (8 total)
       supabase
         .from("products")
         .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
@@ -36,16 +31,17 @@ export default async function HomePage() {
         .eq("featured", true)
         .order("sort_order", { ascending: true })
         .limit(8),
+      // Selected Pieces — curated cross-category selection, 2 rows of 4 (8 total)
       supabase
         .from("products")
         .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
         .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(4),
+        .order("sort_order", { ascending: true })
+        .limit(8),
       supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["hero", "editorial_break", "category_cards"]),
+        .in("key", ["hero", "editorial_break"]),
     ]);
 
   // Merge DB values over defaults — falls back gracefully if table is empty
@@ -58,15 +54,6 @@ export default async function HomePage() {
     ...EDITORIAL_DEFAULTS,
     ...(settingsMap["editorial_break"] ?? {}),
   } as typeof EDITORIAL_DEFAULTS;
-
-  // Build a cardKey → image_url lookup from DB; falls back to null per card
-  type CardRow = { key: string; image_url: string | null };
-  const dbCards: CardRow[] =
-    (settingsMap["category_cards"] as { cards?: CardRow[] } | undefined)?.cards ?? [];
-  const cardImageMap = Object.fromEntries(dbCards.map((c) => [c.key, c.image_url]));
-
-  // Split heading at \n for the line break in the hero panel
-  const [heroLine1, heroLine2] = (hero.heading ?? "").split("\n");
 
   return (
     <div>
@@ -89,76 +76,38 @@ export default async function HomePage() {
             )}
           </div>
 
-          {/* Right: text panel — fully clickable */}
+          {/* Right: manifesto panel — fully clickable */}
           <Link
             href={hero.cta_url ?? "/shop"}
             className="group flex flex-col justify-center border-t border-stone-200 bg-[rgb(var(--background))] px-10 py-14 md:border-l md:border-t-0 md:py-0"
           >
-            <p className="upper-nav mb-6">New Collection</p>
-            <h2 className="mb-7 font-serif text-[2.4rem] leading-[1.15] text-stone-900">
-              {heroLine2 ? (
-                <>
-                  {heroLine1}
-                  <br />
-                  {heroLine2}
-                </>
-              ) : (
-                heroLine1
-              )}
+            {/* Coordinates tag */}
+            <p className="mb-8 text-[10px] uppercase tracking-[0.32em] text-stone-400">
+              Oaxaca, 17.06° N
+            </p>
+
+            {/* Title */}
+            <h2 className="mb-7 font-serif italic text-[1.75rem] leading-[1.25] text-stone-900">
+              Artisans of the Sun
             </h2>
-            {hero.subheading && (
-              <p className="mb-10 max-w-[270px] text-sm leading-7 text-stone-600">
-                {hero.subheading}
-              </p>
-            )}
-            <span className="inline-flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.22em] text-stone-900 transition-all duration-200 group-hover:gap-3">
-              {hero.cta_label}
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+
+            {/* Manifesto body */}
+            <p className="mb-10 max-w-[210px] text-[13px] leading-[1.9] text-stone-500">
+              Shaped from valley clay and threaded on looms older than memory,
+              each piece carries the knowledge of the hands that made it.
+              We work with Oaxacan artisans for whom craft is not a trade — it is inheritance.
+            </p>
+
+            {/* CTA — text-link style, no button box */}
+            <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-stone-800 underline underline-offset-4 decoration-1 transition-all duration-200 group-hover:gap-3 group-hover:text-stone-900">
+              Explore the Collection
+              <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </Link>
         </div>
       </section>
 
-      {/* ── 2. Category Cards ──────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 py-14 md:px-8">
-        <p className="upper-nav mb-8">Shop by Category</p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {CATEGORIES.map((cat) => {
-            const imageUrl = cardImageMap[cat.key] ?? null;
-            return (
-              <Link
-                key={cat.key}
-                href={cat.href}
-                className="group relative block aspect-[3/4] overflow-hidden bg-stone-100"
-              >
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageUrl}
-                    alt={cat.label}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-stone-200 transition-transform duration-700 ease-out group-hover:scale-105" />
-                )}
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-7 transition-transform duration-300 group-hover:-translate-y-1">
-                  <div>
-                    <p className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-stone-600">
-                      {cat.hint}
-                    </p>
-                    <h3 className="text-2xl font-semibold text-stone-900">{cat.label}</h3>
-                  </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-800 transition-all duration-200 group-hover:border-stone-900 group-hover:bg-stone-900">
-                    <ArrowRight className="h-3.5 w-3.5 text-stone-800 transition-colors duration-200 group-hover:translate-x-px group-hover:text-white" />
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── 3. Best Sellers ────────────────────────────────── */}
+      {/* ── 2. Best Sellers — 2 rows of 4 (8 total) ──────────── */}
       {featured && featured.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pb-16 md:px-8">
           <div className="mb-8 flex items-baseline justify-between">
@@ -196,11 +145,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 5. New Arrivals ────────────────────────────────── */}
-      {latest && latest.length > 0 && (
+      {/* ── 5. Selected Pieces — 2 rows of 4 (8 total) ────────── */}
+      {selected && selected.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
           <div className="mb-8 flex items-baseline justify-between">
-            <p className="upper-nav">New Arrivals</p>
+            <p className="upper-nav">Selected Pieces</p>
             <Link
               href="/shop"
               className="text-[11px] uppercase tracking-[0.22em] text-stone-500 transition-colors hover:text-stone-900"
@@ -209,7 +158,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {latest.map((product) => (
+            {selected.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

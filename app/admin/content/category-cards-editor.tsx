@@ -2,7 +2,7 @@
 
 import { useRef, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadCategoryCardImage } from "@/app/actions/images";
+import { uploadCategoryCardImage, clearCategoryCardImage } from "@/app/actions/images";
 
 interface CardData {
   key: string;
@@ -16,10 +16,12 @@ function CardUploader({
   card,
   isPending,
   onUpload,
+  onClear,
 }: {
   card: CardData;
   isPending: boolean;
   onUpload: (cardKey: string, fd: FormData) => void;
+  onClear: (cardKey: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,14 +49,24 @@ function CardUploader({
             alt={card.label}
             className="aspect-[3/4] w-full rounded border border-stone-200 object-cover"
           />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isPending}
-            className="absolute bottom-2 right-2 rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-stone-700 shadow-sm hover:bg-white disabled:opacity-60"
-          >
-            Replace
-          </button>
+          <div className="absolute bottom-2 right-2 flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isPending}
+              className="rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-stone-700 shadow-sm hover:bg-white disabled:opacity-60"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={() => onClear(card.key)}
+              disabled={isPending}
+              className="rounded bg-white/90 px-2 py-1 text-[10px] font-medium text-red-500 shadow-sm hover:bg-white disabled:opacity-60"
+            >
+              Clear
+            </button>
+          </div>
         </div>
       ) : (
         <button
@@ -96,6 +108,15 @@ export function CategoryCardsEditor({ cards }: Props) {
     });
   }
 
+  function handleClear(cardKey: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await clearCategoryCardImage(cardKey);
+      if (result.error) setError(result.error);
+      else router.refresh();
+    });
+  }
+
   return (
     <div className="panel p-6 space-y-4">
       <div>
@@ -120,6 +141,7 @@ export function CategoryCardsEditor({ cards }: Props) {
             card={card}
             isPending={isPending}
             onUpload={handleUpload}
+            onClear={handleClear}
           />
         ))}
       </div>

@@ -7,6 +7,7 @@ export type ProductCategory =
   | "home_decor"
   | "shoes";
 
+
 export type SizeMode =
   | "none"
   | "one_size"
@@ -24,10 +25,12 @@ export type FulfillmentType = "shipping" | "pickup";
 
 export type OrderStatus =
   | "PAID"
+  | "PREPARING"
   | "READY_FOR_PICKUP"
   | "SHIPPED"
   | "COMPLETED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "STOCK_CONFLICT";
 
 export type CustomRequestStatus = "new" | "reviewing" | "contacted" | "closed";
 
@@ -56,6 +59,7 @@ export interface Product {
   fit_note: string | null;
   audience: Audience;
   fit_style: FitStyle | null;
+  search_keywords: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -128,6 +132,7 @@ export interface Order {
   pickup_location: string | null;
   subtotal_cents: number;
   shipping_cents: number;
+  tax_cents: number;
   discount_cents: number;
   total_cents: number;
   currency: string;
@@ -200,7 +205,6 @@ export interface CheckoutRequestBody {
   email: string;
   phone?: string;
   fulfillment: FulfillmentType;
-  shippingAddress?: ShippingAddress | null;
   items: CheckoutCartItemInput[];
   discountCode?: string | null;
   locale?: "en" | "es";
@@ -211,7 +215,6 @@ export interface CheckoutMetadata {
   email: string;
   phone?: string;
   fulfillment: FulfillmentType;
-  shippingAddress?: string;
   items: string;
   locale?: "en" | "es";
 }

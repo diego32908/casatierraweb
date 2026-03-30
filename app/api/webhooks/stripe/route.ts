@@ -1,9 +1,16 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+
+// Give the webhook the maximum allowed execution time.
+// Vercel Hobby caps this at 10s regardless; Vercel Pro allows up to 60s.
+// The handler does sequential DB writes + stock RPCs — a 3-item order
+// takes ~2-3s; this budget covers any reasonable cart size.
+export const maxDuration = 60;
 import { stripe } from "@/lib/stripe";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { FLAT_SHIPPING_RATE_CENTS, PICKUP_LOCATION_LABEL } from "@/lib/constants";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import type { CheckoutCartItemInput, FulfillmentType } from "@/types/store";
 
 export async function POST(request: Request) {
@@ -34,10 +41,28 @@ export async function POST(request: Request) {
   const session = event.data.object as Stripe.Checkout.Session;
   const supabase = createServerSupabaseClient();
 
+  // Idempotency guard — Stripe retries webhooks on timeout; return 200 if already processed
+  const { data: existingOrder } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("stripe_checkout_session_id", session.id)
+    .single();
+
+  if (existingOrder) {
+    console.log("[webhook] already processed session, skipping:", session.id);
+    return NextResponse.json({ received: true });
+  }
+
   try {
     const items = JSON.parse(session.metadata?.items ?? "[]") as CheckoutCartItemInput[];
     const fulfillment = (session.metadata?.fulfillment ?? "shipping") as FulfillmentType;
-    const shippingAddress = JSON.parse(session.metadata?.shippingAddress ?? "null");
+
+    // Stripe is the source of truth for address (collected in Stripe's hosted UI)
+    // and for all money amounts (subtotal, shipping, tax, total).
+    const shippingAddress = session.shipping_details?.address ?? null;
+    const taxCents = session.total_details?.amount_tax ?? 0;
+    const shippingCents = session.total_details?.amount_shipping
+      ?? (fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0);
 
     const variantIds = items.map((item) => item.variantId);
 
@@ -54,9 +79,8 @@ export async function POST(request: Request) {
     const orderItemsPayload = items.map((cartItem) => {
       const variant = variants.find((v) => v.id === cartItem.variantId);
       if (!variant) throw new Error(`Missing variant ${cartItem.variantId}`);
-      if (variant.stock < cartItem.quantity) {
-        throw new Error(`Stock conflict for variant ${cartItem.variantId}`);
-      }
+      // No pre-check against variant.stock — that read is stale and racy.
+      // The decrement_stock_safe RPC below provides the authoritative atomic check.
 
       const product = variant.product as {
         base_price_cents: number;
@@ -80,8 +104,9 @@ export async function POST(request: Request) {
       };
     });
 
-    const shippingCents = fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0;
-    const totalCents = subtotal + shippingCents;
+    // session.amount_total is the authoritative total charged by Stripe
+    // (subtotal + shipping + tax - discounts). Always trust this over local math.
+    const totalCents = session.amount_total ?? (subtotal + shippingCents + taxCents);
 
     const { data: createdOrder, error: orderError } = await supabase
       .from("orders")
@@ -97,6 +122,7 @@ export async function POST(request: Request) {
         pickup_location: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
         subtotal_cents: subtotal,
         shipping_cents: shippingCents,
+        tax_cents: taxCents,
         discount_cents: 0,
         total_cents: totalCents,
         status: "PAID",
@@ -119,22 +145,110 @@ export async function POST(request: Request) {
       throw new Error(orderItemsError.message);
     }
 
-    // decrement stock
+    // Atomic stock decrement. decrement_stock_safe locks the row and returns
+    // fulfilled=false when stock was insufficient at the time of the UPDATE.
+    // This is the authoritative check — no pre-read of variant.stock above.
+    const oversoldVariantIds: string[] = [];
+
     for (const cartItem of items) {
-      const variant = variants.find((v) => v.id === cartItem.variantId);
-      if (!variant) continue;
-
-      const newStock = Math.max(0, variant.stock - cartItem.quantity);
-
-      const { error: stockError } = await supabase
-        .from("product_variants")
-        .update({ stock: newStock })
-        .eq("id", variant.id);
+      const { data: stockResult, error: stockError } = await supabase.rpc(
+        "decrement_stock_safe",
+        { p_variant_id: cartItem.variantId, p_quantity: cartItem.quantity }
+      );
 
       if (stockError) {
         throw new Error(stockError.message);
       }
+
+      // RPC returns TABLE — Supabase wraps it as an array
+      if (stockResult?.[0]?.fulfilled === false) {
+        oversoldVariantIds.push(cartItem.variantId);
+        console.warn(
+          "[webhook] stock conflict: variant",
+          cartItem.variantId,
+          "requested", cartItem.quantity,
+          "new_stock", stockResult[0].new_stock
+        );
+      }
     }
+
+    // If any variant was oversold, flag the order for admin review
+    if (oversoldVariantIds.length > 0) {
+      await supabase
+        .from("orders")
+        .update({
+          status: "STOCK_CONFLICT",
+          notes: `Oversold variant(s): ${oversoldVariantIds.join(", ")}. Payment received — manual review required.`,
+        })
+        .eq("id", createdOrder.id);
+    }
+
+    // Upsert customer record — non-fatal if it fails
+    try {
+      const customerEmail = (session.metadata?.email ?? session.customer_email ?? "").toLowerCase().trim();
+      if (customerEmail) {
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, order_count, total_spent_cents, first_order_completed")
+          .eq("email", customerEmail)
+          .single();
+
+        if (existing) {
+          await supabase
+            .from("customers")
+            .update({
+              order_count: existing.order_count + 1,
+              total_spent_cents: existing.total_spent_cents + totalCents,
+              first_order_completed: true,
+            })
+            .eq("email", customerEmail);
+        } else {
+          await supabase.from("customers").insert({
+            email: customerEmail,
+            full_name: session.metadata?.customerName ?? null,
+            phone: session.metadata?.phone || null,
+            first_order_at: new Date().toISOString(),
+            first_order_completed: true,
+            order_count: 1,
+            total_spent_cents: totalCents,
+          });
+        }
+      }
+    } catch (customerError) {
+      console.warn("[webhook] customer upsert failed (non-fatal):", customerError);
+    }
+
+    // Send order confirmation email — non-fatal
+    sendOrderConfirmationEmail({
+      orderId: createdOrder.id,
+      customerName: createdOrder.customer_name,
+      email: createdOrder.email,
+      items: orderItemsPayload.map((item) => ({
+        name: item.product_name_snapshot,
+        variant: item.variant_label_snapshot || null,
+        quantity: item.quantity,
+        unitPriceCents: item.unit_price_cents,
+        lineTotalCents: item.line_total_cents,
+      })),
+      subtotalCents: subtotal,
+      shippingCents,
+      taxCents,
+      totalCents,
+      fulfillment,
+      shippingAddress: shippingAddress
+        ? {
+            line1: shippingAddress.line1 ?? null,
+            line2: shippingAddress.line2 ?? null,
+            city: shippingAddress.city ?? null,
+            state: shippingAddress.state ?? null,
+            postal_code: shippingAddress.postal_code ?? null,
+            country: shippingAddress.country ?? null,
+          }
+        : null,
+      pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
+    }).catch((err) => {
+      console.warn("[webhook] order confirmation email failed (non-fatal):", err);
+    });
 
     return NextResponse.json({ received: true });
   } catch (error) {

@@ -4,6 +4,9 @@ import { EditorialEditor } from "./editorial-editor";
 import { CategoryCardsEditor } from "./category-cards-editor";
 import { PopupEditor } from "./popup-editor";
 import { AnnouncementEditor } from "./announcement-editor";
+import { VisitImageEditor } from "./visit-image-editor";
+import { SocialLinksEditor } from "./social-links-editor";
+import { ShippingEditor } from "./shipping-editor";
 
 type CardData = {
   key: string;
@@ -50,12 +53,33 @@ export default async function AdminContentPage() {
     image_url?: string | null;
     enabled?: boolean;
     heading?: string | null;
+    body_copy?: string | null;
+    discount_text?: string | null;
+    promo_code?: string | null;
+    cta_label?: string | null;
+    fine_print?: string | null;
+    layout?: "split" | "centered";
   };
 
   const announcement = (settings["announcement_bar"] ?? {}) as {
     enabled?: boolean;
     text?: string;
     url?: string | null;
+  };
+
+  const visitPage = (settings["visit_page"] ?? {}) as {
+    image_url?: string | null;
+  };
+
+  const socialLinks = (settings["social_links"] ?? {}) as {
+    instagram_url?: string | null;
+    tiktok_url?:    string | null;
+    etsy_url?:      string | null;
+  };
+
+  const shipping = (settings["shipping"] ?? {}) as {
+    flat_rate_cents?: number;
+    free_threshold_cents?: number;
   };
 
   return (
@@ -66,6 +90,11 @@ export default async function AdminContentPage() {
           Manage homepage images and copy. Changes go live immediately.
         </p>
       </header>
+
+      <ShippingEditor
+        flatRateCents={shipping.flat_rate_cents ?? 899}
+        freeThresholdCents={shipping.free_threshold_cents ?? 15000}
+      />
 
       <AnnouncementEditor
         enabled={announcement.enabled ?? false}
@@ -89,6 +118,20 @@ export default async function AdminContentPage() {
         imageUrl={popup.image_url ?? null}
         enabled={popup.enabled ?? false}
         heading={popup.heading ?? ""}
+        bodyCopy={popup.body_copy ?? ""}
+        discountText={popup.discount_text ?? ""}
+        promoCode={popup.promo_code ?? ""}
+        ctaLabel={popup.cta_label ?? "Claim Offer"}
+        finePrint={popup.fine_print ?? "No spam. Unsubscribe anytime."}
+        layout={popup.layout ?? "centered"}
+      />
+
+      <VisitImageEditor imageUrl={visitPage.image_url ?? null} />
+
+      <SocialLinksEditor
+        instagramUrl={socialLinks.instagram_url ?? "https://www.instagram.com/yolotl_artemexicano?igsh=NTc4MTIwNjQ2YQ=="}
+        tiktokUrl={socialLinks.tiktok_url       ?? "https://www.tiktok.com/@yolotlarte?_r=1&_t=ZT-953J02agR1q"}
+        etsyUrl={socialLinks.etsy_url           ?? "https://www.etsy.com/shop/elzapatiadofolklor/?etsrc=sdt"}
       />
     </section>
   );

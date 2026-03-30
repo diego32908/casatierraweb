@@ -5,3 +5,8 @@ node_modules
 *.tsbuildinfo
 claude-master-spec.md
 .DS_Store
+websitedesign.pdf
+productdesign.pdf
+sizesexample.pdf
+colors.pdf
+product-requirements-document.md

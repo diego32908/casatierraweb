@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/server-auth";
 import type { ProductCategory, SizeMode, Audience, FitStyle } from "@/types/store";
 
 function parseProductFields(formData: FormData) {
@@ -28,12 +29,14 @@ function parseProductFields(formData: FormData) {
     featured: formData.get("featured") === "on",
     audience: (formData.get("audience") as Audience) || "unisex",
     fit_style: ((formData.get("fit_style") as string) || null) as FitStyle | null,
+    search_keywords: (formData.get("search_keywords") as string)?.trim() || null,
   };
 }
 
 export async function createProduct(
   formData: FormData
 ): Promise<{ error?: string; id?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const data = parseProductFields(formData);
 
@@ -53,6 +56,7 @@ export async function updateProduct(
   id: string,
   formData: FormData
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const data = parseProductFields(formData);
 
@@ -69,6 +73,7 @@ export async function upsertVariant(
   productId: string,
   formData: FormData
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const variantId = (formData.get("variant_id") as string) || null;
 
@@ -108,6 +113,7 @@ export async function deleteVariant(
   variantId: string,
   productId: string
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
   const { error } = await supabase
     .from("product_variants")

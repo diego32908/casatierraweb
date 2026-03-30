@@ -5,15 +5,16 @@ import { useTransition, useState } from "react";
 import type { Product, Audience, FitStyle } from "@/types/store";
 import { createProduct, updateProduct } from "@/app/actions/products";
 
-const CATEGORIES = [
-  "men",
-  "women",
-  "kids",
-  "pottery",
-  "accessories",
-  "home_decor",
-  "shoes",
-] as const;
+const CATEGORIES: { value: string; label: string }[] = [
+  { value: "women",     label: "Women  →  Women's nav" },
+  { value: "men",       label: "Men  →  Men's nav" },
+  { value: "kids",      label: "Kids & Toddlers  →  Kids nav" },
+  { value: "accessories", label: "Accessories  →  Accessories nav" },
+  { value: "shoes",     label: "Shoes  →  Accessories nav" },
+  { value: "home_decor", label: "Home & Décor  →  Home nav" },
+  { value: "pottery",   label: "Pottery / Ceramics  →  Home nav" },
+];
+
 
 const SIZE_MODES = [
   { value: "none", label: "No sizing (pottery, home decor…)" },
@@ -171,8 +172,8 @@ export function ProductForm({ product }: Props) {
               className={inputCls}
             >
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c.replace(/_/g, " ")}
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -226,7 +227,7 @@ export function ProductForm({ product }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-6 pt-1">
+        <div className="flex flex-wrap gap-6 pt-1">
           <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
             <input
               type="checkbox"
@@ -299,6 +300,19 @@ export function ProductForm({ product }: Props) {
             defaultValue={product?.care_notes ?? ""}
             className={inputCls}
           />
+        </div>
+
+        <div>
+          <label className={labelCls}>Search keywords <span className="text-stone-400 font-normal">(internal — not shown to customers)</span></label>
+          <input
+            name="search_keywords"
+            defaultValue={product?.search_keywords ?? ""}
+            placeholder="e.g. linen, clay, handmade, barro, dress, oaxaca"
+            className={inputCls}
+          />
+          <p className="mt-1 text-[11px] text-stone-400">
+            Comma-separated. Helps customers find this product when searching terms not in the title.
+          </p>
         </div>
       </div>
 

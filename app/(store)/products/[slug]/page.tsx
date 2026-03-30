@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductDetail } from "@/components/product/product-detail";
+import { BackLink } from "@/components/shell/back-link";
 import type { ProductWithVariants } from "@/types/store";
 
 export default async function ProductPage({
@@ -22,6 +23,9 @@ export default async function ProductPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+      <div className="mb-8">
+        <BackLink fallback="/shop" />
+      </div>
       <ProductDetail product={product as unknown as ProductWithVariants} />
     </div>
   );

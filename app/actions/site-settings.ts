@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/server-auth";
 
 /**
  * Read all site settings in one query.
@@ -25,6 +26,7 @@ export async function patchSiteSetting(
   label: string,
   patch: Record<string, unknown>
 ): Promise<{ error?: string }> {
+  await requireAdmin();
   const supabase = createServerSupabaseClient();
 
   const { data: row } = await supabase

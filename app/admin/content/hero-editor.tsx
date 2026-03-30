@@ -79,14 +79,30 @@ export function HeroEditor({ imageUrl, heading, subheading, ctaLabel, ctaUrl }: 
               alt="Hero"
               className="h-24 w-36 rounded border border-stone-200 object-cover"
             />
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={isPending}
-              className="mt-1 text-xs text-stone-600 underline underline-offset-2 hover:text-stone-900 disabled:opacity-60"
-            >
-              Replace
-            </button>
+            <div className="mt-1 flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isPending}
+                className="text-xs text-stone-600 underline underline-offset-2 hover:text-stone-900 disabled:opacity-60"
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    const result = await patchSiteSetting("hero", "Homepage Hero", { image_url: null });
+                    if (result.error) setError(result.error);
+                    else router.refresh();
+                  });
+                }}
+                className="text-xs text-red-400 underline underline-offset-2 hover:text-red-600 disabled:opacity-60"
+              >
+                Clear
+              </button>
+            </div>
           </div>
         ) : (
           <button
