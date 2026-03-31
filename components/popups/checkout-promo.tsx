@@ -74,45 +74,48 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
     >
       {done ? (
         /* ── Success state ── */
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
-              width: 20,
-              height: 20,
+              width: 18,
+              height: 18,
               borderRadius: "50%",
-              border: "1px solid #d6d3d1",
+              background: "#1c1917",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}>
-              <svg viewBox="0 0 16 16" style={{ width: 10, height: 10, color: "#57534e" }}
-                fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg viewBox="0 0 16 16" style={{ width: 9, height: 9, color: "#fff" }}
+                fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2.5 8.5l4 4 7-8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1c1917" }}>
-              You&rsquo;re on the list.
+              You&rsquo;re in
+              {promoCode ? ` — your code:` : " — welcome to the list!"}
             </p>
           </div>
 
           {promoCode ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#78716c" }}>Your code:</p>
+            <>
+              {/* Code pill */}
               <div style={{
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 12,
                 background: "#fff",
-                border: "1px dashed #d6d3d1",
-                padding: "7px 14px",
+                border: "1.5px dashed #a8a29e",
+                padding: "10px 16px",
               }}>
                 <span style={{
                   fontFamily: "monospace",
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: 700,
-                  letterSpacing: "0.12em",
+                  letterSpacing: "0.14em",
                   color: "#1c1917",
+                  flex: 1,
                 }}>
                   {promoCode}
                 </span>
@@ -121,22 +124,26 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
                   onClick={handleCopy}
                   style={{
                     fontSize: 11,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
                     color: copied ? "#16a34a" : "#78716c",
-                    background: "none",
+                    background: copied ? "none" : "#f5f5f4",
                     border: "none",
+                    borderRadius: 3,
                     cursor: "pointer",
-                    padding: 0,
-                    transition: "color 0.15s",
+                    padding: "4px 10px",
+                    transition: "all 0.15s",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {copied ? "Copied!" : "Copy"}
+                  {copied ? "✓ Copied" : "Copy code"}
                 </button>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "#a8a29e" }}>Enter this code at Stripe checkout.</p>
-            </div>
+              <p style={{ margin: 0, fontSize: 12, color: "#a8a29e" }}>
+                Enter this code when you reach Stripe checkout.
+              </p>
+            </>
           ) : (
             <p style={{ margin: 0, fontSize: 12, color: "#78716c" }}>
               Check your email — your offer is on the way.
@@ -149,7 +156,8 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
           <div>
             {discountText && (
               <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "#1c1917" }}>
-                {discountText} off your first order
+                {/* Strip trailing "off" from discountText to avoid "16% off off your first order" */}
+                {discountText.replace(/\s+off$/i, "")} off your first order
               </p>
             )}
             <p style={{ margin: 0, fontSize: 12, color: "#78716c" }}>

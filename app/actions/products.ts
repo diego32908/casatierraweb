@@ -30,6 +30,20 @@ function parseProductFields(formData: FormData) {
     audience: (formData.get("audience") as Audience) || "unisex",
     fit_style: ((formData.get("fit_style") as string) || null) as FitStyle | null,
     search_keywords: (formData.get("search_keywords") as string)?.trim() || null,
+    // Pottery / home display fields
+    vessel_type:        (formData.get("vessel_type") as string)?.trim() || null,
+    size_label_display: (formData.get("size_label_display") as string)?.trim() || null,
+    dimensions_display: (formData.get("dimensions_display") as string)?.trim() || null,
+    // Shipping: admin enters value + unit, we store as oz
+    weight_oz: (() => {
+      const val  = parseFloat((formData.get("weight_value") as string) ?? "");
+      const unit = (formData.get("weight_unit") as string) ?? "oz";
+      if (!val || isNaN(val) || val <= 0) return null;
+      return unit === "lb" ? val * 16 : val;
+    })(),
+    length_in: parseFloat((formData.get("length_in") as string) ?? "") || null,
+    width_in:  parseFloat((formData.get("width_in")  as string) ?? "") || null,
+    height_in: parseFloat((formData.get("height_in") as string) ?? "") || null,
   };
 }
 
@@ -91,6 +105,16 @@ export async function upsertVariant(
     jp_size: (formData.get("jp_size") as string)?.trim() || null,
     color_name: (formData.get("color_name") as string)?.trim() || null,
     color_hex: (formData.get("color_hex") as string)?.trim() || null,
+    // Shipping dimensions
+    weight_oz: (() => {
+      const val  = parseFloat((formData.get("weight_value") as string) ?? "");
+      const unit = (formData.get("weight_unit") as string) ?? "oz";
+      if (!val || isNaN(val) || val <= 0) return null;
+      return unit === "lb" ? val * 16 : val;
+    })(),
+    length_in: parseFloat((formData.get("length_in") as string) ?? "") || null,
+    width_in:  parseFloat((formData.get("width_in")  as string) ?? "") || null,
+    height_in: parseFloat((formData.get("height_in") as string) ?? "") || null,
   };
 
   let error;

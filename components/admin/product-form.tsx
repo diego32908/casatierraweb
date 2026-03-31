@@ -33,6 +33,18 @@ const AUDIENCES: { value: Audience; label: string }[] = [
   { value: "kids", label: "Kids'" },
 ];
 
+const VESSEL_TYPES = [
+  { value: "",         label: "— Not set" },
+  { value: "mug",      label: "Mug" },
+  { value: "cup",      label: "Cup" },
+  { value: "plate",    label: "Plate" },
+  { value: "bowl",     label: "Bowl" },
+  { value: "pot",      label: "Pot" },
+  { value: "vase",     label: "Vase" },
+  { value: "planter",  label: "Planter" },
+  { value: "decor",    label: "Décor / other" },
+] as const;
+
 const FIT_STYLES: { value: FitStyle | ""; label: string }[] = [
   { value: "", label: "— Not set" },
   { value: "fitted", label: "Fitted" },
@@ -312,6 +324,144 @@ export function ProductForm({ product }: Props) {
           />
           <p className="mt-1 text-[11px] text-stone-400">
             Comma-separated. Helps customers find this product when searching terms not in the title.
+          </p>
+        </div>
+      </div>
+
+      {/* Shipping */}
+      <div className="panel p-6 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Shipping
+          </h2>
+          <p className="mt-1 text-[11px] text-stone-400">
+            Used for accurate shipping costs. Enter weight per unit (the item as packaged).
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelCls}>Weight</label>
+            <div className="flex gap-2">
+              <input
+                name="weight_value"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={(() => {
+                  if (!product?.weight_oz) return "";
+                  // Display in lb if >= 16 oz, otherwise oz
+                  return product.weight_oz >= 16
+                    ? (product.weight_oz / 16).toFixed(2).replace(/\.?0+$/, "")
+                    : product.weight_oz.toString();
+                })()}
+                placeholder="e.g. 2.5"
+                className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-stone-500"
+              />
+              <select
+                name="weight_unit"
+                defaultValue={product?.weight_oz && product.weight_oz >= 16 ? "lb" : "oz"}
+                className="rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-stone-500"
+              >
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
+            <p className="mt-1 text-[11px] text-stone-400">16 oz = 1 lb</p>
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>Dimensions (in inches)</label>
+          <div className="grid gap-3 grid-cols-3">
+            <div>
+              <p className="text-[11px] text-stone-400 mb-1">Length</p>
+              <input
+                name="length_in"
+                type="number"
+                step="0.1"
+                min="0"
+                defaultValue={product?.length_in ?? ""}
+                placeholder="0.0"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <p className="text-[11px] text-stone-400 mb-1">Width</p>
+              <input
+                name="width_in"
+                type="number"
+                step="0.1"
+                min="0"
+                defaultValue={product?.width_in ?? ""}
+                placeholder="0.0"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <p className="text-[11px] text-stone-400 mb-1">Height</p>
+              <input
+                name="height_in"
+                type="number"
+                step="0.1"
+                min="0"
+                defaultValue={product?.height_in ?? ""}
+                placeholder="0.0"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pottery & Home Display */}
+      <div className="panel p-6 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Pottery &amp; Home Display
+          </h2>
+          <p className="mt-1 text-[11px] text-stone-400">
+            For barro, ceramics, and home décor items. Leave blank for apparel.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelCls}>Vessel / product type</label>
+            <select
+              name="vessel_type"
+              defaultValue={product?.vessel_type ?? ""}
+              className={inputCls}
+            >
+              {VESSEL_TYPES.map((v) => (
+                <option key={v.value} value={v.value}>{v.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Size label (display)</label>
+            <input
+              name="size_label_display"
+              defaultValue={product?.size_label_display ?? ""}
+              placeholder="e.g. Large serving bowl"
+              className={inputCls}
+            />
+            <p className="mt-1 text-[11px] text-stone-400">
+              Shown on the product page instead of a size selector
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>Dimensions display</label>
+          <input
+            name="dimensions_display"
+            defaultValue={product?.dimensions_display ?? ""}
+            placeholder="e.g. 12 in diameter · 4 in tall"
+            className={inputCls}
+          />
+          <p className="mt-1 text-[11px] text-stone-400">
+            Free-form text shown on the product page (e.g. "16 oz · 4 in tall")
           </p>
         </div>
       </div>

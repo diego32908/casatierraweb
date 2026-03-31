@@ -379,6 +379,37 @@ function VariantFields({ variant, showShoeFields, canonicalSizes }: FieldsProps)
         </label>
       </div>
 
+      {/* Shipping weight — spans 2 cols */}
+      <div className="sm:col-span-2 md:col-span-3 pt-2 border-t border-stone-200">
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-stone-600 mb-2">
+          Shipping weight <span className="font-normal text-stone-400">(optional — overrides product-level weight)</span>
+        </p>
+        <div className="flex gap-2 max-w-xs">
+          <input
+            name="weight_value"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={(() => {
+              if (!variant?.weight_oz) return "";
+              return variant.weight_oz >= 16
+                ? (variant.weight_oz / 16).toFixed(2).replace(/\.?0+$/, "")
+                : variant.weight_oz.toString();
+            })()}
+            placeholder="e.g. 2.5"
+            className={inputCls}
+          />
+          <select
+            name="weight_unit"
+            defaultValue={variant?.weight_oz && variant.weight_oz >= 16 ? "lb" : "oz"}
+            className="rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-stone-500"
+          >
+            <option value="oz">oz</option>
+            <option value="lb">lb</option>
+          </select>
+        </div>
+      </div>
+
       {/* Color picker — spans full width */}
       <ColorPicker
         initialName={variant?.color_name}

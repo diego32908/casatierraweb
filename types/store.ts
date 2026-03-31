@@ -60,6 +60,15 @@ export interface Product {
   audience: Audience;
   fit_style: FitStyle | null;
   search_keywords: string | null;
+  // Pottery / home display fields
+  vessel_type: string | null;
+  size_label_display: string | null;
+  dimensions_display: string | null;
+  // Shipping dimensions (product-level; variant-level overrides these)
+  weight_oz: number | null;
+  length_in: number | null;
+  width_in: number | null;
+  height_in: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +112,11 @@ export interface ProductVariant {
   jp_size: string | null;
   measurements_cm: VariantMeasurementsCm | null;
   measurements_in: VariantMeasurementsIn | null;
+  // Shipping dimensions (overrides product-level when set)
+  weight_oz: number | null;
+  length_in: number | null;
+  width_in: number | null;
+  height_in: number | null;
   created_at: string;
   updated_at: string;
 }

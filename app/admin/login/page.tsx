@@ -58,9 +58,12 @@ function LoginForm() {
       const result = await beginAdminSession(navigator.userAgent);
 
       if (result.error) {
-        // Not an admin — sign out and show proper error
         await supabaseBrowser.auth.signOut();
-        setError("This account does not have admin access.");
+        if (result.error === "session_error") {
+          setError("Sign-in failed due to a server error. Check Vercel logs for details.");
+        } else {
+          setError("This account does not have admin access.");
+        }
         return;
       }
 

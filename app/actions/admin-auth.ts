@@ -35,15 +35,26 @@ async function getAuthenticatedAdminUser(): Promise<{
   );
 
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user || !user.email) return null;
+  if (error || !user || !user.email) {
+    console.error("[admin-auth] getUser failed:", error?.message ?? "no user");
+    return null;
+  }
 
   // Verify admin_profiles using service role (bypasses RLS)
   const service = createServerSupabaseClient();
-  const { data } = await service
+  const { data, error: profileError } = await service
     .from("admin_profiles")
     .select("id")
     .eq("id", user.id)
     .single();
+
+  console.log("[admin-auth] admin check:", {
+    userId: user.id,
+    email:  user.email,
+    url:    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    found:  !!data,
+    error:  profileError?.message ?? null,
+  });
 
   if (!data) return null;
   return { id: user.id, email: user.email };
