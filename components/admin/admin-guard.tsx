@@ -3,35 +3,57 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { SessionMonitor } from "@/components/admin/session-monitor";
 
-// Middleware handles auth redirect to /admin/login for unauthenticated requests.
-// This guard is the second layer: verifies admin role via /api/auth/is-admin.
+/**
+ * Three-layer admin access guard:
+ *
+ * 1. proxy.ts (edge)     — JWT valid + admin_profiles exists         (every request)
+ * 2. AdminGuard (client) — is-admin API + active session cookie       (on mount)
+ * 3. requireAdmin()      — re-verifies before any server action       (per mutation)
+ *
+ * This guard (layer 2) runs once per page load after SSR completes.
+ * It also mounts <SessionMonitor> which handles inactivity timeouts and
+ * server-side kill-switch detection via periodic heartbeats.
+ */
 export function AdminGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const router    = useRouter();
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     (async () => {
+      // Step 1: Verify Supabase identity (server-verified JWT, not cached session)
       const { data: { user } } = await supabaseBrowser.auth.getUser();
       if (!user) {
         router.replace("/admin/login");
         return;
       }
 
-      // getSession() is safe here for token extraction only — identity verified above via getUser()
+      // Step 2: Confirm admin role via API
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
         router.replace("/admin/login");
         return;
       }
 
-      const res = await fetch("/api/auth/is-admin", {
+      const isAdminRes  = await fetch("/api/auth/is-admin", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const { isAdmin } = await res.json().catch(() => ({ isAdmin: false }));
+      const { isAdmin } = await isAdminRes.json().catch(() => ({ isAdmin: false }));
 
       if (!isAdmin) {
         router.replace("/admin/login?error=access_denied");
+        return;
+      }
+
+      // Step 3: Validate our custom session cookie
+      const sessionRes  = await fetch("/api/admin/session");
+      const sessionData = await sessionRes.json().catch(() => ({ valid: false, reason: "error" }));
+
+      if (!sessionData.valid) {
+        // Session was killed externally (kill switch) or expired
+        await supabaseBrowser.auth.signOut();
+        router.replace(`/admin/login?reason=${sessionData.reason ?? "session_invalid"}`);
         return;
       }
 
@@ -47,5 +69,10 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <SessionMonitor />
+      {children}
+    </>
+  );
 }

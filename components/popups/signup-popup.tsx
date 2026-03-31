@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import {
   loadPromo,
@@ -437,6 +437,7 @@ export function SignupPopup(config: PopupConfig) {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "duplicate" | "error">("idle");
+  const [isPending, startTransition] = useTransition();
 
   // Trigger: randomized 7–10 seconds OR 40% scroll depth — whichever fires first.
   // Debug: add ?popup=1 to any URL to force it open immediately, bypassing localStorage.
@@ -492,28 +493,36 @@ export function SignupPopup(config: PopupConfig) {
     savePromo(dismissWithCooldown(loadPromo()));
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || status === "loading") return;
-    setStatus("loading");
-    const result = await subscribeEmail(email, "popup", config.promoCode);
-    if (result.duplicate) {
-      // User is already subscribed — treat it as success and suppress future popups
-      savePromo(markSubscribed(loadPromo(), config.promoCode));
-      setStatus("done");
-    } else if (result.error) {
-      setStatus("error");
-    } else {
-      savePromo(markSubscribed(loadPromo(), config.promoCode));
-      setStatus("done");
-    }
+    if (!email || isPending) return;
+    setStatus("idle");
+
+    startTransition(async () => {
+      try {
+        const result = await subscribeEmail(email, "popup", config.promoCode);
+        if (result.error) {
+          setStatus("error");
+        } else {
+          // New or duplicate subscriber — either way, suppress future prompts and show success
+          savePromo(markSubscribed(loadPromo(), config.promoCode));
+          setStatus("done");
+        }
+      } catch {
+        setStatus("error");
+      }
+    });
   }
 
   if (!visible) return null;
 
+  // Map useTransition pending state into the status prop so CaptureForm
+  // shows the loading UI without needing to know about useTransition.
+  const effectiveStatus = isPending ? "loading" : status;
+
   const sharedProps = {
     config,
-    status,
+    status: effectiveStatus,
     email,
     setEmail,
     onSubmit: handleSubmit,

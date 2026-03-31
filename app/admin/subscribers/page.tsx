@@ -9,8 +9,9 @@ type Subscriber = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  footer: "Footer",
-  popup:  "Popup",
+  footer:   "Footer",
+  popup:    "Popup",
+  checkout: "Checkout",
 };
 
 async function getSubscribers(): Promise<Subscriber[]> {
@@ -34,6 +35,7 @@ export default async function AdminSubscribersPage() {
     total:    subscribers.length,
     footer:   subscribers.filter((s) => s.source === "footer").length,
     popup:    subscribers.filter((s) => s.source === "popup").length,
+    checkout: subscribers.filter((s) => s.source === "checkout").length,
     active:   subscribers.filter((s) => s.status === "active").length,
   };
 
@@ -50,8 +52,9 @@ export default async function AdminSubscribersPage() {
       <div className="flex gap-6 text-sm flex-wrap">
         <span className="text-stone-900 font-medium">{counts.total} total</span>
         <span className="text-stone-400">{counts.active} active</span>
-        <span className="text-stone-400">{counts.footer} from footer</span>
         <span className="text-stone-400">{counts.popup} from popup</span>
+        <span className="text-stone-400">{counts.checkout} from checkout</span>
+        <span className="text-stone-400">{counts.footer} from footer</span>
       </div>
 
       {subscribers.length === 0 ? (

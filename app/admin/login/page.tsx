@@ -3,37 +3,64 @@
 import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { beginAdminSession } from "@/app/actions/admin-auth";
 
 const inputCls =
   "w-full border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors";
 const labelCls = "block text-[11px] uppercase tracking-[0.16em] text-stone-500 mb-1.5";
 
-// useSearchParams() requires a Suspense boundary in Next.js 14+.
-// Isolate the hook in its own component so the boundary wraps only what needs it.
-function LoginForm() {
-  const router = useRouter();
-  const params = useSearchParams();
+function reasonMessage(reason: string | null): string | null {
+  switch (reason) {
+    case "idle":            return "Session ended due to inactivity.";
+    case "expired":         return "Session expired. Please sign in again.";
+    case "session_invalid": return "Your session was ended remotely.";
+    case "inactive":        return "Your session was ended remotely.";
+    case "kill_switch":     return "All sessions were terminated.";
+    default:                return null;
+  }
+}
 
-  const [email, setEmail] = useState("");
+// useSearchParams() requires a Suspense boundary in Next.js 14+.
+function LoginForm() {
+  const router  = useRouter();
+  const params  = useSearchParams();
+
+  const errorParam  = params.get("error");
+  const reasonParam = params.get("reason");
+
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(
-    params.get("error") === "access_denied"
+  const [isPending, start]      = useTransition();
+  const [error, setError]       = useState<string | null>(
+    errorParam === "access_denied"
       ? "This account does not have admin access."
-      : null
+      : reasonMessage(reasonParam)
   );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    startTransition(async () => {
+
+    start(async () => {
+      // Step 1: Supabase authentication
       const { error: authError } = await supabaseBrowser.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email:    email.trim().toLowerCase(),
         password,
       });
 
       if (authError) {
         setError(authError.message);
+        return;
+      }
+
+      // Step 2: Create our custom admin session (sets __admin_sid cookie,
+      // logs the event, sends the alert email, invalidates previous sessions)
+      const result = await beginAdminSession(navigator.userAgent);
+
+      if (result.error) {
+        // Not an admin — sign out and show proper error
+        await supabaseBrowser.auth.signOut();
+        setError("This account does not have admin access.");
         return;
       }
 
@@ -97,7 +124,6 @@ export default function AdminLoginPage() {
           <p className="mt-6 text-xl font-medium text-stone-900">Admin</p>
         </div>
 
-        {/* Suspense required by Next.js 14+ for useSearchParams() */}
         <Suspense fallback={null}>
           <LoginForm />
         </Suspense>

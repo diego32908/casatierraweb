@@ -267,6 +267,93 @@ export async function sendWelcomeEmail(
   }
 }
 
+// ── Security alert email ─────────────────────────────────────────────────────
+
+export interface SecurityAlertData {
+  eventType:        string;
+  adminEmail:       string;
+  ip:               string;
+  userAgent:        string;
+  timestamp:        string;
+  sessionReplaced?: boolean;
+  killedCount?:     number;
+  metadata?:        Record<string, unknown>;
+}
+
+const ALERT_LABELS: Record<string, string> = {
+  admin_login:            "Admin Login",
+  admin_logout:           "Admin Logout",
+  session_replaced:       "Session Replaced",
+  kill_switch_triggered:  "⚠ Kill Switch Triggered",
+  admin_role_granted:     "Admin Role Granted",
+  password_reset:         "Password Reset",
+  suspicious_login:       "⚠ Suspicious Login Attempt",
+};
+
+function securityAlertHtml(data: SecurityAlertData): string {
+  const label = ALERT_LABELS[data.eventType] ?? data.eventType;
+  const rows = [
+    ["Event",     label],
+    ["Admin",     data.adminEmail],
+    ["Time",      new Date(data.timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles", dateStyle: "full", timeStyle: "long" })],
+    ["IP",        data.ip],
+    ["Device",    data.userAgent.slice(0, 120)],
+    ...(data.sessionReplaced ? [["Session", "Previous session was terminated"]] : []),
+    ...(data.killedCount !== undefined ? [["Sessions killed", String(data.killedCount)]] : []),
+  ] as [string, string][];
+
+  const tableRows = rows
+    .map(([k, v]) => `<tr><td style="padding:8px 12px;font-size:13px;color:#78716c;
+      font-family:Arial,sans-serif;white-space:nowrap;vertical-align:top;border-bottom:1px solid #f0eeec;">${k}</td>
+      <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+      border-bottom:1px solid #f0eeec;">${v}</td></tr>`)
+    .join("");
+
+  const isWarning = data.eventType.includes("suspicious") || data.eventType.includes("kill_switch");
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:${isWarning ? "#b91c1c" : "#a8a29e"};font-family:Arial,sans-serif;">
+      Security Alert
+    </p>
+    <h1 style="margin:0 0 24px;font-size:20px;font-weight:600;color:#1c1917;">
+      ${label}
+    </h1>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+      style="border:1px solid #e7e5e4;margin:0 0 20px;">
+      ${tableRows}
+    </table>
+    <p style="margin:0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">
+      If this was not you, use the kill switch in the admin panel immediately.
+    </p>
+  `);
+}
+
+/**
+ * Send a security alert to the admin alert address.
+ * Skipped silently if RESEND_API_KEY or ADMIN_ALERT_EMAIL are not configured.
+ * Never throws — always resolves.
+ */
+export async function sendSecurityAlert(data: SecurityAlertData): Promise<void> {
+  const resend    = getResend();
+  const alertTo   = process.env.ADMIN_ALERT_EMAIL;
+  if (!resend || !alertTo) return;
+
+  const label = ALERT_LABELS[data.eventType] ?? data.eventType;
+  try {
+    await resend.emails.send({
+      from:    FROM,
+      to:      alertTo,
+      subject: `[${BRAND}] ${label} — ${data.adminEmail}`,
+      html:    securityAlertHtml(data),
+    });
+  } catch (err) {
+    console.error("[email] sendSecurityAlert failed:", err);
+  }
+}
+
+// ── Order confirmation email ──────────────────────────────────────────────────
+
 /**
  * Send an order confirmation email after a successful payment.
  * Skipped silently if RESEND_API_KEY is not configured.

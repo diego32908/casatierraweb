@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { subscribeEmail } from "@/app/actions/subscribe";
+import { loadPromo, savePromo, markSubscribed } from "@/lib/promo";
 
 type State = "idle" | "success" | "duplicate" | "error";
 
@@ -18,11 +19,15 @@ export function FooterNewsletter() {
     startTransition(async () => {
       const result = await subscribeEmail(email, "footer");
       if (result.duplicate) {
+        // Already subscribed — suppress popup/checkout promo for this browser session
+        savePromo(markSubscribed(loadPromo(), null));
         setState("duplicate");
       } else if (result.error) {
         setErrMsg(result.error);
         setState("error");
       } else {
+        // Successfully subscribed — suppress popup and checkout promo going forward
+        savePromo(markSubscribed(loadPromo(), null));
         setState("success");
       }
     });

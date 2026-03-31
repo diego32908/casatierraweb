@@ -13,7 +13,7 @@ import { sendWelcomeEmail } from "@/lib/email";
  */
 export async function subscribeEmail(
   email: string,
-  source: "popup" | "footer" = "popup",
+  source: "popup" | "checkout" | "footer" = "popup",
   promoCode?: string | null
 ): Promise<{ error?: string; duplicate?: boolean }> {
   const ip = await clientIP();

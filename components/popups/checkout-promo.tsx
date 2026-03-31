@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { loadPromo, savePromo, isSubscribed, markSubscribed } from "@/lib/promo";
 import { subscribeEmail } from "@/app/actions/subscribe";
 
@@ -9,25 +9,24 @@ interface Props {
   discountText: string | null;
 }
 
-type Status = "idle" | "loading" | "done" | "duplicate" | "error";
-
 /**
  * Slim inline promo callout shown in checkout for non-subscribed users.
  * Unlike the popup it is NOT blocked by the dismiss cooldown — checkout is
  * a high-intent moment and the offer is low-friction and non-blocking.
- * Suppressed entirely once the user has subscribed.
+ * Suppressed entirely once the user has subscribed via any channel.
  */
 export function CheckoutPromo({ promoCode, discountText }: Props) {
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
-    const promo = loadPromo();
-    if (!isSubscribed(promo)) setShow(true);
+    if (!isSubscribed(loadPromo())) setShow(true);
   }, []);
 
   // Not yet hydrated — render nothing to avoid layout shift
@@ -36,18 +35,25 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
   // No offer configured — nothing to show
   if (!promoCode && !discountText) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || status === "loading") return;
-    setStatus("loading");
-    const result = await subscribeEmail(email, "popup", promoCode);
-    if (result.error) {
-      setStatus("error");
-    } else {
-      // duplicate or new — either way, mark subscribed client-side and show success
-      savePromo(markSubscribed(loadPromo(), promoCode));
-      setStatus("done");
-    }
+    if (!email) return;
+    setError(null);
+
+    startTransition(async () => {
+      try {
+        const result = await subscribeEmail(email, "checkout", promoCode);
+        if (result.error) {
+          setError(result.error);
+        } else {
+          // New or duplicate subscriber — either way, save state and show success
+          savePromo(markSubscribed(loadPromo(), promoCode));
+          setDone(true);
+        }
+      } catch {
+        setError("Something went wrong — please try again.");
+      }
+    });
   }
 
   function handleCopy() {
@@ -66,9 +72,9 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
         padding: "20px 24px",
       }}
     >
-      {status === "done" ? (
+      {done ? (
         /* ── Success state ── */
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 20,
@@ -90,15 +96,16 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
             </p>
           </div>
 
-          {promoCode && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {promoCode ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontSize: 12, color: "#78716c" }}>Your code:</p>
               <div style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 10,
                 background: "#fff",
                 border: "1px dashed #d6d3d1",
-                padding: "8px 14px",
+                padding: "7px 14px",
               }}>
                 <span style={{
                   fontFamily: "monospace",
@@ -128,10 +135,12 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "#a8a29e" }}>
-                Apply at checkout.
-              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "#a8a29e" }}>Enter this code at Stripe checkout.</p>
             </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12, color: "#78716c" }}>
+              Check your email — your offer is on the way.
+            </p>
           )}
         </div>
       ) : (
@@ -148,22 +157,18 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
             </p>
           </div>
 
-          {status === "error" && (
-            <p style={{ margin: 0, fontSize: 12, color: "#b91c1c" }}>
-              Something went wrong — please try again.
-            </p>
+          {error && (
+            <p style={{ margin: 0, fontSize: 12, color: "#b91c1c" }}>{error}</p>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
-          >
+          <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input
               type="email"
               required
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isPending}
               style={{
                 flex: "1 1 180px",
                 height: 38,
@@ -175,11 +180,12 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
                 color: "#1c1917",
                 outline: "none",
                 minWidth: 0,
+                opacity: isPending ? 0.6 : 1,
               }}
             />
             <button
               type="submit"
-              disabled={status === "loading"}
+              disabled={isPending}
               style={{
                 height: 38,
                 paddingLeft: 16,
@@ -191,12 +197,12 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
                 border: "none",
-                cursor: status === "loading" ? "not-allowed" : "pointer",
-                opacity: status === "loading" ? 0.6 : 1,
+                cursor: isPending ? "not-allowed" : "pointer",
+                opacity: isPending ? 0.6 : 1,
                 whiteSpace: "nowrap",
               }}
             >
-              {status === "loading" ? "…" : "Unlock"}
+              {isPending ? "…" : "Unlock"}
             </button>
           </form>
 
