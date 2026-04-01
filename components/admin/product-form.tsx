@@ -332,16 +332,16 @@ export function ProductForm({ product }: Props) {
       <div className="panel p-6 space-y-4">
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-            Shipping
+            Shipping <span className="font-normal normal-case tracking-normal text-stone-400">— optional</span>
           </h2>
           <p className="mt-1 text-[11px] text-stone-400">
-            Used for accurate shipping costs. Enter weight per unit (the item as packaged).
+            Leave blank for small apparel items. Recommended for fragile, heavy, or oversized items (pottery, barro, home décor).
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls}>Weight</label>
+            <label className={labelCls}>Weight <span className="text-stone-400 font-normal">(optional)</span></label>
             <div className="flex gap-2">
               <input
                 name="weight_value"
@@ -372,7 +372,7 @@ export function ProductForm({ product }: Props) {
         </div>
 
         <div>
-          <label className={labelCls}>Dimensions (in inches)</label>
+          <label className={labelCls}>Dimensions in inches <span className="text-stone-400 font-normal">(optional)</span></label>
           <div className="grid gap-3 grid-cols-3">
             <div>
               <p className="text-[11px] text-stone-400 mb-1">Length</p>

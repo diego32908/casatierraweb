@@ -382,7 +382,10 @@ function VariantFields({ variant, showShoeFields, canonicalSizes }: FieldsProps)
       {/* Shipping weight — spans 2 cols */}
       <div className="sm:col-span-2 md:col-span-3 pt-2 border-t border-stone-200">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-stone-600 mb-2">
-          Shipping weight <span className="font-normal text-stone-400">(optional — overrides product-level weight)</span>
+          Shipping weight{" "}
+          <span className="font-normal normal-case tracking-normal text-stone-400">
+            — optional, leave blank for small items
+          </span>
         </p>
         <div className="flex gap-2 max-w-xs">
           <input
