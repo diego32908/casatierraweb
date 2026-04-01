@@ -26,9 +26,10 @@ export function CheckoutForm({
   promoCode,
   discountText,
 }: Props) {
-  const { items, subtotalCents } = useCart();
+  const { items, subtotalCents, removeItem } = useCart();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("shipping");
   const [form, setForm] = useState({
@@ -69,6 +70,7 @@ export function CheckoutForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setWarning(null);
 
     startTransition(async () => {
       try {
@@ -88,16 +90,37 @@ export function CheckoutForm({
           }),
         });
 
-        const data = await res.json();
+        const data = await res.json() as {
+          url?: string;
+          error?: string;
+          removedItems?: { productId: string; variantId: string }[];
+        };
 
         if (!res.ok || data.error) {
           setError(data.error ?? "Checkout failed. Please try again.");
           return;
         }
 
+        // Remove any items the server flagged as unavailable from the local cart.
+        // This cleans up stale localStorage entries so they don't reappear.
+        if (data.removedItems?.length) {
+          for (const removed of data.removedItems) {
+            const cartItemKey = `${removed.productId}::${removed.variantId || "none"}`;
+            removeItem(cartItemKey);
+          }
+          const count = data.removedItems.length;
+          setWarning(
+            count === 1
+              ? "1 unavailable item was removed from your cart."
+              : `${count} unavailable items were removed from your cart.`
+          );
+          // Brief pause so the user reads the warning before being redirected
+          await new Promise((r) => setTimeout(r, 1800));
+        }
+
         // Cart is cleared on the success page after payment is confirmed —
         // NOT here, so the cart survives a cancel/back from Stripe's page.
-        window.location.href = data.url;
+        if (data.url) window.location.href = data.url;
       } catch {
         setError("Something went wrong. Please try again.");
       }
@@ -303,6 +326,11 @@ export function CheckoutForm({
               </div>
               <p className="mt-1 text-right text-[11px] text-stone-400">Excludes tax</p>
 
+              {warning && (
+                <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 leading-relaxed">
+                  {warning}
+                </p>
+              )}
               {error && (
                 <p className="mt-4 text-xs text-red-600 leading-relaxed">{error}</p>
               )}

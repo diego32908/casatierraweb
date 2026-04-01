@@ -16,30 +16,34 @@ const DEFAULT_TAX_CODE = "txcd_99999999";
 // Countries accepted for shipping. Expand as the business grows.
 const SHIPPING_COUNTRIES = ["US"] as const;
 
-// ── Types for resolved cart items ──────────────────────────────────────────────
-// Variants and product-only items are normalized into this shape before
-// being turned into Stripe line items.
+// ── Row shapes from Supabase ───────────────────────────────────────────────────
+// Only select the columns we actually need — do NOT select pottery/shipping
+// columns (weight_oz, length_in, etc.) until the migration has been applied.
 
-interface ResolvedProduct {
+interface VariantRow {
+  id:                   string;
+  size_label:           string;
+  stock:                number;
+  price_override_cents: number | null;
+}
+
+interface ProductRow {
   id:                string;
   name_en:           string;
   base_price_cents:  number;
   primary_image_url: string | null;
-  // Shipping data — used for future carrier-rate logic (Pirate Ship, etc.)
-  weight_oz:         number | null;
 }
 
-interface ResolvedVariant {
-  id:                   string;
-  product_id:           string;
-  size_label:           string;
-  stock:                number;
-  price_override_cents: number | null;
-  weight_oz:            number | null;
-  product:              ResolvedProduct;
+// ── Response shape ────────────────────────────────────────────────────────────
+
+export interface CheckoutResponse {
+  url?:          string;
+  error?:        string;
+  /** Items that were silently removed because they are unavailable or invalid. */
+  removedItems?: { productId: string; variantId: string }[];
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse<CheckoutResponse>> {
   try {
     const body = (await request.json()) as CheckoutRequestBody;
 
@@ -60,31 +64,29 @@ export async function POST(request: NextRequest) {
       await getShippingSettings(),
     ];
 
-    // ── Fetch data for all cart items ─────────────────────────────────────────
+    // ── Fetch all referenced products and variants in parallel ────────────────
     //
     // Items come in two flavors:
-    //   1. Variant-backed: apparel, one_size pottery, shoes — have a real variantId
-    //   2. Product-only:   size_mode='none' pottery/home items — variantId is empty
+    //   1. Variant-backed: apparel, one_size pottery, shoes — variantId is a UUID
+    //   2. Product-only:   size_mode='none' items — variantId is "" (empty string)
     //
-    // Both are supported. Variant-backed items get stock-checked; product-only
-    // items are treated as always available (no per-unit stock tracking exists
-    // for size_mode='none' products — admin manages availability via is_active).
+    // We fetch both independently. Missing items are removed gracefully rather
+    // than blocking the whole checkout.
 
     const variantIds = body.items.map((i) => i.variantId).filter(Boolean);
     const productIds = [...new Set(body.items.map((i) => i.productId))];
 
-    // Fetch variants (skip if none needed) and products in parallel
     const [variantResult, productResult] = await Promise.all([
       variantIds.length > 0
         ? supabase
             .from("product_variants")
-            .select("id, product_id, size_label, stock, price_override_cents, weight_oz")
+            .select("id, size_label, stock, price_override_cents")
             .in("id", variantIds)
-        : Promise.resolve({ data: [] as ResolvedVariant[], error: null }),
+        : Promise.resolve({ data: [] as VariantRow[], error: null }),
 
       supabase
         .from("products")
-        .select("id, name_en, base_price_cents, primary_image_url, weight_oz")
+        .select("id, name_en, base_price_cents, primary_image_url")
         .in("id", productIds),
     ]);
 
@@ -92,43 +94,67 @@ export async function POST(request: NextRequest) {
       console.error("[checkout] variant fetch error:", variantResult.error);
       return NextResponse.json({ error: "Unable to load cart items" }, { status: 400 });
     }
-    if (productResult.error || !productResult.data?.length) {
+    if (productResult.error) {
       console.error("[checkout] product fetch error:", productResult.error);
       return NextResponse.json({ error: "Unable to load cart items" }, { status: 400 });
     }
 
-    const variantMap = new Map(
-      (variantResult.data as ResolvedVariant[]).map((v) => [v.id, v])
+    const variantMap = new Map<string, VariantRow>(
+      (variantResult.data ?? []).map((v) => [v.id, v])
     );
-    const productMap = new Map(
-      (productResult.data as ResolvedProduct[]).map((p) => [p.id, p])
+    const productMap = new Map<string, ProductRow>(
+      (productResult.data ?? []).map((p) => [p.id, p])
     );
 
-    // ── Build Stripe line items ───────────────────────────────────────────────
-    let subtotalCents = 0;
+    // ── Resolve each cart item; remove unavailable ones gracefully ────────────
 
-    const line_items = body.items.map((cartItem) => {
+    const removedItems: CheckoutResponse["removedItems"] = [];
+    const validItems:   typeof body.items = [];
+
+    for (const cartItem of body.items) {
       const product = productMap.get(cartItem.productId);
-      if (!product) throw new Error(`Product not found: ${cartItem.productId}`);
+      if (!product) {
+        // Product deleted or deactivated since item was added to cart
+        console.warn("[checkout] product not found:", cartItem.productId);
+        removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
+        continue;
+      }
 
       const variant = cartItem.variantId ? variantMap.get(cartItem.variantId) : null;
 
-      // Variant exists but wasn't returned — mismatched IDs or deleted variant
       if (cartItem.variantId && !variant) {
-        throw new Error(`Variant not found: ${cartItem.variantId}`);
+        // Variant was deleted or ID is stale (e.g. from old localStorage cart)
+        console.warn("[checkout] variant not found:", cartItem.variantId);
+        removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
+        continue;
       }
 
-      // Stock check — only for variant-backed items (product-only items have no variant stock)
       if (variant && variant.stock < cartItem.quantity) {
-        throw new Error(`Insufficient stock for ${variant.size_label}`);
+        // Out of stock since item was added to cart
+        console.warn("[checkout] insufficient stock:", variant.size_label, variant.stock, "requested:", cartItem.quantity);
+        removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
+        continue;
       }
+
+      validItems.push(cartItem);
+    }
+
+    if (validItems.length === 0) {
+      return NextResponse.json(
+        { error: "None of the items in your cart are currently available.", removedItems },
+        { status: 400 }
+      );
+    }
+
+    // ── Build Stripe line items from valid items only ─────────────────────────
+    let subtotalCents = 0;
+
+    const line_items = validItems.map((cartItem) => {
+      const product = productMap.get(cartItem.productId)!;
+      const variant  = cartItem.variantId ? variantMap.get(cartItem.variantId) : null;
 
       const unitAmount = variant?.price_override_cents ?? product.base_price_cents;
       subtotalCents += unitAmount * cartItem.quantity;
-
-      // Effective weight for this line item (variant overrides product level)
-      // Kept here for future carrier-rate integration (Pirate Ship, EasyPost, etc.)
-      // const effectiveWeightOz = variant?.weight_oz ?? product.weight_oz ?? null;
 
       return {
         quantity: cartItem.quantity,
@@ -138,12 +164,12 @@ export async function POST(request: NextRequest) {
           // Required for Stripe automatic tax — price does NOT include tax
           tax_behavior: "exclusive" as const,
           product_data: {
-            name:      product.name_en,
+            name: product.name_en,
             // size_label is the human-readable variant label (e.g. "M", "Small mug").
-            // Stripe requires description to be non-empty if provided — use undefined instead of "".
+            // Omit when empty to avoid Stripe rejecting a blank description string.
             ...(variant?.size_label ? { description: variant.size_label } : {}),
-            images:    product.primary_image_url ? [product.primary_image_url] : [],
-            tax_code:  DEFAULT_TAX_CODE,
+            images:   product.primary_image_url ? [product.primary_image_url] : [],
+            tax_code: DEFAULT_TAX_CODE,
           },
         },
       };
@@ -194,9 +220,9 @@ export async function POST(request: NextRequest) {
       cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
 
       metadata: (() => {
-        const itemsJson = JSON.stringify(body.items);
+        // Only include valid items in metadata (removed items are already dropped)
+        const itemsJson = JSON.stringify(validItems);
         // Stripe caps each metadata value at 500 characters.
-        // Guard here so we fail fast with a clear error rather than losing an order silently.
         if (itemsJson.length > 490) {
           throw new Error(
             `Cart metadata too large (${itemsJson.length} chars). ` +
@@ -215,7 +241,7 @@ export async function POST(request: NextRequest) {
       })(),
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url ?? undefined, removedItems });
   } catch (error) {
     console.error("POST /api/checkout error", error);
     return NextResponse.json(
