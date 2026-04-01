@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/cart/cart-context";
+import { saveCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/utils";
 
 interface DisplayItem {
@@ -47,6 +48,14 @@ export function SuccessClient({
 }: Props) {
   const { clearCart } = useCart();
 
+  // useLayoutEffect fires synchronously before any useEffect, including
+  // CartProvider's INIT effect that reads localStorage. Writing [] here
+  // ensures INIT hydrates an empty cart instead of the just-purchased one.
+  useLayoutEffect(() => {
+    saveCart([]);
+  }, []);
+
+  // Also dispatch CLEAR to the in-memory reducer as a safety net.
   useEffect(() => {
     clearCart();
   }, [clearCart]);
