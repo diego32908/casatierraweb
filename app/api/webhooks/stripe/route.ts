@@ -64,30 +64,68 @@ export async function POST(request: Request) {
     const shippingCents = session.total_details?.amount_shipping
       ?? (fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0);
 
-    const variantIds = items.map((item) => item.variantId);
+    // Split items: pottery/home-décor products have variantId="" (no variant row).
+    const variantBackedItems = items.filter((i) => i.variantId !== "");
+    const productOnlyItems   = items.filter((i) => i.variantId === "");
 
-    const { data: variants, error: variantsError } = await supabase
-      .from("product_variants")
-      .select("*, product:products(*)")
-      .in("id", variantIds);
+    const [variantResult, productResult] = await Promise.all([
+      variantBackedItems.length > 0
+        ? supabase
+            .from("product_variants")
+            .select("*, product:products(*)")
+            .in("id", variantBackedItems.map((i) => i.variantId))
+        : Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
 
-    if (variantsError || !variants) {
-      throw new Error("Could not load variants during webhook");
-    }
+      productOnlyItems.length > 0
+        ? supabase
+            .from("products")
+            .select("id, name_en, base_price_cents, primary_image_url")
+            .in("id", [...new Set(productOnlyItems.map((i) => i.productId))])
+        : Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
+    ]);
+
+    if (variantResult.error) throw new Error("Could not load variants during webhook");
+    if (productResult.error) throw new Error("Could not load products during webhook");
+
+    const variants = variantResult.data ?? [];
+    const standaloneProducts = productResult.data ?? [];
 
     let subtotal = 0;
     const orderItemsPayload = items.map((cartItem) => {
-      const variant = variants.find((v) => v.id === cartItem.variantId);
+      if (cartItem.variantId === "") {
+        // Product-only item (pottery, home décor, size_mode='none')
+        const product = standaloneProducts.find(
+          (p) => (p as { id: string }).id === cartItem.productId
+        ) as { id: string; name_en: string; base_price_cents: number; primary_image_url: string | null } | undefined;
+        if (!product) throw new Error(`Missing product ${cartItem.productId}`);
+        const lineTotal = product.base_price_cents * cartItem.quantity;
+        subtotal += lineTotal;
+        return {
+          product_id: product.id,
+          variant_id: null,
+          product_name_snapshot: product.name_en,
+          variant_label_snapshot: null,
+          unit_price_cents: product.base_price_cents,
+          quantity: cartItem.quantity,
+          line_total_cents: lineTotal,
+          image_url_snapshot: product.primary_image_url,
+        };
+      }
+
+      // Variant-backed item
+      const variant = variants.find((v) => (v as { id: string }).id === cartItem.variantId) as {
+        id: string;
+        product_id: string;
+        price_override_cents: number | null;
+        color_name: string | null;
+        size_label: string;
+        product: { base_price_cents: number; name_en: string; primary_image_url: string | null };
+      } | undefined;
       if (!variant) throw new Error(`Missing variant ${cartItem.variantId}`);
       // No pre-check against variant.stock — that read is stale and racy.
       // The decrement_stock_safe RPC below provides the authoritative atomic check.
 
-      const product = variant.product as {
-        base_price_cents: number;
-        name_en: string;
-        primary_image_url: string | null;
-      };
-
+      const product = variant.product;
       const unitPrice = variant.price_override_cents ?? product.base_price_cents;
       const lineTotal = unitPrice * cartItem.quantity;
       subtotal += lineTotal;
@@ -148,9 +186,10 @@ export async function POST(request: Request) {
     // Atomic stock decrement. decrement_stock_safe locks the row and returns
     // fulfilled=false when stock was insufficient at the time of the UPDATE.
     // This is the authoritative check — no pre-read of variant.stock above.
+    // Product-only items (pottery, size_mode='none') have no variant row → skip.
     const oversoldVariantIds: string[] = [];
 
-    for (const cartItem of items) {
+    for (const cartItem of variantBackedItems) {
       const { data: stockResult, error: stockError } = await supabase.rpc(
         "decrement_stock_safe",
         { p_variant_id: cartItem.variantId, p_quantity: cartItem.quantity }

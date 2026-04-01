@@ -27,6 +27,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-divide bg-bone/95 backdrop-blur">
+      {/* ── Announcement bar ── */}
       {showBar && (
         <div className="overflow-hidden bg-stone-900 py-2.5" aria-label={bar!.text}>
           <div className="animate-marquee flex items-center whitespace-nowrap">
@@ -59,22 +60,19 @@ export async function SiteHeader() {
       )}
 
       {/*
-        3-column flex: [fixed-width spacer] [center: logo + nav, auto] [fixed-width icons]
-        Both side columns use the same fixed width (w-44 = 176px) so centering is
-        guaranteed and the icon cluster always has a clear buffer from the nav edge.
+        Desktop: 3-column flex — [fixed spacer w-44] [center: logo + nav] [fixed icons w-44]
+        Mobile: 2-column — [logo flex-1] [icons]
       */}
-      <div className="mx-auto flex max-w-7xl items-stretch px-10">
+      <div className="mx-auto flex max-w-7xl items-stretch px-4 md:px-10">
 
-        {/* Left spacer — fixed width matching the icon column for true centering */}
-        <div className="w-44 shrink-0" />
+        {/* Left spacer — desktop only (keeps logo centered above nav) */}
+        <div className="hidden md:block md:w-44 shrink-0" />
 
-        {/* Center: wordmark + nav */}
-        <div className="flex flex-1 flex-col items-center py-5 gap-3">
-
-          {/* Wordmark */}
+        {/* Center: wordmark (+ desktop nav) */}
+        <div className="flex flex-1 flex-col py-3.5 md:items-center md:py-5 md:gap-3">
           <LogoLink />
 
-          {/* Primary nav — centered below wordmark */}
+          {/* Desktop nav — hidden on mobile */}
           <nav className="hidden md:flex items-center gap-7 text-[11px] font-medium uppercase tracking-[0.25em] text-stone-400">
             {STORE_NAV.map((item) => (
               <Link
@@ -86,11 +84,10 @@ export async function SiteHeader() {
               </Link>
             ))}
           </nav>
-
         </div>
 
-        {/* Right: utility icons — fixed width, right-aligned within the column */}
-        <div className="flex w-44 shrink-0 items-center justify-end gap-5 text-stone-500">
+        {/* Right: utility icons */}
+        <div className="flex items-center justify-end gap-4 shrink-0 text-stone-500 md:w-44 md:gap-5">
           <SearchPanel />
           <ProfileHeaderButton />
           <WishlistHeaderButton />
@@ -98,6 +95,20 @@ export async function SiteHeader() {
         </div>
 
       </div>
+
+      {/* ── Mobile nav strip — horizontal scroll, hidden on md+ ── */}
+      <nav className="scrollbar-hide md:hidden flex items-center overflow-x-auto gap-5 px-4 pb-3 border-t border-stone-100">
+        {STORE_NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="shrink-0 text-[11px] font-medium uppercase tracking-[0.22em] text-stone-400 transition-colors hover:text-stone-900 py-0.5"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
     </header>
   );
 }

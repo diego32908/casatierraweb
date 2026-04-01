@@ -17,6 +17,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -24,16 +25,10 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const { data, error: authError } = await supabaseBrowser.auth.signInWithPassword({
+      const { error: authError } = await supabaseBrowser.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-      });
-
-      console.log("[login] result:", {
-        userId: data.user?.id,
-        hasSession: !!data.session,
-        error: authError?.message,
-        errorStatus: (authError as { status?: number } | null)?.status,
+        options: { persistSession: keepSignedIn },
       });
 
       if (authError) {
@@ -76,6 +71,16 @@ function LoginForm() {
             autoComplete="current-password"
           />
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2.5 pt-1">
+          <input
+            type="checkbox"
+            checked={keepSignedIn}
+            onChange={(e) => setKeepSignedIn(e.target.checked)}
+            className="h-4 w-4 rounded accent-stone-900"
+          />
+          <span className="text-xs text-stone-500">Keep me signed in</span>
+        </label>
 
         <button
           type="submit"

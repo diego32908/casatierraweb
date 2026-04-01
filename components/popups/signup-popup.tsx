@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import {
   loadPromo,
@@ -243,6 +243,20 @@ function CaptureForm({
   );
 }
 
+// ── Small-screen helper ───────────────────────────────────────────────────────
+// Returns true when the viewport is narrower than 640px. Avoids SSR mismatch by
+// initialising to false and updating after mount.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 640); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
 // ── Layout A — Split ──────────────────────────────────────────────────────────
 
 function SplitLayout({
@@ -262,12 +276,14 @@ function SplitLayout({
   onDismiss: () => void;
   onClose: () => void;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <div style={{
       position: "relative",
       zIndex: 10,
       width: "100%",
-      maxWidth: 800,
+      maxWidth: isMobile ? "100%" : 800,
       pointerEvents: "auto",
     }}>
       <button
@@ -278,8 +294,8 @@ function SplitLayout({
           top: -12,
           right: -12,
           zIndex: 30,
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -297,15 +313,25 @@ function SplitLayout({
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "48% 52%",
+        // Mobile: single column (image stacked above content)
+        // Desktop: side-by-side split
+        gridTemplateColumns: isMobile ? "1fr" : "48% 52%",
         width: "100%",
-        height: 460,
-        overflow: "hidden",
+        // Mobile: auto height, scrollable; Desktop: fixed 460px
+        height: isMobile ? "auto" : 460,
+        maxHeight: isMobile ? "85vh" : undefined,
+        overflowY: isMobile ? "auto" : "hidden",
         borderRadius: 12,
         background: "#ffffff",
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
       }}>
-        <div style={{ position: "relative", overflow: "hidden", background: "#e7e5e4" }}>
+        {/* Image — condensed on mobile, full-height on desktop */}
+        <div style={{
+          position: "relative",
+          overflow: "hidden",
+          background: "#e7e5e4",
+          height: isMobile ? 180 : "auto",
+        }}>
           {config.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -323,7 +349,7 @@ function SplitLayout({
           flexDirection: "column",
           justifyContent: "center",
           overflowY: "auto",
-          padding: "40px 40px",
+          padding: isMobile ? "28px 24px 32px" : "40px 40px",
           background: "#ffffff",
         }}>
           {status === "done" ? (
@@ -363,12 +389,14 @@ function CenteredLayout({
   onDismiss: () => void;
   onClose: () => void;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <div style={{
       position: "relative",
       zIndex: 10,
       width: "100%",
-      maxWidth: 500,
+      maxWidth: isMobile ? "100%" : 500,
       pointerEvents: "auto",
     }}>
       <button
@@ -379,8 +407,8 @@ function CenteredLayout({
           top: -12,
           right: -12,
           zIndex: 30,
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -401,9 +429,11 @@ function CenteredLayout({
         borderRadius: 12,
         background: "#ffffff",
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        maxHeight: isMobile ? "85vh" : undefined,
+        overflowY: isMobile ? "auto" : undefined,
       }}>
         {config.imageUrl && (
-          <div style={{ height: 176, overflow: "hidden", background: "#e7e5e4" }}>
+          <div style={{ height: isMobile ? 140 : 176, overflow: "hidden", background: "#e7e5e4" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={config.imageUrl}
@@ -412,7 +442,7 @@ function CenteredLayout({
             />
           </div>
         )}
-        <div style={{ padding: "40px 40px" }}>
+        <div style={{ padding: isMobile ? "28px 24px 32px" : "40px 40px" }}>
           {status === "done" ? (
             <SuccessState promoCode={config.promoCode} onClose={onClose} />
           ) : (

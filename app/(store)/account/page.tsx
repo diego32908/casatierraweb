@@ -30,6 +30,9 @@ type Order = {
   status: string;
   total_cents: number;
   fulfillment: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  carrier: string | null;
   order_items: OrderItem[];
 };
 
@@ -89,10 +92,10 @@ export default function AccountPage() {
         });
       }
 
-      // Load orders — RLS ensures only own orders
+      // Load orders — RLS ensures only own orders (requires 20260331 migration)
       const { data: ordersData } = await supabaseBrowser
         .from("orders")
-        .select("id, created_at, status, total_cents, fulfillment, order_items(id, product_name_snapshot, variant_label_snapshot, quantity, line_total_cents)")
+        .select("id, created_at, status, total_cents, fulfillment, tracking_number, tracking_url, carrier, order_items(id, product_name_snapshot, variant_label_snapshot, quantity, line_total_cents)")
         .order("created_at", { ascending: false });
 
       setOrders((ordersData ?? []) as Order[]);
@@ -272,21 +275,30 @@ export default function AccountPage() {
             <div className="space-y-4">
               {orders.map((order) => (
                 <div key={order.id} className="border border-stone-100 p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs text-stone-500">
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono text-xs font-semibold text-stone-700">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </p>
+                        <span className="text-stone-300">·</span>
+                        <p className="text-xs text-stone-400 capitalize">
+                          {STATUS_LABELS[order.status] ?? order.status}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-stone-400 capitalize">
                         {new Date(order.created_at).toLocaleDateString("en-US", {
                           month: "long", day: "numeric", year: "numeric",
                         })}
-                      </p>
-                      <p className="text-[11px] text-stone-400 mt-0.5 capitalize">
-                        {order.fulfillment} · {STATUS_LABELS[order.status] ?? order.status}
+                        {" · "}
+                        {order.fulfillment}
                       </p>
                     </div>
-                    <p className="text-sm font-medium text-stone-900">
+                    <p className="shrink-0 text-sm font-medium text-stone-900">
                       {formatPrice(order.total_cents)}
                     </p>
                   </div>
+
                   <div className="space-y-1.5 border-t border-stone-100 pt-3">
                     {order.order_items.map((item) => (
                       <div key={item.id} className="flex justify-between text-xs">
@@ -301,6 +313,28 @@ export default function AccountPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Tracking — shown once admin sets a tracking number */}
+                  {order.tracking_number && (
+                    <div className="border-t border-stone-100 pt-3">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 mb-1">
+                        Tracking
+                        {order.carrier ? ` · ${order.carrier}` : ""}
+                      </p>
+                      {order.tracking_url ? (
+                        <a
+                          href={order.tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-stone-700 underline underline-offset-2 hover:text-stone-900"
+                        >
+                          {order.tracking_number}
+                        </a>
+                      ) : (
+                        <p className="text-xs text-stone-700 font-mono">{order.tracking_number}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

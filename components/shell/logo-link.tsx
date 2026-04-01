@@ -18,7 +18,7 @@ export function LogoLink() {
     <Link
       href="/"
       onClick={handleClick}
-      className="font-serif text-[27px] tracking-[0.22em] text-ink transition-opacity duration-150 hover:opacity-75"
+      className="font-serif text-[21px] tracking-[0.22em] text-ink transition-opacity duration-150 hover:opacity-75 md:text-[27px]"
     >
       {BRAND_NAME}
     </Link>

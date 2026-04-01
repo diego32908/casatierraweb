@@ -61,3 +61,17 @@ body {
 .animate-marquee {
   animation: marquee 40s linear infinite;
 }
+
+/* ── Scrollbar hide (mobile nav strip) ──────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Mobile: remove tap highlight on nav links ──────── */
+@media (max-width: 767px) {
+  a, button { -webkit-tap-highlight-color: transparent; }
+}

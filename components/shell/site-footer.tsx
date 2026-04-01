@@ -53,7 +53,7 @@ export async function SiteFooter() {
   return (
     <footer className="w-full mt-24 border-t border-[#EAEAEA]">
 
-      <div style={{ padding: "56px 128px" }}>
+      <div className="px-4 py-12 md:px-12 lg:px-20 xl:px-28">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 lg:gap-x-20 gap-y-12">
 
           {/* LEFT — Brand */}

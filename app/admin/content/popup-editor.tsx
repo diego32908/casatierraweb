@@ -205,7 +205,10 @@ export function PopupEditor({
             className={inputCls}
           />
           <p className="mt-1 text-xs text-stone-400">
-            Shown to the user after they submit their email. Leave blank to hide.
+            Must match an active Stripe Promotion Code exactly (case-sensitive). After signup, the
+            code is saved to the visitor&apos;s browser and <strong>auto-applied</strong> when they
+            proceed to Stripe checkout — they don&apos;t need to type it. Leave blank to disable
+            the offer.
           </p>
         </div>
 
