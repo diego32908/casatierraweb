@@ -159,7 +159,7 @@ export function CheckoutForm({
       : 0;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 md:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 md:py-16 md:px-8">
       <div className="mb-10">
         <BackLink fallback="/cart" />
       </div>
@@ -169,7 +169,7 @@ export function CheckoutForm({
       </h1>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid gap-16 lg:grid-cols-[1fr_300px]">
+        <div className="grid gap-8 md:gap-12 lg:grid-cols-[1fr_300px]">
 
           {/* ── Left: customer info ── */}
           <div className="space-y-10">

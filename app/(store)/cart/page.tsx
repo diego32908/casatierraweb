@@ -43,7 +43,7 @@ export default function CartPage() {
   // ── Cart ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 md:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 md:py-16 md:px-8">
       <div className="mb-8">
         <BackLink fallback="/shop" />
       </div>
@@ -57,13 +57,13 @@ export default function CartPage() {
         </span>
       </div>
 
-      <div className="grid gap-16 lg:grid-cols-[1fr_296px]">
+      <div className="grid gap-8 md:gap-16 lg:grid-cols-[1fr_296px]">
         {/* ── Line items ──────────────────────────────────────────────────── */}
         <div className="space-y-0">
           {items.map((item) => (
             <div
               key={item.key}
-              className="group flex gap-6 border-b border-stone-100 py-7 first:border-t first:border-stone-100"
+              className="group flex gap-4 md:gap-6 border-b border-stone-100 py-5 md:py-7 first:border-t first:border-stone-100"
             >
               {/* Thumbnail */}
               <Link
@@ -123,7 +123,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => removeItem(item.key)}
-                    className="shrink-0 p-1 text-stone-300 transition-colors hover:text-stone-700"
+                    className="shrink-0 p-2 text-stone-300 transition-colors hover:text-stone-700"
                     aria-label={`Remove ${item.product_name}`}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -137,7 +137,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => setQty(item.key, item.quantity - 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-700"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-700"
                       aria-label="Decrease quantity"
                     >
                       <Minus className="h-3 w-3" />
@@ -148,7 +148,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => setQty(item.key, item.quantity + 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-700"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-700"
                       aria-label="Increase quantity"
                     >
                       <Plus className="h-3 w-3" />

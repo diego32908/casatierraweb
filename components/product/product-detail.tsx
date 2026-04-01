@@ -155,7 +155,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
   return (
     <>
       {/* ── Purchase area ── */}
-      <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-6 md:gap-10 md:grid-cols-[1.2fr_0.8fr]">
         {/* Left: image */}
         <section className="space-y-3">
           <div className="aspect-[4/5] overflow-hidden border border-stone-200 bg-stone-100">
@@ -206,7 +206,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           <div className="space-y-2">
             <div>
               <div className="flex items-start justify-between gap-4">
-                <h1 className="text-3xl font-semibold tracking-tight text-stone-900">
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-stone-900">
                   {product.name_en}
                 </h1>
                 <HeartButton

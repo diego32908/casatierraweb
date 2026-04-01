@@ -79,7 +79,7 @@ export default async function HomePage() {
           {/* Right: manifesto panel — fully clickable */}
           <Link
             href={hero.cta_url ?? "/shop"}
-            className="group flex flex-col justify-center border-t border-stone-200 bg-[rgb(var(--background))] px-10 py-14 md:border-l md:border-t-0 md:py-0"
+            className="group flex flex-col justify-center border-t border-stone-200 bg-[rgb(var(--background))] px-6 py-10 md:border-l md:border-t-0 md:px-10 md:py-0"
           >
             {/* Coordinates tag */}
             <p className="mb-8 text-[10px] uppercase tracking-[0.32em] text-stone-400">
@@ -129,7 +129,7 @@ export default async function HomePage() {
 
       {/* ── 4. Editorial Image Break ───────────────────────── */}
       <section className="bg-stone-100 py-1">
-        <div className="mx-auto max-w-7xl px-4 py-20 md:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-10 md:py-20 md:px-8">
           {editorial.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -166,11 +166,11 @@ export default async function HomePage() {
       )}
 
       {/* ── 6. About / Story ───────────────────────────────── */}
-      <section className="border-t border-stone-200 py-20">
-        <div className="mx-auto grid max-w-7xl items-center gap-16 px-4 md:grid-cols-2 md:px-8">
+      <section className="border-t border-stone-200 py-14 md:py-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 md:gap-16 px-4 md:grid-cols-2 md:px-8">
           <div>
             <p className="upper-nav mb-6">Our Story</p>
-            <h2 className="mb-7 font-serif text-4xl leading-tight text-stone-900">
+            <h2 className="mb-7 font-serif text-3xl md:text-4xl leading-tight text-stone-900">
               Rooted in Oaxaca.<br />
               Made with craft.
             </h2>

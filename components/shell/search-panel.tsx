@@ -140,7 +140,7 @@ export function SearchPanel() {
             display: "flex",
             alignItems: "center",
             gap: 14,
-            padding: "26px 32px 22px",
+            padding: geo.width < 400 ? "18px 20px 16px" : "26px 32px 22px",
             borderBottom: "1px solid #EAEAEA",
           }}
         >
@@ -186,7 +186,7 @@ export function SearchPanel() {
         </div>
 
         {/* ── Body ── */}
-        <div style={{ padding: "28px 32px 36px" }}>
+        <div style={{ padding: geo.width < 400 ? "20px 20px 28px" : "28px 32px 36px" }}>
 
           {/* Suggested terms */}
           {!query.trim() && (
@@ -252,12 +252,12 @@ export function SearchPanel() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  columnGap: 16,
+                  gridTemplateColumns: geo.width < 400 ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+                  columnGap: 12,
                   rowGap: 0,
                 }}
               >
-                {featuredProducts.slice(0, 3).map((p) => (
+                {featuredProducts.slice(0, geo.width < 400 ? 2 : 3).map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
               </div>
@@ -281,8 +281,8 @@ export function SearchPanel() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  columnGap: 16,
+                  gridTemplateColumns: geo.width < 400 ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+                  columnGap: 12,
                   rowGap: 24,
                 }}
               >
