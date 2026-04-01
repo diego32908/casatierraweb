@@ -16,9 +16,27 @@ const DEFAULT_TAX_CODE = "txcd_99999999";
 // Countries accepted for shipping. Expand as the business grows.
 const SHIPPING_COUNTRIES = ["US"] as const;
 
+// ── URL helper ────────────────────────────────────────────────────────────────
+// Derive the canonical site origin from the incoming request headers.
+// This is always accurate — it follows the actual deployment (production or
+// preview) rather than relying on NEXT_PUBLIC_SITE_URL, which can become stale
+// when a Vercel preview deployment URL is deleted (→ DEPLOYMENT_NOT_FOUND).
+function getBaseUrl(request: NextRequest): string {
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const host  =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    null;
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  // Local dev fallback (no x-forwarded-* headers from Next.js dev server)
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
 // ── Row shapes from Supabase ───────────────────────────────────────────────────
-// Only select the columns we actually need — do NOT select pottery/shipping
-// columns (weight_oz, length_in, etc.) until the migration has been applied.
 
 interface VariantRow {
   id:                   string;
@@ -39,7 +57,7 @@ interface ProductRow {
 export interface CheckoutResponse {
   url?:          string;
   error?:        string;
-  /** Items that were silently removed because they are unavailable or invalid. */
+  /** Items silently removed because they are unavailable or invalid. */
   removedItems?: { productId: string; variantId: string }[];
 }
 
@@ -51,8 +69,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       return NextResponse.json({ error: "Missing required checkout fields" }, { status: 400 });
     }
 
-    // Validate all quantities are positive integers. Negative or zero quantities
-    // would reach decrement_stock_safe and corrupt inventory (stock -= -1 increments it).
     for (const item of body.items) {
       if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
         return NextResponse.json({ error: "Invalid item quantity" }, { status: 400 });
@@ -65,14 +81,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     ];
 
     // ── Fetch all referenced products and variants in parallel ────────────────
-    //
-    // Items come in two flavors:
-    //   1. Variant-backed: apparel, one_size pottery, shoes — variantId is a UUID
-    //   2. Product-only:   size_mode='none' items — variantId is "" (empty string)
-    //
-    // We fetch both independently. Missing items are removed gracefully rather
-    // than blocking the whole checkout.
-
     const variantIds = body.items.map((i) => i.variantId).filter(Boolean);
     const productIds = [...new Set(body.items.map((i) => i.productId))];
 
@@ -106,15 +114,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       (productResult.data ?? []).map((p) => [p.id, p])
     );
 
-    // ── Resolve each cart item; remove unavailable ones gracefully ────────────
-
+    // ── Resolve each cart item; gracefully remove unavailable ones ────────────
     const removedItems: CheckoutResponse["removedItems"] = [];
     const validItems:   typeof body.items = [];
 
     for (const cartItem of body.items) {
       const product = productMap.get(cartItem.productId);
       if (!product) {
-        // Product deleted or deactivated since item was added to cart
         console.warn("[checkout] product not found:", cartItem.productId);
         removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
         continue;
@@ -123,15 +129,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       const variant = cartItem.variantId ? variantMap.get(cartItem.variantId) : null;
 
       if (cartItem.variantId && !variant) {
-        // Variant was deleted or ID is stale (e.g. from old localStorage cart)
         console.warn("[checkout] variant not found:", cartItem.variantId);
         removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
         continue;
       }
 
       if (variant && variant.stock < cartItem.quantity) {
-        // Out of stock since item was added to cart
-        console.warn("[checkout] insufficient stock:", variant.size_label, variant.stock, "requested:", cartItem.quantity);
+        console.warn("[checkout] insufficient stock:", variant.size_label, "→", variant.stock, "requested:", cartItem.quantity);
         removedItems.push({ productId: cartItem.productId, variantId: cartItem.variantId });
         continue;
       }
@@ -146,7 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       );
     }
 
-    // ── Build Stripe line items from valid items only ─────────────────────────
+    // ── Build Stripe line items ───────────────────────────────────────────────
     let subtotalCents = 0;
 
     const line_items = validItems.map((cartItem) => {
@@ -161,12 +165,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
         price_data: {
           currency:     "usd" as const,
           unit_amount:  unitAmount,
-          // Required for Stripe automatic tax — price does NOT include tax
           tax_behavior: "exclusive" as const,
           product_data: {
             name: product.name_en,
-            // size_label is the human-readable variant label (e.g. "M", "Small mug").
-            // Omit when empty to avoid Stripe rejecting a blank description string.
             ...(variant?.size_label ? { description: variant.size_label } : {}),
             images:   product.primary_image_url ? [product.primary_image_url] : [],
             tax_code: DEFAULT_TAX_CODE,
@@ -183,18 +184,40 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     );
     const shippingIsFree = shippingAmountCents === 0 && body.fulfillment === "shipping";
 
+    // ── Discount code ─────────────────────────────────────────────────────────
+    // If the customer has a promo code (from newsletter signup), try to apply it
+    // automatically as a Stripe promotion code. Falls back to allow_promotion_codes
+    // so users can still enter a code manually in the Stripe hosted UI.
+    let sessionDiscounts: Array<{ promotion_code: string }> | undefined;
+
+    if (body.discountCode) {
+      try {
+        const promoCodes = await stripe.promotionCodes.list({
+          code:   body.discountCode,
+          active: true,
+          limit:  1,
+        });
+        if (promoCodes.data.length > 0) {
+          sessionDiscounts = [{ promotion_code: promoCodes.data[0].id }];
+        } else {
+          console.warn("[checkout] discount code not found in Stripe:", body.discountCode);
+        }
+      } catch (err) {
+        // Non-fatal — fall back to manual promo code entry in Stripe UI
+        console.warn("[checkout] promotion code lookup failed:", err);
+      }
+    }
+
     // ── Stripe session ────────────────────────────────────────────────────────
+    const baseUrl = getBaseUrl(request);
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: body.email,
       line_items,
 
-      // Stripe calculates sales tax automatically based on the customer's address.
-      // Requires Stripe Tax to be enabled in the Stripe Dashboard.
       automatic_tax: { enabled: true },
 
-      // Shipping orders: Stripe collects the shipping address and uses it for tax.
-      // Pickup orders:   collect billing address so Stripe can determine jurisdiction.
       ...(body.fulfillment === "shipping"
         ? {
             shipping_address_collection: {
@@ -206,7 +229,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
                   display_name: shippingIsFree ? "Free Shipping" : "Flat Rate Shipping",
                   type:         "fixed_amount",
                   fixed_amount: { amount: shippingAmountCents, currency: "usd" },
-                  // Must be set for automatic tax to apply to shipping cost
                   tax_behavior: "exclusive" as const,
                 },
               },
@@ -216,13 +238,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
             billing_address_collection: "required" as const,
           }),
 
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
+      // Apply a matched promotion code automatically, or show a manual promo
+      // code field in the Stripe UI if no code was provided / code not found.
+      // discounts and allow_promotion_codes are mutually exclusive in Stripe.
+      ...(sessionDiscounts
+        ? { discounts: sessionDiscounts }
+        : { allow_promotion_codes: true }),
+
+      // Always use request-derived base URL — never a potentially-stale env var.
+      success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${baseUrl}/cart`,
 
       metadata: (() => {
-        // Only include valid items in metadata (removed items are already dropped)
         const itemsJson = JSON.stringify(validItems);
-        // Stripe caps each metadata value at 500 characters.
         if (itemsJson.length > 490) {
           throw new Error(
             `Cart metadata too large (${itemsJson.length} chars). ` +

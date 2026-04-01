@@ -7,6 +7,8 @@ import { subscribeEmail } from "@/app/actions/subscribe";
 interface Props {
   promoCode: string | null;
   discountText: string | null;
+  /** Called when user subscribes inline so parent can show the discount badge. */
+  onSubscribed?: (code: string) => void;
 }
 
 /**
@@ -15,7 +17,7 @@ interface Props {
  * a high-intent moment and the offer is low-friction and non-blocking.
  * Suppressed entirely once the user has subscribed via any channel.
  */
-export function CheckoutPromo({ promoCode, discountText }: Props) {
+export function CheckoutPromo({ promoCode, discountText, onSubscribed }: Props) {
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
@@ -49,6 +51,7 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
           // New or duplicate subscriber — either way, save state and show success
           savePromo(markSubscribed(loadPromo(), promoCode));
           setDone(true);
+          if (promoCode) onSubscribed?.(promoCode);
         }
       } catch {
         setError("Something went wrong — please try again.");
@@ -141,7 +144,7 @@ export function CheckoutPromo({ promoCode, discountText }: Props) {
                 </button>
               </div>
               <p style={{ margin: 0, fontSize: 12, color: "#a8a29e" }}>
-                Enter this code when you reach Stripe checkout.
+                Your discount will be applied automatically when you proceed to pay.
               </p>
             </>
           ) : (

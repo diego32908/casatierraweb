@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/utils";
 import { BackLink } from "@/components/shell/back-link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { CheckoutPromo } from "@/components/popups/checkout-promo";
+import { loadPromo } from "@/lib/promo";
 import type { FulfillmentType } from "@/types/store";
 
 const inputCls =
@@ -39,6 +40,8 @@ export function CheckoutForm({
   });
   // Non-null when user is authenticated — email is locked to their auth email
   const [lockedEmail, setLockedEmail] = useState<string | null>(null);
+  // Promo code from localStorage (set when user subscribed to newsletter)
+  const [savedPromoCode, setSavedPromoCode] = useState<string | null>(null);
 
   useEffect(() => {
     supabaseBrowser.auth.getUser().then(({ data: { user } }) => {
@@ -47,6 +50,11 @@ export function CheckoutForm({
         setForm((prev) => ({ ...prev, email: user.email! }));
       }
     });
+    // Read promo code saved during newsletter signup
+    const promo = loadPromo();
+    if (promo.status === "subscribed" && promo.promoCode) {
+      setSavedPromoCode(promo.promoCode);
+    }
   }, []);
 
   function set(field: string, value: string) {
@@ -74,6 +82,13 @@ export function CheckoutForm({
 
     startTransition(async () => {
       try {
+        // Re-read promo code at submit time in case user just subscribed via CheckoutPromo
+        const freshPromo = loadPromo();
+        const discountCode =
+          freshPromo.status === "subscribed" && freshPromo.promoCode
+            ? freshPromo.promoCode
+            : undefined;
+
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -82,6 +97,7 @@ export function CheckoutForm({
             email: form.email.trim().toLowerCase(),
             phone: form.phone.trim() || undefined,
             fulfillment,
+            discountCode,
             items: items.map((item) => ({
               productId: item.product_id,
               variantId: item.variant_id ?? "",
@@ -209,7 +225,11 @@ export function CheckoutForm({
             </div>
 
             {/* Inline promo — shown only to non-subscribed users */}
-            <CheckoutPromo promoCode={promoCode} discountText={discountText} />
+            <CheckoutPromo
+              promoCode={promoCode}
+              discountText={discountText}
+              onSubscribed={(code) => setSavedPromoCode(code)}
+            />
 
             {/* Fulfillment */}
             <div>
@@ -333,6 +353,17 @@ export function CheckoutForm({
               )}
               {error && (
                 <p className="mt-4 text-xs text-red-600 leading-relaxed">{error}</p>
+              )}
+
+              {savedPromoCode && (
+                <div className="mt-4 flex items-center gap-2 rounded border border-stone-200 bg-stone-50 px-3 py-2">
+                  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-stone-500" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M2.5 8.5l4 4 7-8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <p className="text-[11px] text-stone-600">
+                    Discount <span className="font-mono font-semibold tracking-wide">{savedPromoCode}</span> will be applied automatically
+                  </p>
+                </div>
               )}
 
               <button
