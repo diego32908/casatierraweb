@@ -94,6 +94,7 @@ export async function beginAdminSession(
     });
 
     // Fire-and-forget alert
+    console.log("[SECURITY ALERT] beginAdminSession → firing sendSecurityAlert, event: admin_login, admin:", user.email, "ip:", ip);
     sendSecurityAlert({
       eventType:       "admin_login",
       adminEmail:      user.email,
@@ -101,7 +102,7 @@ export async function beginAdminSession(
       userAgent,
       timestamp:       new Date().toISOString(),
       sessionReplaced: replacedCount > 0,
-    }).catch(console.error);
+    }).catch((err) => console.error("[SECURITY ALERT] beginAdminSession → sendSecurityAlert threw:", err));
 
     return {};
   } catch (err) {
@@ -172,6 +173,7 @@ export async function killSessions(
     killed_count: killed,
   });
 
+  console.log("[SECURITY ALERT] killSessions → firing sendSecurityAlert, event: kill_switch_triggered, admin:", user.email, "killed:", killed);
   sendSecurityAlert({
     eventType:   "kill_switch_triggered",
     adminEmail:  user.email,
@@ -179,7 +181,7 @@ export async function killSessions(
     userAgent:   ua,
     timestamp:   new Date().toISOString(),
     killedCount: killed,
-  }).catch(console.error);
+  }).catch((err) => console.error("[SECURITY ALERT] killSessions → sendSecurityAlert threw:", err));
 
   return { killed };
 }

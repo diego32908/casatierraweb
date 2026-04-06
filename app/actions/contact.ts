@@ -27,8 +27,16 @@ const TYPE_LABELS: Record<InquiryType, string> = {
 async function sendAdminNotification(data: ContactSubmission & { created_at: string }) {
   const apiKey   = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (!apiKey || !adminEmail) return; // silently skip if not configured
+  if (!apiKey) {
+    console.error("[CONTACT] sendAdminNotification skipped — RESEND_API_KEY not set");
+    return;
+  }
+  if (!adminEmail) {
+    console.error("[CONTACT] sendAdminNotification skipped — ADMIN_EMAIL not set");
+    return;
+  }
 
+  console.log("[CONTACT] sendAdminNotification → attempting send to:", adminEmail, "from:", data.email, "type:", data.inquiry_type);
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
@@ -52,20 +60,25 @@ async function sendAdminNotification(data: ContactSubmission & { created_at: str
         </div>
       `,
     });
+    console.log("[CONTACT] sendAdminNotification → sent OK to:", adminEmail);
   } catch (err) {
-    console.error("[contact] admin notification failed (non-fatal):", err);
+    console.error("[CONTACT] sendAdminNotification → FAILED:", err);
   }
 }
 
 export async function submitContact(
   data: ContactSubmission
 ): Promise<{ error?: string }> {
+  console.log("[CONTACT] submitContact → start, inquiry_type:", data.inquiry_type, "email:", data.email.trim().toLowerCase());
+
   if (!VALID_INQUIRY_TYPES.includes(data.inquiry_type as InquiryType)) {
+    console.warn("[CONTACT] submitContact → invalid inquiry_type:", data.inquiry_type);
     return { error: "Invalid inquiry type." };
   }
 
   const ip = await clientIP();
   if (!checkRateLimit(`contact:${ip}`, 3, 10 * 60_000)) {
+    console.warn("[CONTACT] submitContact → rate limited, ip:", ip);
     return { error: "Too many requests. Please try again later." };
   }
 
@@ -82,7 +95,12 @@ export async function submitContact(
     .select("created_at")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[CONTACT] submitContact → DB insert error:", error.message);
+    return { error: error.message };
+  }
+
+  console.log("[CONTACT] submitContact → DB insert OK, firing notification email (non-blocking)");
 
   // Fire email — non-blocking, failure does not propagate
   await sendAdminNotification({ ...data, created_at: row.created_at });

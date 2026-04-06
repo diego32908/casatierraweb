@@ -14,10 +14,13 @@ import { sendOrderConfirmationEmail, sendAdminOrderNotification } from "@/lib/em
 import type { CheckoutCartItemInput, FulfillmentType } from "@/types/store";
 
 export async function POST(request: Request) {
+  console.log("[WEBHOOK] POST handler invoked");
+
   const body = await request.text();
   const signature = (await headers()).get("stripe-signature");
 
   if (!signature) {
+    console.error("[WEBHOOK] missing stripe-signature header — rejecting");
     return NextResponse.json({ error: "Missing stripe signature" }, { status: 400 });
   }
 
@@ -30,15 +33,22 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (error) {
-    console.error("Stripe webhook verification failed", error);
+    console.error("[WEBHOOK] signature verification failed:", error);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  console.log("[WEBHOOK] event received → type:", event.type, "id:", event.id);
+
   if (event.type !== "checkout.session.completed") {
+    console.log("[WEBHOOK] ignoring event type:", event.type, "— no action taken");
     return NextResponse.json({ received: true });
   }
 
+  console.log("[WEBHOOK] checkout.session.completed → processing");
+
   const session = event.data.object as Stripe.Checkout.Session;
+  console.log("[WEBHOOK] session id:", session.id, "payment_status:", session.payment_status);
+
   const supabase = createServerSupabaseClient();
 
   // Idempotency guard — Stripe retries webhooks on timeout; return 200 if already processed
@@ -49,9 +59,11 @@ export async function POST(request: Request) {
     .single();
 
   if (existingOrder) {
-    console.log("[webhook] already processed session, skipping:", session.id);
+    console.log("[WEBHOOK] already processed session", session.id, "— skipping (idempotency guard)");
     return NextResponse.json({ received: true });
   }
+
+  console.log("[WEBHOOK] no existing order found — proceeding to create order");
 
   try {
     const items = JSON.parse(session.metadata?.items ?? "[]") as CheckoutCartItemInput[];
@@ -182,6 +194,8 @@ export async function POST(request: Request) {
       throw new Error(orderError?.message || "Failed to create order");
     }
 
+    console.log("[WEBHOOK] order created → id:", createdOrder.id, "status:", createdOrder.status, "total:", createdOrder.total_cents);
+
     const { error: orderItemsError } = await supabase.from("order_items").insert(
       orderItemsPayload.map((item) => ({
         ...item,
@@ -275,6 +289,7 @@ export async function POST(request: Request) {
     }
 
     // Send order confirmation to customer — non-fatal
+    console.log("[WEBHOOK] firing sendOrderConfirmationEmail (non-blocking) → customer:", createdOrder.email, "order:", createdOrder.id.slice(0, 8).toUpperCase());
     sendOrderConfirmationEmail({
       orderId: createdOrder.id,
       customerName: createdOrder.customer_name,
@@ -307,6 +322,7 @@ export async function POST(request: Request) {
     });
 
     // Send new-order notification to business — non-fatal
+    console.log("[WEBHOOK] firing sendAdminOrderNotification (non-blocking) → order:", createdOrder.id.slice(0, 8).toUpperCase());
     sendAdminOrderNotification({
       orderId: createdOrder.id,
       customerName: createdOrder.customer_name,
@@ -336,9 +352,10 @@ export async function POST(request: Request) {
       console.warn("[webhook] admin order notification failed (non-fatal):", err);
     });
 
+    console.log("[WEBHOOK] processing complete → returning 200");
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Stripe webhook processing failed", error);
+    console.error("[WEBHOOK] processing FAILED:", error);
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

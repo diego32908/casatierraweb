@@ -8,7 +8,7 @@ let _resend: Resend | null = null;
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
-    console.error("[email] RESEND_API_KEY is not set — email send skipped");
+    console.error("[EMAIL] RESEND_API_KEY not set — all email sends will be skipped");
     return null;
   }
   if (!_resend) _resend = new Resend(key);
@@ -19,7 +19,7 @@ function getResend(): Resend | null {
 function getFrom(): string | null {
   const from = process.env.EMAIL_FROM;
   if (!from) {
-    console.error("[email] EMAIL_FROM env var is not set — email send skipped");
+    console.error("[EMAIL] EMAIL_FROM not set — all email sends will be skipped");
     return null;
   }
   return from;
@@ -409,16 +409,16 @@ export async function sendWelcomeEmail(
   const from = getFrom();
   if (!from) return;
   try {
-    console.log("[email] sendWelcomeEmail → to:", to);
+    console.log("[NEWSLETTER] sendWelcomeEmail → attempting send to:", to);
     await resend.emails.send({
       from,
       to,
       subject: `Welcome to ${BRAND}`,
       html: welcomeEmailHtml(promoCode),
     });
-    console.log("[email] sendWelcomeEmail sent OK → to:", to);
+    console.log("[NEWSLETTER] sendWelcomeEmail → sent OK to:", to);
   } catch (err) {
-    console.error("[email] sendWelcomeEmail failed:", err);
+    console.error("[NEWSLETTER] sendWelcomeEmail → FAILED to:", to, err);
   }
 }
 
@@ -497,22 +497,22 @@ export async function sendSecurityAlert(data: SecurityAlertData): Promise<void> 
   // ADMIN_ALERT_EMAIL takes precedence; falls back to ADMIN_EMAIL if not set separately.
   const alertTo = process.env.ADMIN_ALERT_EMAIL ?? process.env.ADMIN_EMAIL;
   if (!alertTo) {
-    console.error("[email] sendSecurityAlert skipped — neither ADMIN_ALERT_EMAIL nor ADMIN_EMAIL is set");
+    console.error("[SECURITY ALERT] sendSecurityAlert skipped — neither ADMIN_ALERT_EMAIL nor ADMIN_EMAIL is set");
     return;
   }
 
   const label = ALERT_LABELS[data.eventType] ?? data.eventType;
   try {
-    console.log("[email] sendSecurityAlert → to:", alertTo, "event:", data.eventType);
+    console.log("[SECURITY ALERT] sendSecurityAlert → event:", data.eventType, "admin:", data.adminEmail, "to:", alertTo);
     await resend.emails.send({
       from,
       to:      alertTo,
       subject: `[${BRAND}] ${label} — ${data.adminEmail}`,
       html:    securityAlertHtml(data),
     });
-    console.log("[email] sendSecurityAlert sent OK → event:", data.eventType);
+    console.log("[SECURITY ALERT] sendSecurityAlert → sent OK, event:", data.eventType);
   } catch (err) {
-    console.error("[email] sendSecurityAlert failed:", err);
+    console.error("[SECURITY ALERT] sendSecurityAlert → FAILED, event:", data.eventType, err);
   }
 }
 
@@ -532,16 +532,16 @@ export async function sendOrderConfirmationEmail(
   if (!from) return;
   const orderRef = order.orderId.slice(0, 8).toUpperCase();
   try {
-    console.log("[email] sendOrderConfirmationEmail → to:", order.email, "order:", orderRef);
+    console.log("[ORDER EMAIL] sendOrderConfirmationEmail → attempting send to:", order.email, "order:", orderRef);
     await resend.emails.send({
       from,
       to: order.email,
       subject: `Order confirmed — ${orderRef}`,
       html: orderConfirmationHtml(order),
     });
-    console.log("[email] sendOrderConfirmationEmail sent OK → order:", orderRef);
+    console.log("[ORDER EMAIL] sendOrderConfirmationEmail → sent OK, order:", orderRef);
   } catch (err) {
-    console.error("[email] sendOrderConfirmationEmail failed → order:", orderRef, err);
+    console.error("[ORDER EMAIL] sendOrderConfirmationEmail → FAILED, order:", orderRef, err);
   }
 }
 
@@ -559,21 +559,21 @@ export async function sendAdminOrderNotification(
   if (!from) return;
   const adminTo = process.env.ADMIN_EMAIL;
   if (!adminTo) {
-    console.error("[email] sendAdminOrderNotification skipped — ADMIN_EMAIL is not set");
+    console.error("[ADMIN EMAIL] sendAdminOrderNotification skipped — ADMIN_EMAIL not set");
     return;
   }
   const orderRef = order.orderId.slice(0, 8).toUpperCase();
   try {
     const conflictFlag = order.status === "STOCK_CONFLICT" ? " ⚠ STOCK CONFLICT" : "";
-    console.log("[email] sendAdminOrderNotification → to:", adminTo, "order:", orderRef);
+    console.log("[ADMIN EMAIL] sendAdminOrderNotification → attempting send to:", adminTo, "order:", orderRef);
     await resend.emails.send({
       from,
       to: adminTo,
       subject: `[${BRAND}] New order #${orderRef}${conflictFlag}`,
       html: adminOrderNotificationHtml(order),
     });
-    console.log("[email] sendAdminOrderNotification sent OK → order:", orderRef);
+    console.log("[ADMIN EMAIL] sendAdminOrderNotification → sent OK, order:", orderRef);
   } catch (err) {
-    console.error("[email] sendAdminOrderNotification failed → order:", orderRef, err);
+    console.error("[ADMIN EMAIL] sendAdminOrderNotification → FAILED, order:", orderRef, err);
   }
 }
