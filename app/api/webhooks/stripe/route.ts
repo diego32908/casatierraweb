@@ -288,69 +288,65 @@ export async function POST(request: Request) {
       console.warn("[webhook] customer upsert failed (non-fatal):", customerError);
     }
 
-    // Send order confirmation to customer — non-fatal
-    console.log("[WEBHOOK] firing sendOrderConfirmationEmail (non-blocking) → customer:", createdOrder.email, "order:", createdOrder.id.slice(0, 8).toUpperCase());
-    sendOrderConfirmationEmail({
-      orderId: createdOrder.id,
-      customerName: createdOrder.customer_name,
-      email: createdOrder.email,
-      items: orderItemsPayload.map((item) => ({
-        name: item.product_name_snapshot,
-        variant: item.variant_label_snapshot || null,
-        quantity: item.quantity,
-        unitPriceCents: item.unit_price_cents,
-        lineTotalCents: item.line_total_cents,
-      })),
-      subtotalCents: subtotal,
-      shippingCents,
-      taxCents,
-      totalCents,
-      fulfillment,
-      shippingAddress: shippingAddress
-        ? {
-            line1: shippingAddress.line1 ?? null,
-            line2: shippingAddress.line2 ?? null,
-            city: shippingAddress.city ?? null,
-            state: shippingAddress.state ?? null,
-            postal_code: shippingAddress.postal_code ?? null,
-            country: shippingAddress.country ?? null,
-          }
-        : null,
-      pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
-    }).catch((err) => {
-      console.warn("[webhook] order confirmation email failed (non-fatal):", err);
-    });
-
-    // Send new-order notification to business — non-fatal
-    console.log("[WEBHOOK] firing sendAdminOrderNotification (non-blocking) → order:", createdOrder.id.slice(0, 8).toUpperCase());
-    sendAdminOrderNotification({
-      orderId: createdOrder.id,
-      customerName: createdOrder.customer_name,
-      customerEmail: createdOrder.email,
-      phone: createdOrder.phone ?? null,
-      items: orderItemsPayload.map((item) => ({
-        name: item.product_name_snapshot,
-        variant: item.variant_label_snapshot || null,
-        quantity: item.quantity,
-        lineTotalCents: item.line_total_cents,
-      })),
-      totalCents,
-      fulfillment,
-      shippingAddress: shippingAddress
-        ? {
-            line1: shippingAddress.line1 ?? null,
-            line2: shippingAddress.line2 ?? null,
-            city: shippingAddress.city ?? null,
-            state: shippingAddress.state ?? null,
-            postal_code: shippingAddress.postal_code ?? null,
-            country: shippingAddress.country ?? null,
-          }
-        : null,
-      pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
-      status: createdOrder.status,
-    }).catch((err) => {
-      console.warn("[webhook] admin order notification failed (non-fatal):", err);
-    });
+    // Send order confirmation + admin notification — awaited so serverless context doesn't terminate
+    // before Resend executes. Both functions have internal try/catch and never re-throw.
+    console.log("[WEBHOOK] awaiting both email sends → customer:", createdOrder.email, "order:", createdOrder.id.slice(0, 8).toUpperCase());
+    await Promise.all([
+      sendOrderConfirmationEmail({
+        orderId: createdOrder.id,
+        customerName: createdOrder.customer_name,
+        email: createdOrder.email,
+        items: orderItemsPayload.map((item) => ({
+          name: item.product_name_snapshot,
+          variant: item.variant_label_snapshot || null,
+          quantity: item.quantity,
+          unitPriceCents: item.unit_price_cents,
+          lineTotalCents: item.line_total_cents,
+        })),
+        subtotalCents: subtotal,
+        shippingCents,
+        taxCents,
+        totalCents,
+        fulfillment,
+        shippingAddress: shippingAddress
+          ? {
+              line1: shippingAddress.line1 ?? null,
+              line2: shippingAddress.line2 ?? null,
+              city: shippingAddress.city ?? null,
+              state: shippingAddress.state ?? null,
+              postal_code: shippingAddress.postal_code ?? null,
+              country: shippingAddress.country ?? null,
+            }
+          : null,
+        pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
+      }),
+      sendAdminOrderNotification({
+        orderId: createdOrder.id,
+        customerName: createdOrder.customer_name,
+        customerEmail: createdOrder.email,
+        phone: createdOrder.phone ?? null,
+        items: orderItemsPayload.map((item) => ({
+          name: item.product_name_snapshot,
+          variant: item.variant_label_snapshot || null,
+          quantity: item.quantity,
+          lineTotalCents: item.line_total_cents,
+        })),
+        totalCents,
+        fulfillment,
+        shippingAddress: shippingAddress
+          ? {
+              line1: shippingAddress.line1 ?? null,
+              line2: shippingAddress.line2 ?? null,
+              city: shippingAddress.city ?? null,
+              state: shippingAddress.state ?? null,
+              postal_code: shippingAddress.postal_code ?? null,
+              country: shippingAddress.country ?? null,
+            }
+          : null,
+        pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
+        status: createdOrder.status,
+      }),
+    ]);
 
     console.log("[WEBHOOK] processing complete → returning 200");
     return NextResponse.json({ received: true });

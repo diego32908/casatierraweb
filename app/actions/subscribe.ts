@@ -48,11 +48,10 @@ export async function subscribeEmail(
 
   console.log("[NEWSLETTER] subscribeEmail → DB insert OK, new subscriber:", normalized, "source:", source);
 
-  // Fire-and-forget welcome email — never blocks or fails the subscribe response
-  console.log("[NEWSLETTER] subscribeEmail → firing sendWelcomeEmail (non-blocking)");
-  sendWelcomeEmail(normalized, promoCode ?? null).catch((err) => {
-    console.error("[NEWSLETTER] subscribeEmail → sendWelcomeEmail threw (non-fatal):", err);
-  });
+  // Awaited so serverless context doesn't terminate before Resend executes.
+  // sendWelcomeEmail has internal try/catch and never re-throws.
+  console.log("[NEWSLETTER] subscribeEmail → awaiting sendWelcomeEmail");
+  await sendWelcomeEmail(normalized, promoCode ?? null);
 
   return {};
 }
