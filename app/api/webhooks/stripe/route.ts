@@ -10,7 +10,7 @@ export const maxDuration = 60;
 import { stripe } from "@/lib/stripe";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { FLAT_SHIPPING_RATE_CENTS, PICKUP_LOCATION_LABEL } from "@/lib/constants";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendAdminOrderNotification } from "@/lib/email";
 import type { CheckoutCartItemInput, FulfillmentType } from "@/types/store";
 
 export async function POST(request: Request) {
@@ -274,7 +274,7 @@ export async function POST(request: Request) {
       console.warn("[webhook] customer upsert failed (non-fatal):", customerError);
     }
 
-    // Send order confirmation email — non-fatal
+    // Send order confirmation to customer — non-fatal
     sendOrderConfirmationEmail({
       orderId: createdOrder.id,
       customerName: createdOrder.customer_name,
@@ -304,6 +304,36 @@ export async function POST(request: Request) {
       pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
     }).catch((err) => {
       console.warn("[webhook] order confirmation email failed (non-fatal):", err);
+    });
+
+    // Send new-order notification to business — non-fatal
+    sendAdminOrderNotification({
+      orderId: createdOrder.id,
+      customerName: createdOrder.customer_name,
+      customerEmail: createdOrder.email,
+      phone: createdOrder.phone ?? null,
+      items: orderItemsPayload.map((item) => ({
+        name: item.product_name_snapshot,
+        variant: item.variant_label_snapshot || null,
+        quantity: item.quantity,
+        lineTotalCents: item.line_total_cents,
+      })),
+      totalCents,
+      fulfillment,
+      shippingAddress: shippingAddress
+        ? {
+            line1: shippingAddress.line1 ?? null,
+            line2: shippingAddress.line2 ?? null,
+            city: shippingAddress.city ?? null,
+            state: shippingAddress.state ?? null,
+            postal_code: shippingAddress.postal_code ?? null,
+            country: shippingAddress.country ?? null,
+          }
+        : null,
+      pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
+      status: createdOrder.status,
+    }).catch((err) => {
+      console.warn("[webhook] admin order notification failed (non-fatal):", err);
     });
 
     return NextResponse.json({ received: true });

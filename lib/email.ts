@@ -12,7 +12,7 @@ function getResend(): Resend | null {
   return _resend;
 }
 
-const FROM = process.env.EMAIL_FROM ?? "Tierra Oaxaca <hello@tierraoaxaca.com>";
+const FROM = process.env.EMAIL_FROM!;
 const BRAND = "Tierra Oaxaca";
 
 function formatCents(cents: number): string {
@@ -242,6 +242,145 @@ function orderConfirmationHtml(order: OrderEmailData): string {
   `);
 }
 
+// ── Admin order notification email ───────────────────────────────────────────
+
+export interface AdminOrderData {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  phone: string | null;
+  items: Array<{
+    name: string;
+    variant: string | null;
+    quantity: number;
+    lineTotalCents: number;
+  }>;
+  totalCents: number;
+  fulfillment: "shipping" | "pickup";
+  shippingAddress: {
+    line1?: string | null;
+    line2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+  } | null;
+  pickupLocation: string | null;
+  status: string;
+}
+
+function adminOrderNotificationHtml(order: AdminOrderData): string {
+  const orderRef = order.orderId.slice(0, 8).toUpperCase();
+  const isConflict = order.status === "STOCK_CONFLICT";
+
+  const itemRows = order.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;">
+          ${item.name}${item.variant ? ` <span style="color:#a8a29e;">· ${item.variant}</span>` : ""}
+        </td>
+        <td style="padding:8px 12px;font-size:13px;color:#78716c;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;text-align:center;">×${item.quantity}</td>
+        <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;text-align:right;white-space:nowrap;">
+          ${formatCents(item.lineTotalCents)}
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const fulfillmentBlock =
+    order.fulfillment === "shipping" && order.shippingAddress
+      ? `<p style="margin:0;font-size:13px;color:#57534e;font-family:Arial,sans-serif;line-height:1.7;">
+          ${[
+            order.shippingAddress.line1,
+            order.shippingAddress.line2,
+            [order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.postal_code]
+              .filter(Boolean)
+              .join(", "),
+            order.shippingAddress.country,
+          ]
+            .filter(Boolean)
+            .join("<br />")}
+        </p>`
+      : order.fulfillment === "pickup"
+      ? `<p style="margin:0;font-size:13px;color:#57534e;font-family:Arial,sans-serif;">
+          ${order.pickupLocation ?? "In-store pickup"}
+        </p>`
+      : `<p style="margin:0;font-size:13px;color:#a8a29e;font-family:Arial,sans-serif;">No address provided</p>`;
+
+  const conflictBanner = isConflict
+    ? `<div style="margin:0 0 20px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;">
+        <p style="margin:0;font-size:12px;font-weight:600;color:#b91c1c;font-family:Arial,sans-serif;
+          letter-spacing:0.06em;text-transform:uppercase;">
+          ⚠ Stock conflict — manual review required
+        </p>
+      </div>`
+    : "";
+
+  return emailLayout(`
+    ${conflictBanner}
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">New order</p>
+    <h1 style="margin:0 0 24px;font-size:20px;font-weight:600;color:#1c1917;font-family:Arial,sans-serif;">
+      #${orderRef}
+    </h1>
+
+    <!-- Customer -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+      style="border:1px solid #e7e5e4;margin:0 0 20px;">
+      <tr>
+        <td style="padding:8px 12px;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;
+          width:96px;border-bottom:1px solid #f0eeec;vertical-align:top;">Customer</td>
+        <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;">${order.customerName}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;vertical-align:top;">Email</td>
+        <td style="padding:8px 12px;font-size:13px;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;">
+          <a href="mailto:${order.customerEmail}" style="color:#1c1917;">${order.customerEmail}</a>
+        </td>
+      </tr>
+      ${order.phone
+        ? `<tr>
+            <td style="padding:8px 12px;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;
+              vertical-align:top;">Phone</td>
+            <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;">
+              ${order.phone}
+            </td>
+          </tr>`
+        : ""}
+    </table>
+
+    <!-- Items -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+      style="border:1px solid #e7e5e4;margin:0 0 20px;">
+      ${itemRows}
+      <tr>
+        <td colspan="2" style="padding:10px 12px;font-size:13px;font-weight:600;color:#1c1917;
+          font-family:Arial,sans-serif;">Total</td>
+        <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#1c1917;
+          font-family:Arial,sans-serif;text-align:right;white-space:nowrap;">
+          ${formatCents(order.totalCents)}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Fulfillment -->
+    <div style="padding:14px 16px;background:#fafaf9;border:1px solid #f0eeec;">
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+        color:#a8a29e;font-family:Arial,sans-serif;">
+        ${order.fulfillment === "pickup" ? "Pickup" : "Ship to"}
+      </p>
+      ${fulfillmentBlock}
+    </div>
+  `);
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -374,5 +513,30 @@ export async function sendOrderConfirmationEmail(
     });
   } catch (err) {
     console.error("[email] sendOrderConfirmationEmail failed:", err);
+  }
+}
+
+/**
+ * Send a new-order notification to the business/admin email.
+ * Reads ADMIN_EMAIL from env — skipped silently if not configured.
+ * Never throws — always resolves.
+ */
+export async function sendAdminOrderNotification(
+  order: AdminOrderData
+): Promise<void> {
+  const resend = getResend();
+  const adminTo = process.env.ADMIN_EMAIL;
+  if (!resend || !adminTo) return;
+  try {
+    const orderRef = order.orderId.slice(0, 8).toUpperCase();
+    const conflictFlag = order.status === "STOCK_CONFLICT" ? " ⚠ STOCK CONFLICT" : "";
+    await resend.emails.send({
+      from: FROM,
+      to: adminTo,
+      subject: `[${BRAND}] New order #${orderRef}${conflictFlag}`,
+      html: adminOrderNotificationHtml(order),
+    });
+  } catch (err) {
+    console.error("[email] sendAdminOrderNotification failed:", err);
   }
 }

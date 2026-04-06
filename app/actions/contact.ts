@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/supabase/server-auth";
 import { checkRateLimit, clientIP } from "@/lib/rate-limit";
 import { Resend } from "resend";
 
+const FROM_CONTACT = process.env.EMAIL_FROM!;
+
 export interface ContactSubmission {
   name: string;
   email: string;
@@ -30,8 +32,9 @@ async function sendAdminNotification(data: ContactSubmission & { created_at: str
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from:    "Tierra Oaxaca <notifications@tieoaxaca.com>",
-      to:      adminEmail,
+      from:     FROM_CONTACT,
+      to:       adminEmail,
+      replyTo: data.email,
       subject: `New inquiry — ${TYPE_LABELS[data.inquiry_type as InquiryType] ?? data.inquiry_type}`,
       html: `
         <div style="font-family:sans-serif;max-width:560px;color:#111">
