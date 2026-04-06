@@ -7,12 +7,24 @@ import { Resend } from "resend";
 let _resend: Resend | null = null;
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
+  if (!key) {
+    console.error("[email] RESEND_API_KEY is not set — email send skipped");
+    return null;
+  }
   if (!_resend) _resend = new Resend(key);
   return _resend;
 }
 
-const FROM = process.env.EMAIL_FROM!;
+// Read EMAIL_FROM at call time (not module load) so missing vars are logged clearly.
+function getFrom(): string | null {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    console.error("[email] EMAIL_FROM env var is not set — email send skipped");
+    return null;
+  }
+  return from;
+}
+
 const BRAND = "Tierra Oaxaca";
 
 function formatCents(cents: number): string {
@@ -393,14 +405,18 @@ export async function sendWelcomeEmail(
   promoCode: string | null
 ): Promise<void> {
   const resend = getResend();
-  if (!resend) return; // RESEND_API_KEY not configured — skip silently
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
   try {
+    console.log("[email] sendWelcomeEmail → to:", to);
     await resend.emails.send({
-      from: FROM,
+      from,
       to,
       subject: `Welcome to ${BRAND}`,
       html: welcomeEmailHtml(promoCode),
     });
+    console.log("[email] sendWelcomeEmail sent OK → to:", to);
   } catch (err) {
     console.error("[email] sendWelcomeEmail failed:", err);
   }
@@ -474,18 +490,27 @@ function securityAlertHtml(data: SecurityAlertData): string {
  * Never throws — always resolves.
  */
 export async function sendSecurityAlert(data: SecurityAlertData): Promise<void> {
-  const resend    = getResend();
-  const alertTo   = process.env.ADMIN_ALERT_EMAIL;
-  if (!resend || !alertTo) return;
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+  // ADMIN_ALERT_EMAIL takes precedence; falls back to ADMIN_EMAIL if not set separately.
+  const alertTo = process.env.ADMIN_ALERT_EMAIL ?? process.env.ADMIN_EMAIL;
+  if (!alertTo) {
+    console.error("[email] sendSecurityAlert skipped — neither ADMIN_ALERT_EMAIL nor ADMIN_EMAIL is set");
+    return;
+  }
 
   const label = ALERT_LABELS[data.eventType] ?? data.eventType;
   try {
+    console.log("[email] sendSecurityAlert → to:", alertTo, "event:", data.eventType);
     await resend.emails.send({
-      from:    FROM,
+      from,
       to:      alertTo,
       subject: `[${BRAND}] ${label} — ${data.adminEmail}`,
       html:    securityAlertHtml(data),
     });
+    console.log("[email] sendSecurityAlert sent OK → event:", data.eventType);
   } catch (err) {
     console.error("[email] sendSecurityAlert failed:", err);
   }
@@ -502,17 +527,21 @@ export async function sendOrderConfirmationEmail(
   order: OrderEmailData
 ): Promise<void> {
   const resend = getResend();
-  if (!resend) return; // RESEND_API_KEY not configured — skip silently
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+  const orderRef = order.orderId.slice(0, 8).toUpperCase();
   try {
-    const orderRef = order.orderId.slice(0, 8).toUpperCase();
+    console.log("[email] sendOrderConfirmationEmail → to:", order.email, "order:", orderRef);
     await resend.emails.send({
-      from: FROM,
+      from,
       to: order.email,
       subject: `Order confirmed — ${orderRef}`,
       html: orderConfirmationHtml(order),
     });
+    console.log("[email] sendOrderConfirmationEmail sent OK → order:", orderRef);
   } catch (err) {
-    console.error("[email] sendOrderConfirmationEmail failed:", err);
+    console.error("[email] sendOrderConfirmationEmail failed → order:", orderRef, err);
   }
 }
 
@@ -525,18 +554,26 @@ export async function sendAdminOrderNotification(
   order: AdminOrderData
 ): Promise<void> {
   const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
   const adminTo = process.env.ADMIN_EMAIL;
-  if (!resend || !adminTo) return;
+  if (!adminTo) {
+    console.error("[email] sendAdminOrderNotification skipped — ADMIN_EMAIL is not set");
+    return;
+  }
+  const orderRef = order.orderId.slice(0, 8).toUpperCase();
   try {
-    const orderRef = order.orderId.slice(0, 8).toUpperCase();
     const conflictFlag = order.status === "STOCK_CONFLICT" ? " ⚠ STOCK CONFLICT" : "";
+    console.log("[email] sendAdminOrderNotification → to:", adminTo, "order:", orderRef);
     await resend.emails.send({
-      from: FROM,
+      from,
       to: adminTo,
       subject: `[${BRAND}] New order #${orderRef}${conflictFlag}`,
       html: adminOrderNotificationHtml(order),
     });
+    console.log("[email] sendAdminOrderNotification sent OK → order:", orderRef);
   } catch (err) {
-    console.error("[email] sendAdminOrderNotification failed:", err);
+    console.error("[email] sendAdminOrderNotification failed → order:", orderRef, err);
   }
 }

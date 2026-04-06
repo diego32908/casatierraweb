@@ -52,9 +52,8 @@ async function sendAdminNotification(data: ContactSubmission & { created_at: str
         </div>
       `,
     });
-  } catch {
-    // Email failure must never break form submission — log silently
-    console.warn("[contact] admin notification failed — submission still saved");
+  } catch (err) {
+    console.error("[contact] admin notification failed (non-fatal):", err);
   }
 }
 
