@@ -26,7 +26,7 @@ export default async function HomePage() {
       // Best Sellers — featured products, 2 rows of 4 (8 total)
       supabase
         .from("products")
-        .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
         .eq("is_active", true)
         .eq("featured", true)
         .order("sort_order", { ascending: true })
@@ -34,7 +34,7 @@ export default async function HomePage() {
       // Selected Pieces — curated cross-category selection, 2 rows of 4 (8 total)
       supabase
         .from("products")
-        .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
         .eq("is_active", true)
         .order("sort_order", { ascending: true })
         .limit(8),

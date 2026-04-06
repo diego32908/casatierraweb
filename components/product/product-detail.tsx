@@ -10,6 +10,7 @@ import { SizeSelectorBox } from "./size-selector-box";
 import { SizeChartSection } from "./size-chart-section";
 import { useCart } from "@/components/cart/cart-context";
 import { HeartButton } from "./heart-button";
+import { useLanguage, localize } from "@/lib/language";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,9 @@ function OneSizeStockPill({ stock, threshold }: { stock: number; threshold: numb
 
 export function ProductDetail({ product }: { product: ProductWithVariants }) {
   const { addItem } = useCart();
+  const { locale } = useLanguage();
+  const displayName = localize(product.name_en, product.name_es, locale);
+  const displayDescription = localize(product.description_en ?? "", product.description_es, locale);
   const [addedToCart, setAddedToCart] = useState(false);
   const chartRef = useRef<HTMLElement>(null);
 
@@ -163,7 +167,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.primary_image_url}
-                alt={product.name_en}
+                alt={displayName}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -180,7 +184,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
                 <img
                   key={i}
                   src={url}
-                  alt={`${product.name_en} view ${i + 1}`}
+                  alt={`${displayName} view ${i + 1}`}
                   className="h-16 w-16 border border-stone-200 object-cover"
                 />
               ))}
@@ -207,7 +211,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
             <div>
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-stone-900">
-                  {product.name_en}
+                  {displayName}
                 </h1>
                 <HeartButton
                   productId={product.id}
@@ -240,8 +244,8 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           </div>
 
           {/* Description */}
-          {product.description_en && (
-            <p className="text-sm leading-7 text-stone-600">{product.description_en}</p>
+          {displayDescription && (
+            <p className="text-sm leading-7 text-stone-600">{displayDescription}</p>
           )}
 
           {/* One-size stock pill */}

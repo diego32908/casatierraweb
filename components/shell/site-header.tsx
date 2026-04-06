@@ -6,6 +6,7 @@ import { LogoLink } from "./logo-link";
 import { WishlistHeaderButton } from "./wishlist-header-button";
 import { SearchPanel } from "./search-panel";
 import { ProfileHeaderButton } from "./profile-header-button";
+import { LanguageToggle } from "./language-toggle";
 
 async function getAnnouncementBar() {
   try {
@@ -88,6 +89,7 @@ export async function SiteHeader() {
 
         {/* Right: utility icons */}
         <div className="flex items-center justify-end gap-4 shrink-0 text-stone-500 md:w-44 md:gap-5">
+          <LanguageToggle />
           <SearchPanel />
           <ProfileHeaderButton />
           <WishlistHeaderButton />

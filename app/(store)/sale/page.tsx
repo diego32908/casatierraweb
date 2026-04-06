@@ -9,7 +9,7 @@ export default async function SalePage() {
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
     .eq("is_active", true)
     .not("compare_at_price_cents", "is", null)
     .order("sort_order", { ascending: true });

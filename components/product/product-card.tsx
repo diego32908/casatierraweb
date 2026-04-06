@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { HeartButton } from "./heart-button";
+import { useLanguage, localize } from "@/lib/language";
 
 type ColorStub = { color_name: string | null; color_hex: string | null };
 
@@ -10,6 +11,7 @@ export interface ProductCardData {
   id: string;
   slug: string;
   name_en: string;
+  name_es?: string | null;
   base_price_cents: number;
   compare_at_price_cents: number | null;
   primary_image_url: string | null;
@@ -32,6 +34,9 @@ function getDistinctColors(variants: ColorStub[]) {
 }
 
 export function ProductCard({ product }: { product: ProductCardData }) {
+  const { locale } = useLanguage();
+  const displayName = localize(product.name_en, product.name_es, locale);
+
   const onSale =
     product.compare_at_price_cents != null &&
     product.compare_at_price_cents > product.base_price_cents;
@@ -57,7 +62,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.primary_image_url}
-                alt={product.name_en}
+                alt={displayName}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
@@ -73,7 +78,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
       <Link href={`/products/${product.slug}`} className="block">
         {/* Name */}
-        <p className="text-sm font-medium text-stone-900 leading-snug">{product.name_en}</p>
+        <p className="text-sm font-medium text-stone-900 leading-snug">{displayName}</p>
 
         {/* Color chips — square, shown when 2+ distinct colors */}
         {showColors && (

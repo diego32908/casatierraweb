@@ -10,7 +10,7 @@ export default async function AccessoriesPage() {
   // Accessories nav shows both accessories and shoes categories
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
     .eq("is_active", true)
     .in("category", ["accessories", "shoes"])
     .order("sort_order", { ascending: true });

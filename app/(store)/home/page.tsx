@@ -10,7 +10,7 @@ export default async function HomePage() {
   // Home nav shows home_decor and pottery categories
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
     .eq("is_active", true)
     .in("category", ["home_decor", "pottery"])
     .order("sort_order", { ascending: true });
