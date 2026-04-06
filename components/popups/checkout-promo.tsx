@@ -39,6 +39,7 @@ export function CheckoutPromo({ promoCode, discountText, onSubscribed }: Props) 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    e.stopPropagation(); // inner <form> is nested inside checkout <form>; prevent bubbling to outer submit
     if (!email) return;
     setError(null);
 

@@ -24,6 +24,7 @@ export default async function CheckoutPage() {
   return (
     <CheckoutForm
       flatShippingCents={shipping.flatRateCents}
+      priorityShippingCents={shipping.priorityRateCents}
       freeThresholdCents={shipping.freeThresholdCents}
       promoCode={promoCode}
       discountText={discountText}

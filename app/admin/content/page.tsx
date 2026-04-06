@@ -79,6 +79,7 @@ export default async function AdminContentPage() {
 
   const shipping = (settings["shipping"] ?? {}) as {
     flat_rate_cents?: number;
+    priority_rate_cents?: number;
     free_threshold_cents?: number;
   };
 
@@ -93,6 +94,7 @@ export default async function AdminContentPage() {
 
       <ShippingEditor
         flatRateCents={shipping.flat_rate_cents ?? 899}
+        priorityRateCents={shipping.priority_rate_cents ?? 1599}
         freeThresholdCents={shipping.free_threshold_cents ?? 15000}
       />
 

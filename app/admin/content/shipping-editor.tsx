@@ -5,6 +5,7 @@ import { patchSiteSetting } from "@/app/actions/site-settings";
 
 interface Props {
   flatRateCents: number;
+  priorityRateCents: number;
   freeThresholdCents: number;
 }
 
@@ -24,7 +25,7 @@ function parseDollarsToCents(value: string): number | null {
   return Math.round(n * 100);
 }
 
-export function ShippingEditor({ flatRateCents, freeThresholdCents }: Props) {
+export function ShippingEditor({ flatRateCents, priorityRateCents, freeThresholdCents }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -36,9 +37,10 @@ export function ShippingEditor({ flatRateCents, freeThresholdCents }: Props) {
     const fd = new FormData(e.currentTarget);
 
     const flatRate = parseDollarsToCents(fd.get("flat_rate") as string);
+    const priorityRate = parseDollarsToCents(fd.get("priority_rate") as string);
     const freeThreshold = parseDollarsToCents(fd.get("free_threshold") as string);
 
-    if (flatRate === null || freeThreshold === null) {
+    if (flatRate === null || priorityRate === null || freeThreshold === null) {
       setError("Enter valid dollar amounts (e.g. 8.99 or 150.00).");
       return;
     }
@@ -46,6 +48,7 @@ export function ShippingEditor({ flatRateCents, freeThresholdCents }: Props) {
     startTransition(async () => {
       const result = await patchSiteSetting("shipping", "Shipping Settings", {
         flat_rate_cents: flatRate,
+        priority_rate_cents: priorityRate,
         free_threshold_cents: freeThreshold,
       });
       if (result.error) setError(result.error);
@@ -92,6 +95,28 @@ export function ShippingEditor({ flatRateCents, freeThresholdCents }: Props) {
           </div>
           <p className="mt-1 text-xs text-stone-400">
             Charged when the order subtotal is below the free shipping threshold.
+          </p>
+        </div>
+
+        <div>
+          <label className={labelCls}>Priority shipping rate</label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-stone-400">
+              $
+            </span>
+            <input
+              name="priority_rate"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              defaultValue={centsToDisplay(priorityRateCents)}
+              className={`${inputCls} pl-7`}
+              placeholder="15.99"
+            />
+          </div>
+          <p className="mt-1 text-xs text-stone-400">
+            Charged for priority / expedited shipping (2–3 business days). Free-shipping threshold does not apply to priority.
           </p>
         </div>
 

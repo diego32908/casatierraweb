@@ -152,9 +152,19 @@ export async function POST(request: Request) {
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id:
           typeof session.payment_intent === "string" ? session.payment_intent : null,
-        customer_name: session.metadata?.customerName ?? "Customer",
-        email: session.metadata?.email ?? session.customer_email ?? "",
-        phone: session.metadata?.phone || null,
+        // metadata.customerName is empty when checkout was initiated directly from cart.
+        // Fall back to the name Stripe collected in the shipping address form.
+        customer_name:
+          session.metadata?.customerName ||
+          session.shipping_details?.name ||
+          session.customer_details?.name ||
+          "Customer",
+        email: session.metadata?.email || session.customer_email || "",
+        // metadata.phone is empty in direct-cart flow; fall back to Stripe-collected phone.
+        phone:
+          session.metadata?.phone ||
+          session.customer_details?.phone ||
+          null,
         fulfillment,
         shipping_address: shippingAddress,
         pickup_location: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
@@ -224,7 +234,7 @@ export async function POST(request: Request) {
 
     // Upsert customer record — non-fatal if it fails
     try {
-      const customerEmail = (session.metadata?.email ?? session.customer_email ?? "").toLowerCase().trim();
+      const customerEmail = (session.metadata?.email || session.customer_email || "").toLowerCase().trim();
       if (customerEmail) {
         const { data: existing } = await supabase
           .from("customers")
@@ -244,8 +254,15 @@ export async function POST(request: Request) {
         } else {
           await supabase.from("customers").insert({
             email: customerEmail,
-            full_name: session.metadata?.customerName ?? null,
-            phone: session.metadata?.phone || null,
+            full_name:
+              session.metadata?.customerName ||
+              session.shipping_details?.name ||
+              session.customer_details?.name ||
+              null,
+            phone:
+              session.metadata?.phone ||
+              session.customer_details?.phone ||
+              null,
             first_order_at: new Date().toISOString(),
             first_order_completed: true,
             order_count: 1,

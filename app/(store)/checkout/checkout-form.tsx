@@ -16,6 +16,7 @@ const labelCls = "block text-[11px] uppercase tracking-[0.16em] text-stone-500 m
 
 interface Props {
   flatShippingCents: number;
+  priorityShippingCents: number;
   freeThresholdCents: number;
   promoCode: string | null;
   discountText: string | null;
@@ -23,6 +24,7 @@ interface Props {
 
 export function CheckoutForm({
   flatShippingCents,
+  priorityShippingCents,
   freeThresholdCents,
   promoCode,
   discountText,
@@ -32,7 +34,7 @@ export function CheckoutForm({
   const [error, setError]     = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
 
-  const [fulfillment, setFulfillment] = useState<FulfillmentType>("shipping");
+  const [shippingOption, setShippingOption] = useState<"standard" | "priority" | "pickup">("standard");
   const [form, setForm] = useState({
     customerName: "",
     email: "",
@@ -96,7 +98,8 @@ export function CheckoutForm({
             customerName: form.customerName.trim(),
             email: form.email.trim().toLowerCase(),
             phone: form.phone.trim() || undefined,
-            fulfillment,
+            fulfillment: shippingOption === "pickup" ? "pickup" : "shipping",
+            shippingSpeed: shippingOption === "pickup" ? undefined : shippingOption,
             discountCode,
             items: items.map((item) => ({
               productId: item.product_id,
@@ -143,18 +146,20 @@ export function CheckoutForm({
     });
   }
 
-  // Shipping: free if subtotal meets threshold, otherwise flat rate.
-  // Matches the exact logic used in /api/checkout so display cannot drift.
+  // Shipping: mirrors computeShippingCents() in /lib/shipping.ts exactly.
+  const fulfillment: FulfillmentType = shippingOption === "pickup" ? "pickup" : "shipping";
   const qualifiesForFreeShipping =
-    fulfillment === "shipping" && subtotalCents >= freeThresholdCents;
-  const shippingCents = fulfillment === "pickup" ? 0
+    shippingOption === "standard" && subtotalCents >= freeThresholdCents;
+  const shippingCents =
+    shippingOption === "pickup" ? 0
+    : shippingOption === "priority" ? priorityShippingCents
     : qualifiesForFreeShipping ? 0
     : flatShippingCents;
   const totalCents = subtotalCents + shippingCents;
 
-  // How many cents away from the free shipping threshold
+  // How many cents away from free standard shipping
   const amountUntilFreeShipping =
-    fulfillment === "shipping" && !qualifiesForFreeShipping
+    shippingOption === "standard" && !qualifiesForFreeShipping
       ? freeThresholdCents - subtotalCents
       : 0;
 
@@ -234,44 +239,58 @@ export function CheckoutForm({
             {/* Fulfillment */}
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] text-stone-400 mb-5">
-                Fulfillment
+                Shipping
               </p>
               <div className="space-y-3">
-                {(["shipping", "pickup"] as FulfillmentType[]).map((type) => (
+                {([
+                  {
+                    value: "standard" as const,
+                    label: "Standard Shipping",
+                    description: qualifiesForFreeShipping
+                      ? `Free · Ships within 5–8 business days`
+                      : `${formatPrice(flatShippingCents)} · Ships within 5–8 business days · Free on orders ${formatPrice(freeThresholdCents)}+`,
+                  },
+                  {
+                    value: "priority" as const,
+                    label: "Priority Shipping",
+                    description: `${formatPrice(priorityShippingCents)} · Ships within 2–3 business days`,
+                  },
+                  {
+                    value: "pickup" as const,
+                    label: "Local Pickup",
+                    description: "Free — pick up at 1600 E Holt Ave, Pomona, CA",
+                  },
+                ] as const).map(({ value, label, description }) => (
                   <label
-                    key={type}
+                    key={value}
                     className="flex cursor-pointer items-start gap-3 border border-stone-200 px-4 py-3 transition-colors hover:border-stone-400"
-                    style={{ borderColor: fulfillment === type ? "#1c1917" : undefined }}
+                    style={{ borderColor: shippingOption === value ? "#1c1917" : undefined }}
                   >
                     <input
                       type="radio"
-                      name="fulfillment"
-                      value={type}
-                      checked={fulfillment === type}
-                      onChange={() => setFulfillment(type)}
+                      name="shipping_option"
+                      value={value}
+                      checked={shippingOption === value}
+                      onChange={() => setShippingOption(value)}
                       className="mt-0.5 shrink-0 accent-stone-900"
                     />
                     <div>
-                      <p className="text-sm font-medium text-stone-900 capitalize">{type}</p>
-                      <p className="text-xs text-stone-400 mt-0.5">
-                        {type === "shipping"
-                          ? `${formatPrice(flatShippingCents)} flat rate · Free on orders ${formatPrice(freeThresholdCents)}+ · Ships within 3–5 business days`
-                          : "Free — pick up at 1600 E Holt Ave, Pomona, CA"}
-                      </p>
+                      <p className="text-sm font-medium text-stone-900">{label}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">{description}</p>
                     </div>
                   </label>
                 ))}
               </div>
 
-              {/* Free shipping progress nudge */}
+              {/* Free standard shipping nudge */}
               {amountUntilFreeShipping > 0 && (
                 <p className="mt-3 text-xs text-stone-400">
-                  Add {formatPrice(amountUntilFreeShipping)} more to qualify for free shipping.
+                  Add {formatPrice(amountUntilFreeShipping)} more for free standard shipping.
                 </p>
               )}
               {qualifiesForFreeShipping && (
                 <p className="mt-3 text-xs text-stone-500">
-                  Your order qualifies for free shipping.
+                  Your order qualifies for free standard shipping.
                 </p>
               )}
             </div>
@@ -326,7 +345,7 @@ export function CheckoutForm({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-stone-500">Shipping</span>
-                  {fulfillment === "pickup" || qualifiesForFreeShipping ? (
+                  {shippingCents === 0 ? (
                     <span className="text-sm font-medium text-stone-500">Free</span>
                   ) : (
                     <span className="text-sm text-stone-400">{formatPrice(shippingCents)}</span>

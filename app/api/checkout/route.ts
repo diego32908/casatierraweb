@@ -65,7 +65,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
   try {
     const body = (await request.json()) as CheckoutRequestBody;
 
-    if (!body.customerName || !body.email || !body.items?.length) {
+    // customerName and email are optional — when omitted (direct cart → Stripe flow),
+    // Stripe collects them during hosted checkout and the webhook reads them back
+    // from session.shipping_details.name and session.customer_email.
+    if (!body.items?.length) {
       return NextResponse.json({ error: "Missing required checkout fields" }, { status: 400 });
     }
 
@@ -180,7 +183,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     const shippingAmountCents = computeShippingCents(
       subtotalCents,
       body.fulfillment,
-      shippingSettings
+      shippingSettings,
+      body.shippingSpeed
     );
     const shippingIsFree = shippingAmountCents === 0 && body.fulfillment === "shipping";
 
@@ -213,8 +217,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: body.email,
+      // Only pre-fill email when provided (internal checkout form flow).
+      // When omitted (direct cart → Stripe flow) Stripe collects it.
+      ...(body.email ? { customer_email: body.email } : {}),
       line_items,
+
+      // Collect phone — available in session.customer_details.phone for webhook
+      phone_number_collection: { enabled: true },
 
       automatic_tax: { enabled: true },
 
@@ -226,7 +235,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
             shipping_options: [
               {
                 shipping_rate_data: {
-                  display_name: shippingIsFree ? "Free Shipping" : "Flat Rate Shipping",
+                  display_name: body.shippingSpeed === "priority"
+                    ? "Priority Shipping"
+                    : shippingIsFree
+                    ? "Free Shipping"
+                    : "Standard Shipping",
                   type:         "fixed_amount",
                   fixed_amount: { amount: shippingAmountCents, currency: "usd" },
                   tax_behavior: "exclusive" as const,
@@ -258,8 +271,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
           );
         }
         return {
-          customerName:   body.customerName,
-          email:          body.email,
+          customerName:   body.customerName ?? "",
+          email:          body.email ?? "",
           phone:          body.phone ?? "",
           fulfillment:    body.fulfillment,
           items:          itemsJson,

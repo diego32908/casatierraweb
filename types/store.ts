@@ -215,10 +215,13 @@ export interface CheckoutCartItemInput {
 }
 
 export interface CheckoutRequestBody {
-  customerName: string;
-  email: string;
+  /** Optional when initiating directly from cart — Stripe collects name at checkout. */
+  customerName?: string;
+  /** Optional when initiating directly from cart — Stripe collects email at checkout. */
+  email?: string;
   phone?: string;
   fulfillment: FulfillmentType;
+  shippingSpeed?: "standard" | "priority";
   items: CheckoutCartItemInput[];
   discountCode?: string | null;
   locale?: "en" | "es";

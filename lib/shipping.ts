@@ -4,10 +4,14 @@ import { FLAT_SHIPPING_RATE_CENTS } from "@/lib/constants";
 export interface ShippingSettings {
   flatRateCents: number;
   freeThresholdCents: number;
+  priorityRateCents: number;
 }
 
 /** Default free-shipping threshold: $150.00 */
 const FREE_THRESHOLD_DEFAULT_CENTS = 15000;
+
+/** Default priority shipping rate: $15.99 */
+const PRIORITY_DEFAULT_CENTS = 1599;
 
 /**
  * Read shipping settings from the DB, falling back to compiled-in defaults.
@@ -34,6 +38,10 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
           typeof v.free_threshold_cents === "number"
             ? v.free_threshold_cents
             : FREE_THRESHOLD_DEFAULT_CENTS,
+        priorityRateCents:
+          typeof v.priority_rate_cents === "number"
+            ? v.priority_rate_cents
+            : PRIORITY_DEFAULT_CENTS,
       };
     }
   } catch {
@@ -42,6 +50,7 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
   return {
     flatRateCents: FLAT_SHIPPING_RATE_CENTS,
     freeThresholdCents: FREE_THRESHOLD_DEFAULT_CENTS,
+    priorityRateCents: PRIORITY_DEFAULT_CENTS,
   };
 }
 
@@ -53,9 +62,11 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
 export function computeShippingCents(
   subtotalCents: number,
   fulfillment: "shipping" | "pickup",
-  settings: ShippingSettings
+  settings: ShippingSettings,
+  shippingSpeed?: "standard" | "priority"
 ): number {
   if (fulfillment === "pickup") return 0;
+  if (shippingSpeed === "priority") return settings.priorityRateCents;
   if (subtotalCents >= settings.freeThresholdCents) return 0;
   return settings.flatRateCents;
 }
