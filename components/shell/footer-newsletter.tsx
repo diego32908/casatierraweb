@@ -53,7 +53,13 @@ export function FooterNewsletter() {
           Stay Connected
         </p>
         <p className="text-[13px] text-stone-500 leading-[1.9]">
-          You&rsquo;re already on the list.
+          This email is already subscribed.
+        </p>
+        <p className="text-[13px] text-stone-400 leading-[1.9]">
+          Check your inbox for your offer.
+        </p>
+        <p className="text-[11px] text-stone-300 leading-[1.9] mt-1">
+          First-order offer sent at signup.
         </p>
       </div>
     );

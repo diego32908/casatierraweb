@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import {
   loadPromo,
@@ -27,9 +27,11 @@ export interface PopupConfig {
 
 function SuccessState({
   promoCode,
+  isDuplicate,
   onClose,
 }: {
   promoCode: string | null;
+  isDuplicate: boolean;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -52,49 +54,60 @@ function SuccessState({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p style={{ fontSize: 16, fontWeight: 600, color: "#1c1917", margin: 0 }}>You&rsquo;re in.</p>
-
-        {promoCode ? (
+        {isDuplicate ? (
+          // Existing subscriber — do not re-expose the promo code
           <>
-            <p style={{ fontSize: 13, color: "#78716c", margin: 0 }}>Your first-order code:</p>
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              background: "#f5f5f4",
-              border: "1px dashed #d6d3d1",
-              borderRadius: 6,
-              padding: "10px 16px",
-              margin: "4px auto 0",
-            }}>
-              <span style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 700, letterSpacing: "0.12em", color: "#1c1917" }}>
-                {promoCode}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopy}
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: copied ? "#16a34a" : "#78716c",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "color 0.15s",
-                }}
-              >
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-            <p style={{ fontSize: 12, color: "#a8a29e", margin: "4px 0 0" }}>Enter this code at checkout.</p>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#1c1917", margin: 0 }}>Already subscribed.</p>
+            <p style={{ fontSize: 13, color: "#78716c", margin: 0 }}>Check your inbox for your offer.</p>
+            <p style={{ fontSize: 12, color: "#a8a29e", margin: "4px 0 0" }}>First-order offer sent at signup.</p>
           </>
         ) : (
-          <p style={{ fontSize: 13, color: "#78716c", margin: 0 }}>
-            Your first-order offer is saved and will be applied at checkout.
-          </p>
+          // New subscriber
+          <>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#1c1917", margin: 0 }}>You&rsquo;re in.</p>
+            {promoCode ? (
+              <>
+                <p style={{ fontSize: 13, color: "#78716c", margin: 0 }}>Your first-order code:</p>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "#f5f5f4",
+                  border: "1px dashed #d6d3d1",
+                  borderRadius: 6,
+                  padding: "10px 16px",
+                  margin: "4px auto 0",
+                }}>
+                  <span style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 700, letterSpacing: "0.12em", color: "#1c1917" }}>
+                    {promoCode}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      color: copied ? "#16a34a" : "#78716c",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      transition: "color 0.15s",
+                    }}
+                  >
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: "#a8a29e", margin: "4px 0 0" }}>Enter this code at checkout.</p>
+              </>
+            ) : (
+              <p style={{ fontSize: 13, color: "#78716c", margin: 0 }}>
+                Check your inbox for your first-order offer.
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -130,7 +143,7 @@ function CaptureForm({
   onDismiss,
 }: {
   config: PopupConfig;
-  status: "idle" | "loading" | "done" | "duplicate" | "error";
+  status: "idle" | "loading" | "error";
   email: string;
   setEmail: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -167,9 +180,6 @@ function CaptureForm({
         <p style={{ fontSize: 14, lineHeight: 1.6, color: "#78716c", margin: 0 }}>{bodyCopy}</p>
       )}
 
-      {status === "duplicate" && (
-        <p style={{ fontSize: 13, color: "#57534e", margin: 0 }}>You&rsquo;re already on the list.</p>
-      )}
       {status === "error" && (
         <p style={{ fontSize: 13, color: "#b91c1c", margin: 0 }}>Something went wrong. Please try again.</p>
       )}
@@ -195,6 +205,9 @@ function CaptureForm({
             fontSize: 14,
             color: "#1c1917",
             outline: "none",
+            // Explicit -webkit-appearance reset for Safari
+            WebkitAppearance: "none",
+            borderRadius: 0,
           }}
         />
         <button
@@ -257,25 +270,22 @@ function useIsMobile() {
   return isMobile;
 }
 
-// ── Layout A — Split ──────────────────────────────────────────────────────────
+// ── Shared layout props ───────────────────────────────────────────────────────
 
-function SplitLayout({
-  config,
-  status,
-  email,
-  setEmail,
-  onSubmit,
-  onDismiss,
-  onClose,
-}: {
+interface LayoutProps {
   config: PopupConfig;
-  status: "idle" | "loading" | "done" | "duplicate" | "error";
+  isDuplicate: boolean;
+  status: "idle" | "loading" | "done" | "error";
   email: string;
   setEmail: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onDismiss: () => void;
   onClose: () => void;
-}) {
+}
+
+// ── Layout A — Split ──────────────────────────────────────────────────────────
+
+function SplitLayout({ config, isDuplicate, status, email, setEmail, onSubmit, onDismiss, onClose }: LayoutProps) {
   const isMobile = useIsMobile();
 
   return (
@@ -313,11 +323,8 @@ function SplitLayout({
 
       <div style={{
         display: "grid",
-        // Mobile: single column (image stacked above content)
-        // Desktop: side-by-side split
         gridTemplateColumns: isMobile ? "1fr" : "48% 52%",
         width: "100%",
-        // Mobile: auto height, scrollable; Desktop: fixed 460px
         height: isMobile ? "auto" : 460,
         maxHeight: isMobile ? "85vh" : undefined,
         overflowY: isMobile ? "auto" : "hidden",
@@ -325,7 +332,7 @@ function SplitLayout({
         background: "#ffffff",
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
       }}>
-        {/* Image — condensed on mobile, full-height on desktop */}
+        {/* Image */}
         <div style={{
           position: "relative",
           overflow: "hidden",
@@ -353,7 +360,11 @@ function SplitLayout({
           background: "#ffffff",
         }}>
           {status === "done" ? (
-            <SuccessState promoCode={config.promoCode} onClose={onClose} />
+            <SuccessState
+              promoCode={isDuplicate ? null : config.promoCode}
+              isDuplicate={isDuplicate}
+              onClose={onClose}
+            />
           ) : (
             <CaptureForm
               config={config}
@@ -372,23 +383,7 @@ function SplitLayout({
 
 // ── Layout B — Centered ───────────────────────────────────────────────────────
 
-function CenteredLayout({
-  config,
-  status,
-  email,
-  setEmail,
-  onSubmit,
-  onDismiss,
-  onClose,
-}: {
-  config: PopupConfig;
-  status: "idle" | "loading" | "done" | "duplicate" | "error";
-  email: string;
-  setEmail: (v: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onDismiss: () => void;
-  onClose: () => void;
-}) {
+function CenteredLayout({ config, isDuplicate, status, email, setEmail, onSubmit, onDismiss, onClose }: LayoutProps) {
   const isMobile = useIsMobile();
 
   return (
@@ -444,7 +439,11 @@ function CenteredLayout({
         )}
         <div style={{ padding: isMobile ? "28px 24px 32px" : "40px 40px" }}>
           {status === "done" ? (
-            <SuccessState promoCode={config.promoCode} onClose={onClose} />
+            <SuccessState
+              promoCode={isDuplicate ? null : config.promoCode}
+              isDuplicate={isDuplicate}
+              onClose={onClose}
+            />
           ) : (
             <CaptureForm
               config={config}
@@ -466,7 +465,8 @@ function CenteredLayout({
 export function SignupPopup(config: PopupConfig) {
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "duplicate" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [isDuplicate, setIsDuplicate] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Trigger: randomized 7–10 seconds OR 40% scroll depth — whichever fires first.
@@ -491,7 +491,6 @@ export function SignupPopup(config: PopupConfig) {
       setVisible(true);
     }
 
-    // Randomize delay between 7 and 10 seconds
     const delay = 7000 + Math.random() * 3000;
     const timer = setTimeout(show, delay);
 
@@ -506,15 +505,23 @@ export function SignupPopup(config: PopupConfig) {
     };
   }, []);
 
-  // Scroll lock while popup is open
+  // Safari-safe scroll lock.
+  // overflow:hidden on html/body breaks input focus inside position:fixed overlays on iOS Safari.
+  // The position:fixed + negative-top body approach is the reliable cross-browser fix.
   useEffect(() => {
     if (!visible) return;
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    const body = document.body;
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.overflowY = "scroll"; // preserve scrollbar width to prevent layout shift
     return () => {
-      document.documentElement.style.overflow = prev;
-      document.body.style.overflow = "";
+      body.style.position = "";
+      body.style.top = "";
+      body.style.width = "";
+      body.style.overflowY = "";
+      window.scrollTo(0, scrollY);
     };
   }, [visible]);
 
@@ -527,14 +534,21 @@ export function SignupPopup(config: PopupConfig) {
     e.preventDefault();
     if (!email || isPending) return;
     setStatus("idle");
+    setIsDuplicate(false);
 
     startTransition(async () => {
       try {
         const result = await subscribeEmail(email, "popup", config.promoCode);
         if (result.error) {
           setStatus("error");
+        } else if (result.duplicate) {
+          // Existing subscriber — suppress popup without re-exposing the promo code
+          setIsDuplicate(true);
+          savePromo(markSubscribed(loadPromo(), null));
+          setStatus("done");
         } else {
-          // New or duplicate subscriber — either way, suppress future prompts and show success
+          // New subscriber — save promo code to localStorage for checkout auto-apply
+          setIsDuplicate(false);
           savePromo(markSubscribed(loadPromo(), config.promoCode));
           setStatus("done");
         }
@@ -546,12 +560,11 @@ export function SignupPopup(config: PopupConfig) {
 
   if (!visible) return null;
 
-  // Map useTransition pending state into the status prop so CaptureForm
-  // shows the loading UI without needing to know about useTransition.
   const effectiveStatus = isPending ? "loading" : status;
 
-  const sharedProps = {
+  const sharedProps: LayoutProps = {
     config,
+    isDuplicate,
     status: effectiveStatus,
     email,
     setEmail,
