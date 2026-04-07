@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type Subscriber = {
@@ -5,6 +7,8 @@ type Subscriber = {
   email: string;
   source: string;
   status: string;
+  promo_code: string | null;
+  promo_sent: boolean;
   created_at: string;
 };
 
@@ -19,7 +23,7 @@ async function getSubscribers(): Promise<Subscriber[]> {
     const supabase = createServerSupabaseClient();
     const { data } = await supabase
       .from("subscribers")
-      .select("id, email, source, status, created_at")
+      .select("id, email, source, status, promo_code, promo_sent, created_at")
       .order("created_at", { ascending: false });
     return (data ?? []) as Subscriber[];
   } catch (e) {
@@ -32,11 +36,12 @@ export default async function AdminSubscribersPage() {
   const subscribers = await getSubscribers();
 
   const counts = {
-    total:    subscribers.length,
-    footer:   subscribers.filter((s) => s.source === "footer").length,
-    popup:    subscribers.filter((s) => s.source === "popup").length,
-    checkout: subscribers.filter((s) => s.source === "checkout").length,
-    active:   subscribers.filter((s) => s.status === "active").length,
+    total:     subscribers.length,
+    footer:    subscribers.filter((s) => s.source === "footer").length,
+    popup:     subscribers.filter((s) => s.source === "popup").length,
+    checkout:  subscribers.filter((s) => s.source === "checkout").length,
+    active:    subscribers.filter((s) => s.status === "active").length,
+    promoSent: subscribers.filter((s) => s.promo_sent).length,
   };
 
   return (
@@ -44,7 +49,7 @@ export default async function AdminSubscribersPage() {
       <header>
         <h1 className="text-3xl font-semibold">Subscribers</h1>
         <p className="mt-2 text-sm text-stone-500">
-          Newsletter emails captured from the footer and popup.
+          Newsletter emails captured from the footer, popup, and checkout.
         </p>
       </header>
 
@@ -52,6 +57,7 @@ export default async function AdminSubscribersPage() {
       <div className="flex gap-6 text-sm flex-wrap">
         <span className="text-stone-900 font-medium">{counts.total} total</span>
         <span className="text-stone-400">{counts.active} active</span>
+        <span className="text-stone-400">{counts.promoSent} promo sent</span>
         <span className="text-stone-400">{counts.popup} from popup</span>
         <span className="text-stone-400">{counts.checkout} from checkout</span>
         <span className="text-stone-400">{counts.footer} from footer</span>
@@ -71,7 +77,8 @@ export default async function AdminSubscribersPage() {
               <tr className="border-b border-stone-200">
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Email</th>
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Source</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Status</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Promo Code</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Promo Sent</th>
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Date Added</th>
               </tr>
             </thead>
@@ -85,16 +92,15 @@ export default async function AdminSubscribersPage() {
                   <td className="px-5 py-3 text-stone-500">
                     {SOURCE_LABELS[s.source] ?? s.source}
                   </td>
+                  <td className="px-5 py-3 font-mono text-xs text-stone-600">
+                    {s.promo_code ?? <span className="text-stone-300">—</span>}
+                  </td>
                   <td className="px-5 py-3">
-                    <span
-                      className={
-                        s.status === "active"
-                          ? "text-stone-700"
-                          : "text-stone-400"
-                      }
-                    >
-                      {s.status}
-                    </span>
+                    {s.promo_sent ? (
+                      <span className="text-green-700 text-xs">✓ sent</span>
+                    ) : (
+                      <span className="text-stone-300 text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-stone-400 text-[12px]">
                     {new Date(s.created_at).toLocaleDateString("en-US", {

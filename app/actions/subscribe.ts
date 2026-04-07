@@ -16,7 +16,7 @@ export async function subscribeEmail(
   source: "popup" | "checkout" | "footer" = "popup",
   promoCode?: string | null
 ): Promise<{ error?: string; duplicate?: boolean }> {
-  console.log("[NEWSLETTER] subscribeEmail → start, source:", source, "email:", email.trim().toLowerCase());
+  console.log("[NEWSLETTER] subscribeEmail → start, source:", source, "email:", email.trim().toLowerCase(), "promoCode:", promoCode ?? "none");
 
   const ip = await clientIP();
   if (!checkRateLimit(`subscribe:${ip}`, 5, 10 * 60_000)) {
@@ -31,11 +31,17 @@ export async function subscribeEmail(
   }
 
   const supabase = createServerSupabaseClient();
-  const { error } = await supabase.from("subscribers").insert({
-    email: normalized,
-    source,
-    status: "active",
-  });
+  const { data: newSubscriber, error } = await supabase
+    .from("subscribers")
+    .insert({
+      email: normalized,
+      source,
+      status: "active",
+      promo_code: promoCode ?? null,
+      promo_sent: false,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -46,12 +52,25 @@ export async function subscribeEmail(
     return { error: "Something went wrong. Please try again." };
   }
 
-  console.log("[NEWSLETTER] subscribeEmail → DB insert OK, new subscriber:", normalized, "source:", source);
+  console.log("[NEWSLETTER] subscribeEmail → DB insert OK, id:", newSubscriber?.id, "source:", source);
 
   // Awaited so serverless context doesn't terminate before Resend executes.
   // sendWelcomeEmail has internal try/catch and never re-throws.
-  console.log("[NEWSLETTER] subscribeEmail → awaiting sendWelcomeEmail");
+  console.log("[NEWSLETTER] subscribeEmail → awaiting sendWelcomeEmail, promoCode:", promoCode ?? "none");
   await sendWelcomeEmail(normalized, promoCode ?? null);
+
+  // Mark promo as sent once the email dispatch was attempted
+  if (promoCode && newSubscriber?.id) {
+    const { error: updateError } = await supabase
+      .from("subscribers")
+      .update({ promo_sent: true })
+      .eq("id", newSubscriber.id);
+    if (updateError) {
+      console.warn("[NEWSLETTER] subscribeEmail → promo_sent update failed (non-fatal):", updateError.message);
+    } else {
+      console.log("[NEWSLETTER] subscribeEmail → promo_sent marked true for:", normalized);
+    }
+  }
 
   return {};
 }

@@ -215,6 +215,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
     // ── Stripe session ────────────────────────────────────────────────────────
     const baseUrl = getBaseUrl(request);
 
+    console.log("[CHECKOUT] fulfillment type:", body.fulfillment);
+    console.log("[CHECKOUT] shipping_address_collection enabled:", body.fulfillment === "shipping" ? "yes" : "no (pickup)");
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       // Only pre-fill email when provided (internal checkout form flow).
@@ -282,6 +285,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       })(),
     });
 
+    console.log("[CHECKOUT] session created:", session.id, "url:", session.url?.slice(0, 60));
     return NextResponse.json({ url: session.url ?? undefined, removedItems });
   } catch (error) {
     console.error("POST /api/checkout error", error);
