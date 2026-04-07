@@ -404,21 +404,29 @@ export async function sendWelcomeEmail(
   to: string,
   promoCode: string | null
 ): Promise<void> {
+  console.log("[WELCOME EMAIL] starting");
+
+  if (!to) {
+    console.error("[WELCOME EMAIL] recipient is empty — skipping");
+    return;
+  }
+  console.log("[WELCOME EMAIL] recipient:", to);
+
   const resend = getResend();
   if (!resend) return;
   const from = getFrom();
   if (!from) return;
+
   try {
-    console.log("[NEWSLETTER] sendWelcomeEmail → attempting send to:", to);
     await resend.emails.send({
       from,
       to,
       subject: `Welcome to ${BRAND}`,
       html: welcomeEmailHtml(promoCode),
     });
-    console.log("[NEWSLETTER] sendWelcomeEmail → sent OK to:", to);
+    console.log("[WELCOME EMAIL] sent OK → to:", to);
   } catch (err) {
-    console.error("[NEWSLETTER] sendWelcomeEmail → FAILED to:", to, err);
+    console.error("[WELCOME EMAIL] failed → to:", to, err);
   }
 }
 
@@ -526,22 +534,30 @@ export async function sendSecurityAlert(data: SecurityAlertData): Promise<void> 
 export async function sendOrderConfirmationEmail(
   order: OrderEmailData
 ): Promise<void> {
+  const orderRef = order.orderId.slice(0, 8).toUpperCase();
+  console.log("[CUSTOMER ORDER EMAIL] starting → order:", orderRef);
+
+  if (!order.email) {
+    console.error("[CUSTOMER ORDER EMAIL] recipient is empty — skipping, order:", orderRef);
+    return;
+  }
+  console.log("[CUSTOMER ORDER EMAIL] recipient:", order.email);
+
   const resend = getResend();
   if (!resend) return;
   const from = getFrom();
   if (!from) return;
-  const orderRef = order.orderId.slice(0, 8).toUpperCase();
+
   try {
-    console.log("[ORDER EMAIL] sendOrderConfirmationEmail → attempting send to:", order.email, "order:", orderRef);
     await resend.emails.send({
       from,
       to: order.email,
       subject: `Order confirmed — ${orderRef}`,
       html: orderConfirmationHtml(order),
     });
-    console.log("[ORDER EMAIL] sendOrderConfirmationEmail → sent OK, order:", orderRef);
+    console.log("[CUSTOMER ORDER EMAIL] sent OK → order:", orderRef, "to:", order.email);
   } catch (err) {
-    console.error("[ORDER EMAIL] sendOrderConfirmationEmail → FAILED, order:", orderRef, err);
+    console.error("[CUSTOMER ORDER EMAIL] failed → order:", orderRef, "to:", order.email, err);
   }
 }
 

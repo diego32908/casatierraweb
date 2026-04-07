@@ -171,7 +171,10 @@ export async function POST(request: Request) {
           session.shipping_details?.name ||
           session.customer_details?.name ||
           "Customer",
-        email: session.metadata?.email || session.customer_email || "",
+        // customer_details.email is what Stripe collected in the hosted UI.
+        // customer_email is only set when we passed it at session creation (pre-fill flow).
+        // metadata.email mirrors body.email but defaults to "" — always falsy for direct-cart flow.
+        email: session.metadata?.email || session.customer_email || session.customer_details?.email || "",
         // metadata.phone is empty in direct-cart flow; fall back to Stripe-collected phone.
         phone:
           session.metadata?.phone ||
