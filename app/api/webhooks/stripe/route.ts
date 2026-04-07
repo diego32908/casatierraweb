@@ -71,11 +71,37 @@ export async function POST(request: Request) {
 
     // Stripe is the source of truth for address (collected in Stripe's hosted UI)
     // and for all money amounts (subtotal, shipping, tax, total).
-    const shippingAddress = session.shipping_details?.address ?? null;
-    console.log("[WEBHOOK] shippingAddress resolved:", shippingAddress
-      ? `${shippingAddress.line1}, ${shippingAddress.city} ${shippingAddress.state}`
-      : "null (pickup or no shipping_details)"
+    // Log raw Stripe fields so Vercel logs show exactly where address lives
+    console.log("[WEBHOOK] session.shipping_details:", JSON.stringify(session.shipping_details));
+    console.log("[WEBHOOK] session.collected_information:", JSON.stringify(session.collected_information));
+    console.log("[WEBHOOK] session.customer_details:", JSON.stringify({
+      email: session.customer_details?.email,
+      name:  session.customer_details?.name,
+      address: session.customer_details?.address,
+    }));
+
+    // In Stripe API 2025-02-24.acacia, customer-provided shipping information
+    // is in session.collected_information.shipping_details, NOT in the top-level
+    // session.shipping_details (which is for carrier/tracking set post-fulfillment).
+    // Fall back to session.shipping_details for forward-compatibility.
+    const rawShipping =
+      session.collected_information?.shipping_details ??
+      session.shipping_details ??
+      null;
+    const shippingAddress = rawShipping?.address ?? null;
+    const shippingRecipientName = rawShipping?.name ?? null;
+
+    console.log("[WEBHOOK] fulfillment:", fulfillment);
+    console.log("[WEBHOOK] rawShipping source:",
+      session.collected_information?.shipping_details ? "collected_information" :
+      session.shipping_details ? "shipping_details" :
+      "none — address will be null"
     );
+    console.log("[WEBHOOK] resolved shippingAddress:", shippingAddress
+      ? `${shippingAddress.line1}, ${shippingAddress.city} ${shippingAddress.state}`
+      : "null"
+    );
+
     const taxCents = session.total_details?.amount_tax ?? 0;
     const shippingCents = session.total_details?.amount_shipping
       ?? (fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0);
@@ -172,7 +198,7 @@ export async function POST(request: Request) {
         // Fall back to the name Stripe collected in the shipping address form.
         customer_name:
           session.metadata?.customerName ||
-          session.shipping_details?.name ||
+          shippingRecipientName ||
           session.customer_details?.name ||
           "Customer",
         // customer_details.email is what Stripe collected in the hosted UI.
@@ -277,7 +303,7 @@ export async function POST(request: Request) {
             email: customerEmail,
             full_name:
               session.metadata?.customerName ||
-              session.shipping_details?.name ||
+              shippingRecipientName ||
               session.customer_details?.name ||
               null,
             phone:
