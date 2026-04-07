@@ -570,17 +570,21 @@ export function SignupPopup(config: PopupConfig) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        // pointer-events: none on the wrapper so it doesn't intercept clicks.
+        // The backdrop and content card each restore pointer-events: auto explicitly.
+        pointerEvents: "none",
       }}
       role="dialog"
       aria-modal="true"
     >
-      {/* Backdrop */}
+      {/* Backdrop — must restore pointer-events so the dismiss-on-click works */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           zIndex: 0,
           background: "rgba(0,0,0,0.45)",
+          pointerEvents: "auto",
         }}
         onClick={dismiss}
         aria-hidden
