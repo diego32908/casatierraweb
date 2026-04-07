@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     // Stripe is the source of truth for address (collected in Stripe's hosted UI)
     // and for all money amounts (subtotal, shipping, tax, total).
     const shippingAddress = session.shipping_details?.address ?? null;
+    console.log("[WEBHOOK] shippingAddress resolved:", shippingAddress
+      ? `${shippingAddress.line1}, ${shippingAddress.city} ${shippingAddress.state}`
+      : "null (pickup or no shipping_details)"
+    );
     const taxCents = session.total_details?.amount_tax ?? 0;
     const shippingCents = session.total_details?.amount_shipping
       ?? (fulfillment === "shipping" ? FLAT_SHIPPING_RATE_CENTS : 0);

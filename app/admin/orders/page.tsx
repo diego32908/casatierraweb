@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils";
 import { StatusSelect } from "./status-select";
@@ -15,17 +17,23 @@ type OrderItem = {
 
 type Order = {
   id: string;
+  stripe_checkout_session_id: string | null;
   customer_name: string;
   email: string;
   phone: string | null;
   fulfillment: string;
   shipping_address: {
-    line1: string; line2?: string | null;
-    city: string; state: string; postal_code: string;
+    line1: string | null;
+    line2?: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    country?: string | null;
   } | null;
   pickup_location: string | null;
   subtotal_cents: number;
   shipping_cents: number;
+  tax_cents: number;
   discount_cents: number;
   total_cents: number;
   status: OrderStatus;
@@ -105,7 +113,12 @@ export default async function AdminOrdersPage() {
               {/* Top row */}
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-stone-900">{order.customer_name}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-medium text-stone-900">{order.customer_name}</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 font-mono">
+                      #{order.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
                   <p className="text-xs text-stone-400">{order.email}</p>
                   {order.phone && (
                     <p className="text-xs text-stone-400">{order.phone}</p>
@@ -158,9 +171,21 @@ export default async function AdminOrdersPage() {
               {order.fulfillment === "shipping" && order.shipping_address && (
                 <div className="text-xs text-stone-400 border-t border-stone-100 pt-3">
                   <span className="text-[10px] uppercase tracking-wide text-stone-400">Ship to: </span>
-                  {order.shipping_address.line1}
-                  {order.shipping_address.line2 ? `, ${order.shipping_address.line2}` : ""},&nbsp;
-                  {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}
+                  {[
+                    order.shipping_address.line1,
+                    order.shipping_address.line2,
+                    [
+                      order.shipping_address.city,
+                      order.shipping_address.state,
+                      order.shipping_address.postal_code,
+                    ].filter(Boolean).join(", "),
+                    order.shipping_address.country,
+                  ].filter(Boolean).join(" · ")}
+                </div>
+              )}
+              {order.fulfillment === "shipping" && !order.shipping_address && (
+                <div className="text-xs text-stone-400 border-t border-stone-100 pt-3">
+                  <span className="text-[10px] uppercase tracking-wide text-amber-600">Ship to: address not captured</span>
                 </div>
               )}
               {order.fulfillment === "pickup" && order.pickup_location && (
