@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/server-auth";
 import { checkRateLimit, clientIP } from "@/lib/rate-limit";
-import { sendAdminReturnNotification } from "@/lib/email";
+import {
+  sendAdminReturnNotification,
+  sendReturnApprovedEmail,
+  sendReturnRejectedEmail,
+} from "@/lib/email";
 
 export interface ReturnRequestItem {
   name: string;
@@ -21,12 +25,12 @@ export interface SubmitReturnRequestInput {
   reason: string;
   notes: string;
   replacementSize: string | null;
-  labelOption: "prepaid" | "own_label";
+  labelOption: "prepaid" | "own_label" | "in_store";
 }
 
 const FEE_CENTS: Record<string, Record<string, number | null>> = {
-  return:   { prepaid: 899,  own_label: null },
-  exchange: { prepaid: 1599, own_label: null },
+  return:   { prepaid: 899,  own_label: null, in_store: null },
+  exchange: { prepaid: 1599, own_label: null, in_store: null },
 };
 
 export async function submitReturnRequest(
@@ -100,6 +104,16 @@ export async function updateReturnStatus(
 ): Promise<{ error?: string }> {
   await requireAdmin();
   const supabase = createServerSupabaseClient();
+
+  // Fetch current record before updating so we can:
+  //  a) detect whether status actually changed (prevents duplicate emails)
+  //  b) have the data needed for customer emails
+  const { data: current } = await supabase
+    .from("return_requests")
+    .select("status, order_ref, email, request_type, label_option, replacement_size")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase
     .from("return_requests")
     .update({ status, updated_at: new Date().toISOString() })
@@ -111,5 +125,40 @@ export async function updateReturnStatus(
   }
 
   revalidatePath("/admin/returns");
+
+  // Fire customer email only when status actually changes to approved/rejected
+  if (current && current.status !== status) {
+    if (status === "approved") {
+      // Read Stripe payment links + return address from site_settings
+      const { data: settingRow } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "returns_config")
+        .single();
+      const cfg = (settingRow?.value ?? {}) as {
+        return_prepaid_link?: string | null;
+        exchange_prepaid_link?: string | null;
+        return_address?: string | null;
+      };
+
+      void sendReturnApprovedEmail({
+        orderRef:            current.order_ref,
+        email:               current.email,
+        requestType:         current.request_type as "return" | "exchange",
+        labelOption:         current.label_option as "prepaid" | "own_label" | "in_store",
+        replacementSize:     current.replacement_size ?? null,
+        returnPrepaidLink:   cfg.return_prepaid_link ?? null,
+        exchangePrepaidLink: cfg.exchange_prepaid_link ?? null,
+        returnAddress:       cfg.return_address ?? "1600 E Holt Ave, Pomona, CA 91767",
+      });
+    } else if (status === "rejected") {
+      void sendReturnRejectedEmail({
+        orderRef:    current.order_ref,
+        email:       current.email,
+        requestType: current.request_type as "return" | "exchange",
+      });
+    }
+  }
+
   return {};
 }

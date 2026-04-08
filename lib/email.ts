@@ -720,6 +720,211 @@ export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
   }
 }
 
+// ── Customer return approval email ──────────────────────────────────────────
+
+export interface ReturnApprovedEmailData {
+  orderRef: string;
+  email: string;
+  requestType: "return" | "exchange";
+  labelOption: "prepaid" | "own_label" | "in_store";
+  replacementSize: string | null;
+  returnPrepaidLink: string | null;
+  exchangePrepaidLink: string | null;
+  returnAddress: string;
+}
+
+function returnApprovedHtml(data: ReturnApprovedEmailData): string {
+  const typeLabel = data.requestType === "exchange" ? "exchange" : "return";
+  const TypeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+
+  let nextStepsBlock = "";
+
+  if (data.labelOption === "prepaid") {
+    if (data.requestType === "return") {
+      const link = data.returnPrepaidLink;
+      const payBlock = link
+        ? `<div style="margin:24px 0;text-align:center;">
+            <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
+              font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
+              text-transform:uppercase;text-decoration:none;padding:14px 28px;">
+              Pay $8.99 — Get Return Label
+            </a>
+          </div>`
+        : `<p style="margin:16px 0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+            We will follow up with payment instructions and your return label shortly.
+          </p>`;
+      nextStepsBlock = `
+        <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+          To receive your prepaid return label, please complete a one-time payment of <strong>$8.99</strong>.
+        </p>
+        ${payBlock}
+        <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+          We&rsquo;ll send your label and full return instructions once payment is confirmed.
+        </p>`;
+    } else {
+      const link = data.exchangePrepaidLink;
+      const payBlock = link
+        ? `<div style="margin:24px 0;text-align:center;">
+            <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
+              font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
+              text-transform:uppercase;text-decoration:none;padding:14px 28px;">
+              Pay $15.99 — Start Exchange
+            </a>
+          </div>`
+        : `<p style="margin:16px 0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+            We will follow up with payment instructions shortly.
+          </p>`;
+      nextStepsBlock = `
+        <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+          To proceed, please complete the prepaid label and reship fee of <strong>$15.99</strong>.
+        </p>
+        ${payBlock}
+        <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+          We&rsquo;ll send your return label and ship your replacement after payment is confirmed.
+          ${data.replacementSize ? `Requested size: <strong>${data.replacementSize}</strong>.` : ""}
+        </p>`;
+    }
+  } else if (data.labelOption === "own_label") {
+    const afterReceived =
+      data.requestType === "exchange"
+        ? "Once we receive and inspect the item(s), we&rsquo;ll process your exchange and ship your replacement."
+        : "Once we receive and inspect the item(s), we&rsquo;ll process your refund.";
+    nextStepsBlock = `
+      <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+        Please ship the item(s) to us using your own label at the address below. We recommend using a trackable shipping method.
+      </p>
+      <div style="margin:20px 0;padding:16px 20px;background:#fafaf9;border:1px solid #e7e5e4;">
+        <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+          color:#a8a29e;font-family:Arial,sans-serif;">Return address</p>
+        <p style="margin:0;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+          ${BRAND}<br />${data.returnAddress}
+        </p>
+      </div>
+      <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+        Please include your order number <strong>#${data.orderRef}</strong> inside the package so we can match it to your request.
+        ${afterReceived}
+      </p>`;
+  } else {
+    // in_store
+    nextStepsBlock = `
+      <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+        You&rsquo;re approved for a free in-store ${typeLabel}. Please wait for a follow-up from us before coming in &mdash; we want to make sure we&rsquo;re prepared for your visit.
+      </p>
+      <div style="margin:20px 0;padding:16px 20px;background:#fafaf9;border:1px solid #e7e5e4;">
+        <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+          color:#a8a29e;font-family:Arial,sans-serif;">Our store</p>
+        <p style="margin:0;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+          ${BRAND}<br />1600 E Holt Ave, Pomona, CA
+        </p>
+      </div>
+      <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+        We&rsquo;ll be in touch soon with a convenient time for your visit.
+      </p>`;
+  }
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">${TypeLabel} request</p>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
+      Your request has been approved.
+    </h1>
+    <p style="margin:0 0 24px;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+      Order <strong>#${data.orderRef}</strong>
+    </p>
+    ${nextStepsBlock}
+    <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;line-height:1.6;">
+      Questions? Reply to this email and we&rsquo;ll help you out.<br />
+      Thanks for supporting a small business &mdash; it means more than you think.
+    </p>
+  `);
+}
+
+export interface ReturnRejectedEmailData {
+  orderRef: string;
+  email: string;
+  requestType: "return" | "exchange";
+}
+
+function returnRejectedHtml(data: ReturnRejectedEmailData): string {
+  const typeLabel = data.requestType === "exchange" ? "exchange" : "return";
+  const TypeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">${TypeLabel} request</p>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
+      We weren&rsquo;t able to approve your request.
+    </h1>
+    <p style="margin:0 0 24px;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+      Order <strong>#${data.orderRef}</strong>
+    </p>
+    <p style="margin:0 0 16px;font-size:14px;color:#57534e;font-family:Arial,sans-serif;line-height:1.7;">
+      After reviewing your ${typeLabel} request, we&rsquo;re unable to approve it based on our current return and exchange policy.
+    </p>
+    <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+      If you believe this was an error or have questions, please reply to this email and we&rsquo;ll take another look.
+      We appreciate your patience and your support.
+    </p>
+    <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;line-height:1.6;">
+      Thanks for supporting a small business &mdash; it means more than you think.
+    </p>
+  `);
+}
+
+/**
+ * Send an approval email to the customer with method-specific next steps.
+ * Never throws — always resolves.
+ */
+export async function sendReturnApprovedEmail(
+  data: ReturnApprovedEmailData
+): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+
+  const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  try {
+    console.log("[RETURNS EMAIL] sendReturnApprovedEmail → to:", data.email, "order:", data.orderRef);
+    await resend.emails.send({
+      from,
+      to:      data.email,
+      subject: `[${BRAND}] Your ${typeLabel} Request — Approved (#${data.orderRef})`,
+      html:    returnApprovedHtml(data),
+    });
+    console.log("[RETURNS EMAIL] sendReturnApprovedEmail → sent OK, order:", data.orderRef);
+  } catch (err) {
+    console.error("[RETURNS EMAIL] sendReturnApprovedEmail → FAILED, order:", data.orderRef, err);
+  }
+}
+
+/**
+ * Send a rejection email to the customer.
+ * Never throws — always resolves.
+ */
+export async function sendReturnRejectedEmail(
+  data: ReturnRejectedEmailData
+): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+
+  const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  try {
+    console.log("[RETURNS EMAIL] sendReturnRejectedEmail → to:", data.email, "order:", data.orderRef);
+    await resend.emails.send({
+      from,
+      to:      data.email,
+      subject: `[${BRAND}] Your ${typeLabel} Request — Update (#${data.orderRef})`,
+      html:    returnRejectedHtml(data),
+    });
+    console.log("[RETURNS EMAIL] sendReturnRejectedEmail → sent OK, order:", data.orderRef);
+  } catch (err) {
+    console.error("[RETURNS EMAIL] sendReturnRejectedEmail → FAILED, order:", data.orderRef, err);
+  }
+}
+
 // ── Admin return / exchange notification email ───────────────────────────────
 
 export interface AdminReturnNotificationData {
@@ -730,7 +935,7 @@ export interface AdminReturnNotificationData {
   reason: string;
   notes: string | null;
   replacementSize: string | null;
-  labelOption: "prepaid" | "own_label";
+  labelOption: "prepaid" | "own_label" | "in_store";
   feeCents: number | null;
   createdAt: string;
 }

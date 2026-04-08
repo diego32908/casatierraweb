@@ -44,7 +44,7 @@ export function ReturnForm({ orderId, orderRef, email, formType, orderItems }: P
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [replacementSize, setReplacementSize] = useState("");
-  const [labelOption, setLabelOption] = useState<"prepaid" | "own_label" | "">("");
+  const [labelOption, setLabelOption] = useState<"prepaid" | "own_label" | "in_store" | "">("");
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
   const [errMsg, setErrMsg] = useState("");
@@ -91,7 +91,7 @@ export function ReturnForm({ orderId, orderRef, email, formType, orderItems }: P
       return;
     }
     if (!labelOption) {
-      setErrMsg("Please choose a label option.");
+      setErrMsg("Please choose a return method.");
       return;
     }
 
@@ -105,7 +105,7 @@ export function ReturnForm({ orderId, orderRef, email, formType, orderItems }: P
         reason,
         notes,
         replacementSize: formType === "exchange" ? (replacementSize || null) : null,
-        labelOption,
+        labelOption: labelOption as "prepaid" | "own_label" | "in_store",
       });
       if (result.error) {
         setErrMsg(result.error);
@@ -255,7 +255,7 @@ export function ReturnForm({ orderId, orderRef, email, formType, orderItems }: P
 
       {/* Label option */}
       <div>
-        <p className={labelCls}>Return shipping label</p>
+        <p className={labelCls}>Return method</p>
         <div className="space-y-3">
           <label
             className={`flex items-start gap-3 panel p-4 cursor-pointer transition-colors duration-150 ${
@@ -303,6 +303,28 @@ export function ReturnForm({ orderId, orderRef, email, formType, orderItems }: P
               </p>
               <p className="text-[12px] text-stone-400 mt-0.5">
                 You arrange and pay for return shipping. We&rsquo;ll send you the return address.
+              </p>
+            </div>
+          </label>
+          <label
+            className={`flex items-start gap-3 panel p-4 cursor-pointer transition-colors duration-150 ${
+              labelOption === "in_store" ? "border-stone-500" : "hover:border-stone-300"
+            }`}
+          >
+            <input
+              type="radio"
+              name="label_option"
+              value="in_store"
+              checked={labelOption === "in_store"}
+              onChange={() => setLabelOption("in_store")}
+              className="mt-0.5 shrink-0"
+            />
+            <div>
+              <p className="text-[13px] text-stone-800 font-medium">
+                Free in-store {formType === "exchange" ? "exchange" : "return"}
+              </p>
+              <p className="text-[12px] text-stone-400 mt-0.5">
+                Bring it back to our store at no cost. Please wait for confirmation before coming in so we can prepare.
               </p>
             </div>
           </label>
