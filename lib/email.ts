@@ -117,6 +117,7 @@ export interface OrderEmailData {
     quantity: number;
     unitPriceCents: number;
     lineTotalCents: number;
+    imageUrl?: string | null;
   }>;
   subtotalCents: number;
   shippingCents: number;
@@ -142,19 +143,25 @@ function orderConfirmationHtml(order: OrderEmailData): string {
       (item) => `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f0eeec;vertical-align:top;">
-          <p style="margin:0;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;">
-            ${item.name}
-          </p>
-          ${
-            item.variant
-              ? `<p style="margin:2px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">${item.variant}</p>`
-              : ""
-          }
-          ${
-            item.quantity > 1
-              ? `<p style="margin:2px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">×${item.quantity}</p>`
-              : ""
-          }
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              ${item.imageUrl
+                ? `<td style="padding-right:12px;vertical-align:top;">
+                    <img src="${item.imageUrl}" alt="" width="48" height="60"
+                      style="display:block;width:48px;height:60px;object-fit:cover;background:#f5f5f4;" />
+                  </td>`
+                : ""}
+              <td style="vertical-align:top;">
+                <p style="margin:0;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;">${item.name}</p>
+                ${item.variant
+                  ? `<p style="margin:2px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">${item.variant}</p>`
+                  : ""}
+                ${item.quantity > 1
+                  ? `<p style="margin:2px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">×${item.quantity}</p>`
+                  : ""}
+              </td>
+            </tr>
+          </table>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #f0eeec;text-align:right;
           vertical-align:top;white-space:nowrap;">
@@ -406,27 +413,39 @@ export interface ShippedEmailData {
     name: string;
     variant: string | null;
     quantity: number;
-    lineTotalCents: number;
+    imageUrl: string | null;
   }>;
-  totalCents: number;
 }
 
 function shippedEmailHtml(data: ShippedEmailData): string {
   const orderRef = data.orderId.slice(0, 8).toUpperCase();
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const viewOrderUrl = `${siteUrl}/track-order?q=${orderRef}`;
 
   const itemRows = data.items
     .map(
       (item) => `
       <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0eeec;font-size:14px;
-          color:#1c1917;font-family:Arial,sans-serif;">
-          ${item.name}
-          ${item.variant ? `<span style="color:#a8a29e;"> · ${item.variant}</span>` : ""}
-          ${item.quantity > 1 ? ` <span style="color:#a8a29e;">×${item.quantity}</span>` : ""}
-        </td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0eeec;text-align:right;
-          font-size:14px;color:#1c1917;font-family:Arial,sans-serif;white-space:nowrap;">
-          ${formatCents(item.lineTotalCents)}
+        <td style="padding:12px 0;border-bottom:1px solid #f0eeec;vertical-align:top;">
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              ${item.imageUrl
+                ? `<td style="padding-right:12px;vertical-align:top;">
+                    <img src="${item.imageUrl}" alt="" width="48" height="60"
+                      style="display:block;width:48px;height:60px;object-fit:cover;background:#f5f5f4;" />
+                  </td>`
+                : ""}
+              <td style="vertical-align:top;">
+                <p style="margin:0;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;">${item.name}</p>
+                ${item.variant
+                  ? `<p style="margin:3px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">${item.variant}</p>`
+                  : ""}
+                ${item.quantity > 1
+                  ? `<p style="margin:3px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">Qty: ${item.quantity}</p>`
+                  : ""}
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>`
     )
@@ -438,23 +457,41 @@ function shippedEmailHtml(data: ShippedEmailData): string {
           color:#a8a29e;font-family:Arial,sans-serif;">
           ${data.carrier ? data.carrier + " · " : ""}Tracking number
         </p>
-        <p style="margin:0 0 14px;font-family:'Courier New',monospace;font-size:17px;font-weight:700;
+        <p style="margin:0 0 18px;font-family:'Courier New',monospace;font-size:17px;font-weight:700;
           letter-spacing:0.1em;color:#1c1917;">
           ${data.trackingNumber}
         </p>
-        ${
-          data.trackingUrl
-            ? `<a href="${data.trackingUrl}" style="display:inline-block;background:#1c1917;color:#ffffff;
-                font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
-                text-transform:uppercase;text-decoration:none;padding:12px 28px;">
-                Track Your Order
-              </a>`
-            : ""
-        }
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+          <tr>
+            ${data.trackingUrl
+              ? `<td style="padding-right:10px;">
+                  <a href="${data.trackingUrl}" style="display:inline-block;background:#1c1917;color:#ffffff;
+                    font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
+                    text-transform:uppercase;text-decoration:none;padding:12px 22px;">
+                    Track Order
+                  </a>
+                </td>`
+              : ""}
+            <td>
+              <a href="${viewOrderUrl}" style="display:inline-block;background:transparent;color:#1c1917;
+                border:1px solid #d6d3d1;font-family:Arial,sans-serif;font-size:11px;font-weight:700;
+                letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:11px 22px;">
+                View Order
+              </a>
+            </td>
+          </tr>
+        </table>
       </div>`
-    : `<p style="margin:0 0 24px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-        Tracking information will be available shortly.
-      </p>`;
+    : `<div style="margin:24px 0;text-align:center;">
+        <p style="margin:0 0 16px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+          Tracking information will be available shortly.
+        </p>
+        <a href="${viewOrderUrl}" style="display:inline-block;background:transparent;color:#1c1917;
+          border:1px solid #d6d3d1;font-family:Arial,sans-serif;font-size:11px;font-weight:700;
+          letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:11px 22px;">
+          View Order
+        </a>
+      </div>`;
 
   return emailLayout(`
     <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
@@ -462,24 +499,16 @@ function shippedEmailHtml(data: ShippedEmailData): string {
     <h1 style="margin:0 0 8px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
       Good news, ${data.customerName}.
     </h1>
-    <p style="margin:0 0 24px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+    <p style="margin:0 0 4px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
       Your order <strong>#${orderRef}</strong> has shipped.
     </p>
 
     ${trackingBlock}
 
     <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
-      color:#a8a29e;font-family:Arial,sans-serif;">Order summary</p>
+      color:#a8a29e;font-family:Arial,sans-serif;">What&rsquo;s in your order</p>
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
       ${itemRows}
-      <tr>
-        <td style="padding:10px 0 4px;font-size:13px;font-weight:600;color:#1c1917;
-          font-family:Arial,sans-serif;border-top:1px solid #e7e5e4;">Total</td>
-        <td style="padding:10px 0 4px;font-size:13px;font-weight:600;color:#1c1917;
-          text-align:right;font-family:Arial,sans-serif;border-top:1px solid #e7e5e4;">
-          ${formatCents(data.totalCents)}
-        </td>
-      </tr>
     </table>
 
     <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">

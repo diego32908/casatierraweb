@@ -335,6 +335,7 @@ export async function POST(request: Request) {
           quantity: item.quantity,
           unitPriceCents: item.unit_price_cents,
           lineTotalCents: item.line_total_cents,
+          imageUrl: item.image_url_snapshot ?? null,
         })),
         subtotalCents: subtotal,
         shippingCents,

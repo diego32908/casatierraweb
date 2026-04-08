@@ -9,6 +9,7 @@ const SUPPORT_LINKS = [
   { label: "Custom Requests",    href: "/contact?type=custom" },
   { label: "Bulk Orders",        href: "/contact?type=bulk" },
   { label: "Shipping & Returns", href: "/shipping" },
+  { label: "Track Order",        href: "/track-order" },
   { label: "Visit Us",           href: "/visit" },
 ];
 

@@ -32,7 +32,7 @@ export async function updateOrderStatus(
   if (status === "SHIPPED") {
     const { data: order } = await supabase
       .from("orders")
-      .select("id, customer_name, email, carrier, tracking_number, tracking_url, total_cents, order_items(product_name_snapshot, variant_label_snapshot, quantity, line_total_cents)")
+      .select("id, customer_name, email, carrier, tracking_number, tracking_url, order_items(product_name_snapshot, variant_label_snapshot, quantity, image_url_snapshot)")
       .eq("id", orderId)
       .single();
 
@@ -44,17 +44,16 @@ export async function updateOrderStatus(
         carrier: order.carrier ?? null,
         trackingNumber: order.tracking_number ?? null,
         trackingUrl: order.tracking_url ?? null,
-        totalCents: order.total_cents,
         items: (order.order_items as Array<{
           product_name_snapshot: string;
           variant_label_snapshot: string | null;
           quantity: number;
-          line_total_cents: number;
+          image_url_snapshot: string | null;
         }>).map((i) => ({
           name: i.product_name_snapshot,
           variant: i.variant_label_snapshot,
           quantity: i.quantity,
-          lineTotalCents: i.line_total_cents,
+          imageUrl: i.image_url_snapshot,
         })),
       });
     }
