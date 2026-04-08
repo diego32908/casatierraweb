@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/server-auth";
 import { checkRateLimit, clientIP } from "@/lib/rate-limit";
+import { sendAdminReturnNotification } from "@/lib/email";
 
 export interface ReturnRequestItem {
   name: string;
@@ -75,6 +76,20 @@ export async function submitReturnRequest(
     console.error("[returns] insert error:", error.message);
     return { error: "Something went wrong. Please try again." };
   }
+
+  // Fire admin notification — non-blocking, failure does not propagate
+  void sendAdminReturnNotification({
+    orderRef:        input.orderRef,
+    email:           input.email.trim().toLowerCase(),
+    requestType:     input.requestType,
+    items:           input.items,
+    reason:          input.reason.trim(),
+    notes:           input.notes.trim() || null,
+    replacementSize: input.replacementSize?.trim() || null,
+    labelOption:     input.labelOption,
+    feeCents:        feeCents,
+    createdAt:       new Date().toISOString(),
+  });
 
   return {};
 }

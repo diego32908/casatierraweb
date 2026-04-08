@@ -720,6 +720,119 @@ export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
   }
 }
 
+// ── Admin return / exchange notification email ───────────────────────────────
+
+export interface AdminReturnNotificationData {
+  orderRef: string;
+  email: string;
+  requestType: "return" | "exchange";
+  items: Array<{ name: string; variant: string | null; quantity: number }>;
+  reason: string;
+  notes: string | null;
+  replacementSize: string | null;
+  labelOption: "prepaid" | "own_label";
+  feeCents: number | null;
+  createdAt: string;
+}
+
+function adminReturnNotificationHtml(data: AdminReturnNotificationData): string {
+  const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  const labelLabel = data.labelOption === "prepaid" ? "Prepaid label" : "Own label";
+
+  const itemRows = data.items
+    .map(
+      (item) => `<tr>
+        <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;">
+          ${item.name}${item.variant ? ` <span style="color:#a8a29e;">· ${item.variant}</span>` : ""}
+        </td>
+        <td style="padding:8px 12px;font-size:13px;color:#78716c;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;text-align:center;">×${item.quantity}</td>
+      </tr>`
+    )
+    .join("");
+
+  const rows: [string, string][] = [
+    ["Type",    typeLabel],
+    ["Order",   `#${data.orderRef}`],
+    ["Email",   `<a href="mailto:${data.email}" style="color:#1c1917;">${data.email}</a>`],
+    ["Reason",  data.reason],
+    ["Label",   labelLabel + (data.feeCents !== null ? ` — ${formatCents(data.feeCents)}` : "")],
+    ...(data.requestType === "exchange" && data.replacementSize
+      ? [["Replacement size", data.replacementSize] as [string, string]]
+      : []),
+    ...(data.notes ? [["Notes", data.notes] as [string, string]] : []),
+    ["Submitted", new Date(data.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", dateStyle: "full", timeStyle: "short" })],
+  ];
+
+  const tableRows = rows
+    .map(
+      ([k, v]) => `<tr>
+        <td style="padding:8px 12px;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;
+          white-space:nowrap;vertical-align:top;border-bottom:1px solid #f0eeec;width:120px;">${k}</td>
+        <td style="padding:8px 12px;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;
+          border-bottom:1px solid #f0eeec;">${v}</td>
+      </tr>`
+    )
+    .join("");
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">New ${typeLabel} Request</p>
+    <h1 style="margin:0 0 24px;font-size:20px;font-weight:600;color:#1c1917;font-family:Arial,sans-serif;">
+      #${data.orderRef}
+    </h1>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+      style="border:1px solid #e7e5e4;margin:0 0 20px;">
+      ${tableRows}
+    </table>
+
+    <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">Items</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+      style="border:1px solid #e7e5e4;margin:0 0 20px;">
+      ${itemRows}
+    </table>
+
+    <p style="margin:0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;">
+      Review in admin → /admin/returns
+    </p>
+  `);
+}
+
+/**
+ * Send a return/exchange request notification to the admin email.
+ * Reads ADMIN_EMAIL from env — skipped silently if not configured.
+ * Never throws — always resolves.
+ */
+export async function sendAdminReturnNotification(
+  data: AdminReturnNotificationData
+): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+  const adminTo = process.env.ADMIN_EMAIL;
+  if (!adminTo) {
+    console.error("[RETURNS EMAIL] sendAdminReturnNotification skipped — ADMIN_EMAIL not set");
+    return;
+  }
+  const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  try {
+    console.log("[RETURNS EMAIL] sendAdminReturnNotification → attempting send to:", adminTo, "order:", data.orderRef);
+    await resend.emails.send({
+      from,
+      to:      adminTo,
+      subject: `[${BRAND}] New ${typeLabel} Request — #${data.orderRef}`,
+      html:    adminReturnNotificationHtml(data),
+    });
+    console.log("[RETURNS EMAIL] sendAdminReturnNotification → sent OK, order:", data.orderRef);
+  } catch (err) {
+    console.error("[RETURNS EMAIL] sendAdminReturnNotification → FAILED, order:", data.orderRef, err);
+  }
+}
+
 /**
  * Send a new-order notification to the business/admin email.
  * Reads ADMIN_EMAIL from env — skipped silently if not configured.
