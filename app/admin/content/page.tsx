@@ -52,6 +52,7 @@ export default async function AdminContentPage() {
   const popup = (settings["popup"] ?? {}) as {
     image_url?: string | null;
     enabled?: boolean;
+    promo_enabled?: boolean;
     heading?: string | null;
     body_copy?: string | null;
     discount_text?: string | null;
@@ -59,6 +60,8 @@ export default async function AdminContentPage() {
     cta_label?: string | null;
     fine_print?: string | null;
     layout?: "split" | "centered";
+    delay_seconds?: number;
+    scroll_trigger_percent?: number;
   };
 
   const announcement = (settings["announcement_bar"] ?? {}) as {
@@ -119,6 +122,7 @@ export default async function AdminContentPage() {
       <PopupEditor
         imageUrl={popup.image_url ?? null}
         enabled={popup.enabled ?? false}
+        promoEnabled={popup.promo_enabled ?? true}
         heading={popup.heading ?? ""}
         bodyCopy={popup.body_copy ?? ""}
         discountText={popup.discount_text ?? ""}
@@ -126,6 +130,8 @@ export default async function AdminContentPage() {
         ctaLabel={popup.cta_label ?? "Claim Offer"}
         finePrint={popup.fine_print ?? "No spam. Unsubscribe anytime."}
         layout={popup.layout ?? "centered"}
+        delaySeconds={popup.delay_seconds ?? 7}
+        scrollTriggerPercent={popup.scroll_trigger_percent ?? 40}
       />
 
       <VisitImageEditor imageUrl={visitPage.image_url ?? null} />

@@ -17,7 +17,10 @@ async function getActivePromoCode(
       .select("value")
       .eq("key", "popup")
       .single();
-    const code = (data?.value as { promo_code?: string | null } | null)?.promo_code ?? null;
+    const settings = data?.value as { promo_code?: string | null; promo_enabled?: boolean } | null;
+    // promo_enabled defaults to true if not set (backward-compatible)
+    if (settings?.promo_enabled === false) return null;
+    const code = settings?.promo_code ?? null;
     return code?.trim() || null;
   } catch {
     return null;

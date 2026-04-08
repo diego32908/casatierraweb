@@ -17,10 +17,13 @@ export interface PopupConfig {
   bodyCopy: string | null;
   discountText: string | null;
   promoCode: string | null;
+  promoEnabled: boolean;
   ctaLabel: string;
   finePrint: string | null;
   imageUrl: string | null;
   layout: "split" | "centered";
+  delaySeconds: number;
+  scrollTriggerPercent: number;
 }
 
 // ── Success state ─────────────────────────────────────────────────────────────
@@ -469,7 +472,9 @@ export function SignupPopup(config: PopupConfig) {
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Trigger: randomized 7–10 seconds OR 40% scroll depth — whichever fires first.
+  const { delaySeconds, scrollTriggerPercent } = config;
+
+  // Trigger: configured delay (default 7s) OR configured scroll % — whichever fires first.
   // Debug: add ?popup=1 to any URL to force it open immediately, bypassing localStorage.
   useEffect(() => {
     const forceOpen = new URLSearchParams(window.location.search).get("popup") === "1";
@@ -491,19 +496,20 @@ export function SignupPopup(config: PopupConfig) {
       setVisible(true);
     }
 
-    const delay = 7000 + Math.random() * 3000;
-    const timer = setTimeout(show, delay);
+    const delayMs = delaySeconds * 1000;
+    const timer = setTimeout(show, delayMs);
 
+    const threshold = scrollTriggerPercent / 100;
     function onScroll() {
       const total = document.documentElement.scrollHeight - window.innerHeight;
-      if (total > 0 && window.scrollY / total >= 0.4) show();
+      if (total > 0 && window.scrollY / total >= threshold) show();
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       clearTimeout(timer);
       window.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [delaySeconds, scrollTriggerPercent]);
 
   // Safari-safe scroll lock.
   // overflow:hidden on html/body breaks input focus inside position:fixed overlays on iOS Safari.

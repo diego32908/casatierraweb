@@ -14,6 +14,7 @@ async function getPopupConfig() {
       .single();
     return data?.value as {
       enabled?: boolean;
+      promo_enabled?: boolean;
       heading?: string | null;
       body_copy?: string | null;
       discount_text?: string | null;
@@ -22,6 +23,8 @@ async function getPopupConfig() {
       fine_print?: string | null;
       image_url?: string | null;
       layout?: "split" | "centered";
+      delay_seconds?: number;
+      scroll_trigger_percent?: number;
     } | null;
   } catch {
     return null;
@@ -47,11 +50,14 @@ export default async function StoreLayout({
           heading={popup?.heading ?? "Join the Community"}
           bodyCopy={popup?.body_copy ?? null}
           discountText={popup?.discount_text ?? null}
-          promoCode={popup?.promo_code ?? null}
+          promoCode={popup?.promo_enabled !== false ? (popup?.promo_code ?? null) : null}
+          promoEnabled={popup?.promo_enabled !== false}
           ctaLabel={popup?.cta_label ?? "Claim Offer"}
           finePrint={popup?.fine_print ?? "No spam. Unsubscribe anytime."}
           imageUrl={popup?.image_url ?? null}
           layout={popup?.layout ?? "centered"}
+          delaySeconds={popup?.delay_seconds ?? 7}
+          scrollTriggerPercent={popup?.scroll_trigger_percent ?? 40}
         />
       )}
     </div>

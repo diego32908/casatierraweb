@@ -12,9 +12,12 @@ interface Props {
   bodyCopy: string;
   discountText: string;
   promoCode: string;
+  promoEnabled: boolean;
   ctaLabel: string;
   finePrint: string;
   layout: "split" | "centered";
+  delaySeconds: number;
+  scrollTriggerPercent: number;
 }
 
 const inputCls =
@@ -28,9 +31,12 @@ export function PopupEditor({
   bodyCopy,
   discountText,
   promoCode,
+  promoEnabled,
   ctaLabel,
   finePrint,
   layout,
+  delaySeconds,
+  scrollTriggerPercent,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -60,6 +66,7 @@ export function PopupEditor({
     startTransition(async () => {
       const result = await patchSiteSetting("popup", "Popup / Signup Overlay", {
         enabled: fd.get("enabled") === "on",
+        promo_enabled: fd.get("promo_enabled") === "on",
         layout: fd.get("layout") === "split" ? "split" : "centered",
         heading: (fd.get("heading") as string)?.trim() || null,
         body_copy: (fd.get("body_copy") as string)?.trim() || null,
@@ -67,6 +74,8 @@ export function PopupEditor({
         promo_code: (fd.get("promo_code") as string)?.trim() || null,
         cta_label: (fd.get("cta_label") as string)?.trim() || null,
         fine_print: (fd.get("fine_print") as string)?.trim() || null,
+        delay_seconds: Number(fd.get("delay_seconds")) || 7,
+        scroll_trigger_percent: Number(fd.get("scroll_trigger_percent")) || 40,
       });
       if (result.error) setError(result.error);
       else setSaved(true);
@@ -80,7 +89,7 @@ export function PopupEditor({
           Popup / Signup Overlay
         </h2>
         <p className="mt-1 text-sm text-stone-500">
-          Shown to first-time visitors after 7 seconds or 40% scroll depth.
+          Shown to first-time visitors after the configured delay or scroll depth.
         </p>
       </div>
 
@@ -210,6 +219,46 @@ export function PopupEditor({
             proceed to Stripe checkout — they don&apos;t need to type it. Leave blank to disable
             the offer.
           </p>
+        </div>
+
+        {/* Promo enabled */}
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            name="promo_enabled"
+            defaultChecked={promoEnabled}
+            className="h-4 w-4"
+          />
+          <span className="text-sm text-stone-700">Promo code active</span>
+          <span className="text-xs text-stone-400">(uncheck to suppress code from new subscriber emails)</span>
+        </label>
+
+        {/* Trigger timing */}
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className={labelCls}>Delay (seconds)</label>
+            <input
+              type="number"
+              name="delay_seconds"
+              min={1}
+              max={120}
+              defaultValue={delaySeconds}
+              className={inputCls}
+            />
+            <p className="mt-1 text-xs text-stone-400">Time before popup appears. Default: 7.</p>
+          </div>
+          <div className="flex-1">
+            <label className={labelCls}>Scroll trigger (%)</label>
+            <input
+              type="number"
+              name="scroll_trigger_percent"
+              min={1}
+              max={100}
+              defaultValue={scrollTriggerPercent}
+              className={inputCls}
+            />
+            <p className="mt-1 text-xs text-stone-400">Scroll depth that triggers early. Default: 40.</p>
+          </div>
         </div>
 
         {/* Heading */}

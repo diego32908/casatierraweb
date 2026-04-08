@@ -1,42 +1,60 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils";
 import { getStockStatus } from "@/lib/stock";
+import { InventoryFilters } from "./inventory-filters";
 
 type VariantStub = { stock: number; low_stock_threshold: number };
 
-function aggregateStockChip({
-  sizeMode,
-  variants,
-}: {
-  sizeMode: string;
+type Product = {
+  id: string;
+  name_en: string;
+  slug: string;
+  category: string;
+  size_mode: string;
+  base_price_cents: number;
+  featured: boolean;
+  is_active: boolean;
   variants: VariantStub[];
-}) {
-  if (sizeMode === "none") {
+};
+
+type StockFilter = "" | "in_stock" | "low" | "out";
+
+function getProductStockStatus(product: Product): "in_stock" | "low_stock" | "sold_out" | "untracked" {
+  if (product.size_mode === "none") return "untracked";
+  if (!product.variants.length) return "sold_out";
+  const statuses = product.variants.map((v) => getStockStatus(v.stock, v.low_stock_threshold));
+  if (statuses.every((s) => s === "sold_out")) return "sold_out";
+  if (statuses.some((s) => s === "low_stock")) return "low_stock";
+  return "in_stock";
+}
+
+function StockChip({ product }: { product: Product }) {
+  const status = getProductStockStatus(product);
+  if (status === "untracked") {
     return (
       <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-400">
         Not tracked
       </span>
     );
   }
-  if (!variants.length) {
+  if (!product.variants.length) {
     return (
       <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-400">
         No variants
       </span>
     );
   }
-  const statuses = variants.map((v) => getStockStatus(v.stock, v.low_stock_threshold));
-  const allOut = statuses.every((s) => s === "sold_out");
-  const anyLow = statuses.some((s) => s === "low_stock");
-  if (allOut) {
+  if (status === "sold_out") {
     return (
       <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">
         Sold out
       </span>
     );
   }
-  if (anyLow) {
+  if (status === "low_stock") {
     return (
       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
         Low stock
@@ -50,14 +68,44 @@ function aggregateStockChip({
   );
 }
 
-export default async function AdminInventoryPage() {
+interface PageProps {
+  searchParams: Promise<{ stock?: string; active?: string }>;
+}
+
+export default async function AdminInventoryPage({ searchParams }: PageProps) {
+  const filters = await searchParams;
   const supabase = createServerSupabaseClient();
 
-  const { data: products } = await supabase
+  const { data: allProducts } = await supabase
     .from("products")
-    .select("*, variants:product_variants(stock, low_stock_threshold)")
+    .select("id, name_en, slug, category, size_mode, base_price_cents, featured, is_active, variants:product_variants(stock, low_stock_threshold)")
     .order("sort_order")
     .order("created_at", { ascending: false });
+
+  const products = (allProducts ?? []) as Product[];
+
+  // Counts for chips
+  const counts = {
+    all:      products.length,
+    inStock:  products.filter((p) => getProductStockStatus(p) === "in_stock").length,
+    lowStock: products.filter((p) => getProductStockStatus(p) === "low_stock").length,
+    soldOut:  products.filter((p) => getProductStockStatus(p) === "sold_out").length,
+    active:   products.filter((p) => p.is_active).length,
+    inactive: products.filter((p) => !p.is_active).length,
+  };
+
+  // Apply filters
+  const stockFilter = (filters.stock ?? "") as StockFilter;
+  const activeFilter = filters.active ?? "";
+
+  const filtered = products.filter((p) => {
+    if (stockFilter === "in_stock" && getProductStockStatus(p) !== "in_stock") return false;
+    if (stockFilter === "low"      && getProductStockStatus(p) !== "low_stock") return false;
+    if (stockFilter === "out"      && getProductStockStatus(p) !== "sold_out")  return false;
+    if (activeFilter === "yes"     && !p.is_active) return false;
+    if (activeFilter === "no"      && p.is_active)  return false;
+    return true;
+  });
 
   return (
     <section className="space-y-6">
@@ -76,22 +124,22 @@ export default async function AdminInventoryPage() {
         </Link>
       </header>
 
+      <InventoryFilters counts={counts} />
+
       <div className="panel">
-        {!products?.length ? (
+        {!filtered.length ? (
           <div className="p-6">
             <p className="text-sm text-stone-500">
-              No products yet.{" "}
-              <Link
-                href="/admin/inventory/new"
-                className="underline underline-offset-2"
-              >
-                Add your first product.
-              </Link>
+              {products.length === 0 ? (
+                <>No products yet. <Link href="/admin/inventory/new" className="underline underline-offset-2">Add your first product.</Link></>
+              ) : (
+                "No products match these filters."
+              )}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-stone-200">
-            {products.map((product) => (
+            {filtered.map((product) => (
               <Link
                 key={product.id}
                 href={`/admin/inventory/${product.id}`}
@@ -117,10 +165,7 @@ export default async function AdminInventoryPage() {
                   </p>
 
                   <div className="flex items-center gap-2">
-                    {aggregateStockChip({
-                      sizeMode: product.size_mode,
-                      variants: (product.variants as VariantStub[]) ?? [],
-                    })}
+                    <StockChip product={product} />
                     {product.featured && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                         Featured

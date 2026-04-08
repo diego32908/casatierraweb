@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils";
 import { StatusSelect } from "./status-select";
+import { TrackingForm } from "./tracking-form";
+import { OrderFilters } from "./order-filters";
 import type { OrderStatus } from "@/types/store";
 
 type OrderItem = {
@@ -38,6 +40,10 @@ type Order = {
   total_cents: number;
   status: OrderStatus;
   notes: string | null;
+  carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
   created_at: string;
   order_items: OrderItem[];
 };
@@ -52,13 +58,31 @@ const STATUS_STYLES: Record<string, string> = {
   STOCK_CONFLICT:    "bg-red-700 text-white",
 };
 
-async function getOrders(): Promise<Order[]> {
+interface PageProps {
+  searchParams: Promise<{ q?: string; status?: string; fulfillment?: string }>;
+}
+
+async function getOrders(filters: { q?: string; status?: string; fulfillment?: string }): Promise<Order[]> {
   try {
     const supabase = createServerSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("orders")
       .select("*, order_items(*)")
       .order("created_at", { ascending: false });
+
+    if (filters.q) {
+      query = query.or(
+        `customer_name.ilike.%${filters.q}%,email.ilike.%${filters.q}%`
+      );
+    }
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+    if (filters.fulfillment) {
+      query = query.eq("fulfillment", filters.fulfillment);
+    }
+
+    const { data, error } = await query;
     if (error) { console.error("[admin/orders]", error.message); return []; }
     return (data ?? []) as Order[];
   } catch (e) {
@@ -67,8 +91,9 @@ async function getOrders(): Promise<Order[]> {
   }
 }
 
-export default async function AdminOrdersPage() {
-  const orders = await getOrders();
+export default async function AdminOrdersPage({ searchParams }: PageProps) {
+  const filters = await searchParams;
+  const orders = await getOrders(filters);
 
   const counts = {
     total:         orders.length,
@@ -98,12 +123,15 @@ export default async function AdminOrdersPage() {
         )}
       </div>
 
+      {/* Filters */}
+      <OrderFilters />
+
       {orders.length === 0 ? (
         <div className="panel p-8 text-center">
-          <p className="text-sm text-stone-400">No orders yet.</p>
-          <p className="text-xs text-stone-300 mt-1">
-            Orders appear here after a successful Stripe checkout.
-          </p>
+          <p className="text-sm text-stone-400">No orders found.</p>
+          {(filters.q || filters.status || filters.fulfillment) && (
+            <p className="text-xs text-stone-300 mt-1">Try adjusting your filters.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -192,6 +220,42 @@ export default async function AdminOrdersPage() {
                 <div className="text-xs text-stone-400 border-t border-stone-100 pt-3">
                   <span className="text-[10px] uppercase tracking-wide text-stone-400">Pickup: </span>
                   {order.pickup_location}
+                </div>
+              )}
+
+              {/* Tracking (shipping orders only) */}
+              {order.fulfillment === "shipping" && (
+                <div className="border-t border-stone-100 pt-3 space-y-1">
+                  {order.tracking_number && (
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[10px] uppercase tracking-wide text-stone-400">Tracking:</span>
+                      <span className="font-mono text-[11px] text-stone-700">{order.tracking_number}</span>
+                      {order.carrier && (
+                        <span className="text-[11px] text-stone-400">via {order.carrier}</span>
+                      )}
+                      {order.tracking_url && (
+                        <a
+                          href={order.tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-stone-500 underline hover:text-stone-800"
+                        >
+                          Track
+                        </a>
+                      )}
+                      {order.shipped_at && (
+                        <span className="text-[11px] text-stone-300">
+                          shipped {new Date(order.shipped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <TrackingForm
+                    orderId={order.id}
+                    carrier={order.carrier}
+                    trackingNumber={order.tracking_number}
+                    trackingUrl={order.tracking_url}
+                  />
                 </div>
               )}
 

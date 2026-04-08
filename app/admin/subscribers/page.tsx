@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { ResendButton } from "./resend-button";
+import { SubscriberControls } from "./subscriber-controls";
 
 type Subscriber = {
   id: string;
@@ -18,6 +20,10 @@ const SOURCE_LABELS: Record<string, string> = {
   checkout: "Checkout",
 };
 
+interface PageProps {
+  searchParams: Promise<{ source?: string; promo_sent?: string }>;
+}
+
 async function getSubscribers(): Promise<Subscriber[]> {
   try {
     const supabase = createServerSupabaseClient();
@@ -32,17 +38,27 @@ async function getSubscribers(): Promise<Subscriber[]> {
   }
 }
 
-export default async function AdminSubscribersPage() {
-  const subscribers = await getSubscribers();
+export default async function AdminSubscribersPage({ searchParams }: PageProps) {
+  const filters = await searchParams;
+  const allSubscribers = await getSubscribers();
 
   const counts = {
-    total:     subscribers.length,
-    footer:    subscribers.filter((s) => s.source === "footer").length,
-    popup:     subscribers.filter((s) => s.source === "popup").length,
-    checkout:  subscribers.filter((s) => s.source === "checkout").length,
-    active:    subscribers.filter((s) => s.status === "active").length,
-    promoSent: subscribers.filter((s) => s.promo_sent).length,
+    total:     allSubscribers.length,
+    footer:    allSubscribers.filter((s) => s.source === "footer").length,
+    popup:     allSubscribers.filter((s) => s.source === "popup").length,
+    checkout:  allSubscribers.filter((s) => s.source === "checkout").length,
+    active:    allSubscribers.filter((s) => s.status === "active").length,
+    promoSent: allSubscribers.filter((s) => s.promo_sent).length,
+    withPromo: allSubscribers.filter((s) => s.promo_code).length,
   };
+
+  // Apply filters
+  const subscribers = allSubscribers.filter((s) => {
+    if (filters.source && s.source !== filters.source) return false;
+    if (filters.promo_sent === "yes" && !s.promo_sent) return false;
+    if (filters.promo_sent === "no" && s.promo_sent) return false;
+    return true;
+  });
 
   return (
     <section className="space-y-8 max-w-4xl">
@@ -58,17 +74,21 @@ export default async function AdminSubscribersPage() {
         <span className="text-stone-900 font-medium">{counts.total} total</span>
         <span className="text-stone-400">{counts.active} active</span>
         <span className="text-stone-400">{counts.promoSent} promo sent</span>
+        <span className="text-stone-400">{counts.withPromo} with code</span>
         <span className="text-stone-400">{counts.popup} from popup</span>
         <span className="text-stone-400">{counts.checkout} from checkout</span>
         <span className="text-stone-400">{counts.footer} from footer</span>
       </div>
 
+      {/* Controls */}
+      <SubscriberControls csvHref="/admin/subscribers/export" />
+
       {subscribers.length === 0 ? (
         <div className="panel p-8 text-center">
-          <p className="text-sm text-stone-400">No subscribers yet.</p>
-          <p className="text-xs text-stone-300 mt-1">
-            Emails appear here once someone submits the footer form or popup.
-          </p>
+          <p className="text-sm text-stone-400">No subscribers found.</p>
+          {(filters.source || filters.promo_sent) && (
+            <p className="text-xs text-stone-300 mt-1">Try adjusting your filters.</p>
+          )}
         </div>
       ) : (
         <div className="panel overflow-hidden">
@@ -80,6 +100,7 @@ export default async function AdminSubscribersPage() {
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Promo Code</th>
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Promo Sent</th>
                 <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Date Added</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -108,6 +129,9 @@ export default async function AdminSubscribersPage() {
                       day: "numeric",
                       year: "numeric",
                     })}
+                  </td>
+                  <td className="px-5 py-3">
+                    <ResendButton subscriberId={s.id} />
                   </td>
                 </tr>
               ))}

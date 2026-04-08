@@ -393,6 +393,101 @@ function adminOrderNotificationHtml(order: AdminOrderData): string {
   `);
 }
 
+// ── Shipped / tracking notification email ─────────────────────────────────────
+
+export interface ShippedEmailData {
+  orderId: string;
+  customerName: string;
+  email: string;
+  carrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  items: Array<{
+    name: string;
+    variant: string | null;
+    quantity: number;
+    lineTotalCents: number;
+  }>;
+  totalCents: number;
+}
+
+function shippedEmailHtml(data: ShippedEmailData): string {
+  const orderRef = data.orderId.slice(0, 8).toUpperCase();
+
+  const itemRows = data.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0eeec;font-size:14px;
+          color:#1c1917;font-family:Arial,sans-serif;">
+          ${item.name}
+          ${item.variant ? `<span style="color:#a8a29e;"> · ${item.variant}</span>` : ""}
+          ${item.quantity > 1 ? ` <span style="color:#a8a29e;">×${item.quantity}</span>` : ""}
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0eeec;text-align:right;
+          font-size:14px;color:#1c1917;font-family:Arial,sans-serif;white-space:nowrap;">
+          ${formatCents(item.lineTotalCents)}
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const trackingBlock = data.trackingNumber
+    ? `<div style="margin:24px 0;padding:20px 24px;background:#fafaf9;border:1px solid #e7e5e4;text-align:center;">
+        <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+          color:#a8a29e;font-family:Arial,sans-serif;">
+          ${data.carrier ? data.carrier + " · " : ""}Tracking number
+        </p>
+        <p style="margin:0 0 14px;font-family:'Courier New',monospace;font-size:17px;font-weight:700;
+          letter-spacing:0.1em;color:#1c1917;">
+          ${data.trackingNumber}
+        </p>
+        ${
+          data.trackingUrl
+            ? `<a href="${data.trackingUrl}" style="display:inline-block;background:#1c1917;color:#ffffff;
+                font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
+                text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+                Track Your Order
+              </a>`
+            : ""
+        }
+      </div>`
+    : `<p style="margin:0 0 24px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+        Tracking information will be available shortly.
+      </p>`;
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">Your order is on its way</p>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
+      Good news, ${data.customerName}.
+    </h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+      Your order <strong>#${orderRef}</strong> has shipped.
+    </p>
+
+    ${trackingBlock}
+
+    <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">Order summary</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+      ${itemRows}
+      <tr>
+        <td style="padding:10px 0 4px;font-size:13px;font-weight:600;color:#1c1917;
+          font-family:Arial,sans-serif;border-top:1px solid #e7e5e4;">Total</td>
+        <td style="padding:10px 0 4px;font-size:13px;font-weight:600;color:#1c1917;
+          text-align:right;font-family:Arial,sans-serif;border-top:1px solid #e7e5e4;">
+          ${formatCents(data.totalCents)}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
+      Questions? Reply to this email or visit our store.
+    </p>
+  `);
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -558,6 +653,38 @@ export async function sendOrderConfirmationEmail(
     console.log("[CUSTOMER ORDER EMAIL] sent OK → order:", orderRef, "to:", order.email);
   } catch (err) {
     console.error("[CUSTOMER ORDER EMAIL] failed → order:", orderRef, "to:", order.email, err);
+  }
+}
+
+/**
+ * Send a shipment notification to the customer with tracking info.
+ * Skipped silently if RESEND_API_KEY is not configured.
+ * Never throws — always resolves.
+ */
+export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
+  const orderRef = data.orderId.slice(0, 8).toUpperCase();
+  console.log("[SHIPPED EMAIL] starting → order:", orderRef);
+
+  if (!data.email) {
+    console.error("[SHIPPED EMAIL] recipient is empty — skipping, order:", orderRef);
+    return;
+  }
+
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+
+  try {
+    await resend.emails.send({
+      from,
+      to: data.email,
+      subject: `Your order has shipped — #${orderRef}`,
+      html: shippedEmailHtml(data),
+    });
+    console.log("[SHIPPED EMAIL] sent OK → order:", orderRef, "to:", data.email);
+  } catch (err) {
+    console.error("[SHIPPED EMAIL] failed → order:", orderRef, "to:", data.email, err);
   }
 }
 
