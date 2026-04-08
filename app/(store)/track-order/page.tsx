@@ -55,11 +55,33 @@ const STATUS_COPY: Record<string, { label: string; detail: string }> = {
 // ── Lookup ────────────────────────────────────────────────────────────────────
 
 function normalizeOrderRef(raw: string): string {
-  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+  // Strip anything not hex, uppercase, take first 8 chars
+  return raw.trim().toUpperCase().replace(/[^A-F0-9]/g, "").slice(0, 8);
 }
 
 function normalizeZip(raw: string): string {
   return raw.trim().replace(/\D/g, "").slice(0, 5);
+}
+
+/**
+ * Build a UUID range that covers every UUID whose first 8 hex chars equal `ref8`.
+ * UUID columns in PostgreSQL support >= / < comparisons (ordered by byte value),
+ * but do NOT support ILIKE (text-only operator — causes a type error on uuid columns).
+ *
+ * Example: ref8 = "490f1d58"
+ *   gte → "490f1d58-0000-0000-0000-000000000000"
+ *   lt  → "490f1d59-0000-0000-0000-000000000000"
+ */
+function uuidRange(ref8: string): { gte: string; lt: string } {
+  const lo = ref8.toLowerCase();
+  const hiNum = parseInt(lo, 16) + 1;
+  const hiPrefix = hiNum > 0xffffffff
+    ? "ffffffff"
+    : hiNum.toString(16).padStart(8, "0");
+  return {
+    gte: `${lo}-0000-0000-0000-000000000000`,
+    lt:  `${hiPrefix}-0000-0000-0000-000000000000`,
+  };
 }
 
 async function lookupOrder(rawRef: string, rawZip: string): Promise<FoundOrder | null> {
@@ -70,7 +92,8 @@ async function lookupOrder(rawRef: string, rawZip: string): Promise<FoundOrder |
 
   try {
     const supabase = createServerSupabaseClient();
-    const { data } = await supabase
+    const { gte, lt } = uuidRange(ref);
+    const { data, error } = await supabase
       .from("orders")
       .select(
         "id, customer_name, status, created_at, fulfillment, shipping_address, " +
@@ -78,8 +101,14 @@ async function lookupOrder(rawRef: string, rawZip: string): Promise<FoundOrder |
         "subtotal_cents, shipping_cents, tax_cents, discount_cents, total_cents, " +
         "order_items(product_name_snapshot, variant_label_snapshot, quantity, line_total_cents, image_url_snapshot)"
       )
-      .ilike("id", `${ref}%`)
+      .gte("id", gte)
+      .lt("id", lt)
       .limit(5);
+
+    if (error) {
+      console.error("[track-order] query error:", error.message);
+      return null;
+    }
 
     if (!data?.length) return null;
 

@@ -419,7 +419,10 @@ export interface ShippedEmailData {
 
 function shippedEmailHtml(data: ShippedEmailData): string {
   const orderRef = data.orderId.slice(0, 8).toUpperCase();
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  // NEXT_PUBLIC_SITE_URL is intentionally NOT used here — in Vercel environments it gets
+  // set to a preview deployment URL which becomes a DEPLOYMENT_NOT_FOUND link in emails.
+  // SITE_URL must be explicitly set to the canonical production domain in env settings.
+  const siteUrl = (process.env.SITE_URL ?? "https://tierraoaxaca.com").replace(/\/$/, "");
   const viewOrderUrl = `${siteUrl}/track-order?q=${orderRef}`;
 
   const itemRows = data.items
