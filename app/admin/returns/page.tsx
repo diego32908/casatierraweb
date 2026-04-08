@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/server-auth";
 import { ReturnsStatusSelect } from "./returns-status-select";
+import { ReturnsFilters } from "./returns-filters";
 
 type ReturnRequest = {
   id: string;
@@ -19,19 +20,6 @@ type ReturnRequest = {
   created_at: string;
 };
 
-const STATUS_FILTER_OPTS = [
-  { value: "", label: "All statuses" },
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "completed", label: "Completed" },
-];
-
-const TYPE_FILTER_OPTS = [
-  { value: "", label: "All types" },
-  { value: "return", label: "Returns" },
-  { value: "exchange", label: "Exchanges" },
-];
 
 interface PageProps {
   searchParams: Promise<{ status?: string; type?: string }>;
@@ -85,42 +73,7 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <form method="get">
-          {typeFilter && <input type="hidden" name="type" value={typeFilter} />}
-          <select
-            name="status"
-            defaultValue={statusFilter ?? ""}
-            onChange={(e) => (e.target.form as HTMLFormElement).submit()}
-            className="text-[12px] border border-stone-200 px-3 py-2 bg-white text-stone-700 focus:outline-none"
-          >
-            {STATUS_FILTER_OPTS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </form>
-        <form method="get">
-          {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
-          <select
-            name="type"
-            defaultValue={typeFilter ?? ""}
-            onChange={(e) => (e.target.form as HTMLFormElement).submit()}
-            className="text-[12px] border border-stone-200 px-3 py-2 bg-white text-stone-700 focus:outline-none"
-          >
-            {TYPE_FILTER_OPTS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </form>
-        {(statusFilter || typeFilter) && (
-          <a
-            href="/admin/returns"
-            className="text-[12px] text-stone-400 hover:text-stone-700 underline underline-offset-2 self-center"
-          >
-            Clear filters
-          </a>
-        )}
-      </div>
+      <ReturnsFilters statusFilter={statusFilter} typeFilter={typeFilter} />
 
       {/* Table */}
       {requests.length === 0 ? (
