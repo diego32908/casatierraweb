@@ -1,0 +1,203 @@
+export const dynamic = "force-dynamic";
+
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/server-auth";
+import { ReturnsStatusSelect } from "./returns-status-select";
+
+type ReturnRequest = {
+  id: string;
+  order_ref: string;
+  email: string;
+  request_type: "return" | "exchange";
+  status: "pending" | "approved" | "rejected" | "completed";
+  items_json: Array<{ name: string; variant: string | null; quantity: number }>;
+  reason: string;
+  notes: string | null;
+  replacement_size: string | null;
+  label_option: "prepaid" | "own_label";
+  fee_cents: number | null;
+  created_at: string;
+};
+
+const STATUS_FILTER_OPTS = [
+  { value: "", label: "All statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "completed", label: "Completed" },
+];
+
+const TYPE_FILTER_OPTS = [
+  { value: "", label: "All types" },
+  { value: "return", label: "Returns" },
+  { value: "exchange", label: "Exchanges" },
+];
+
+interface PageProps {
+  searchParams: Promise<{ status?: string; type?: string }>;
+}
+
+export default async function AdminReturnsPage({ searchParams }: PageProps) {
+  await requireAdmin();
+
+  const { status: statusFilter, type: typeFilter } = await searchParams;
+
+  const supabase = createServerSupabaseClient();
+  let query = supabase
+    .from("return_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (statusFilter) query = query.eq("status", statusFilter);
+  if (typeFilter) query = query.eq("request_type", typeFilter);
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[admin/returns] query error:", error.message);
+  }
+
+  const requests = (data ?? []) as ReturnRequest[];
+
+  const counts = {
+    pending:   requests.filter((r) => r.status === "pending").length,
+    approved:  requests.filter((r) => r.status === "approved").length,
+    rejected:  requests.filter((r) => r.status === "rejected").length,
+    completed: requests.filter((r) => r.status === "completed").length,
+  };
+
+  return (
+    <div className="p-8 max-w-5xl">
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-stone-400 mb-1">Admin</p>
+          <h1 className="text-2xl font-serif font-normal text-stone-900">
+            Returns &amp; Exchanges
+          </h1>
+        </div>
+        <div className="flex gap-4 text-[12px] text-stone-500">
+          {counts.pending > 0 && (
+            <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] uppercase tracking-[0.12em]">
+              {counts.pending} pending
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        <form method="get">
+          {typeFilter && <input type="hidden" name="type" value={typeFilter} />}
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            onChange={(e) => (e.target.form as HTMLFormElement).submit()}
+            className="text-[12px] border border-stone-200 px-3 py-2 bg-white text-stone-700 focus:outline-none"
+          >
+            {STATUS_FILTER_OPTS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </form>
+        <form method="get">
+          {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+          <select
+            name="type"
+            defaultValue={typeFilter ?? ""}
+            onChange={(e) => (e.target.form as HTMLFormElement).submit()}
+            className="text-[12px] border border-stone-200 px-3 py-2 bg-white text-stone-700 focus:outline-none"
+          >
+            {TYPE_FILTER_OPTS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </form>
+        {(statusFilter || typeFilter) && (
+          <a
+            href="/admin/returns"
+            className="text-[12px] text-stone-400 hover:text-stone-700 underline underline-offset-2 self-center"
+          >
+            Clear filters
+          </a>
+        )}
+      </div>
+
+      {/* Table */}
+      {requests.length === 0 ? (
+        <div className="border border-stone-200 p-10 text-center">
+          <p className="text-[13px] text-stone-400">No requests found.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((req) => (
+            <div key={req.id} className="border border-stone-200 bg-white p-5">
+              {/* Header row */}
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="font-mono text-[12px] text-stone-500">#{req.order_ref}</span>
+                  <span
+                    className={`text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border ${
+                      req.request_type === "exchange"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-stone-100 text-stone-500 border-stone-200"
+                    }`}
+                  >
+                    {req.request_type}
+                  </span>
+                  <span className="text-[12px] text-stone-400">{req.email}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-stone-400">
+                    {new Date(req.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <ReturnsStatusSelect id={req.id} currentStatus={req.status} />
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="mb-4 space-y-1">
+                {req.items_json.map((item, i) => (
+                  <p key={i} className="text-[13px] text-stone-700">
+                    {item.name}
+                    {item.variant ? <span className="text-stone-400"> · {item.variant}</span> : null}
+                    {item.quantity > 1 ? <span className="text-stone-400"> ×{item.quantity}</span> : null}
+                  </p>
+                ))}
+              </div>
+
+              {/* Details */}
+              <div className="flex flex-wrap gap-x-8 gap-y-2 text-[12px] text-stone-500 border-t border-stone-100 pt-4">
+                <span>
+                  <span className="text-stone-400 uppercase tracking-[0.1em] text-[10px] mr-1.5">Reason</span>
+                  {req.reason}
+                </span>
+                <span>
+                  <span className="text-stone-400 uppercase tracking-[0.1em] text-[10px] mr-1.5">Label</span>
+                  {req.label_option === "prepaid"
+                    ? `Prepaid (${req.fee_cents != null ? `$${(req.fee_cents / 100).toFixed(2)}` : "—"})`
+                    : "Own label"}
+                </span>
+                {req.replacement_size && (
+                  <span>
+                    <span className="text-stone-400 uppercase tracking-[0.1em] text-[10px] mr-1.5">Replacement</span>
+                    {req.replacement_size}
+                  </span>
+                )}
+              </div>
+
+              {req.notes && (
+                <p className="mt-3 text-[12px] text-stone-500 italic leading-relaxed border-t border-stone-100 pt-3">
+                  &ldquo;{req.notes}&rdquo;
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
