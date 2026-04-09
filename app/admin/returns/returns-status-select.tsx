@@ -3,14 +3,25 @@
 import { useState, useTransition } from "react";
 import { updateReturnStatus } from "@/app/actions/returns";
 
-const STATUSES = ["pending", "approved", "rejected", "completed"] as const;
+const STATUSES = ["pending", "approved", "paid", "label_sent", "completed", "rejected"] as const;
 type Status = typeof STATUSES[number];
 
+const STATUS_LABEL: Record<Status, string> = {
+  pending:    "Pending",
+  approved:   "Approved",
+  paid:       "Paid",
+  label_sent: "Label Sent",
+  completed:  "Completed",
+  rejected:   "Rejected",
+};
+
 const STATUS_CLS: Record<Status, string> = {
-  pending:   "bg-amber-50 text-amber-700 border-amber-200",
-  approved:  "bg-green-50 text-green-700 border-green-200",
-  rejected:  "bg-red-50 text-red-600 border-red-200",
-  completed: "bg-stone-100 text-stone-500 border-stone-200",
+  pending:    "bg-amber-50 text-amber-700 border-amber-200",
+  approved:   "bg-green-50 text-green-700 border-green-200",
+  paid:       "bg-blue-50 text-blue-700 border-blue-200",
+  label_sent: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  completed:  "bg-stone-100 text-stone-500 border-stone-200",
+  rejected:   "bg-red-50 text-red-600 border-red-200",
 };
 
 interface Props {
@@ -39,7 +50,7 @@ export function ReturnsStatusSelect({ id, currentStatus }: Props) {
     >
       {STATUSES.map((s) => (
         <option key={s} value={s}>
-          {s.charAt(0).toUpperCase() + s.slice(1)}
+          {STATUS_LABEL[s]}
         </option>
       ))}
     </select>

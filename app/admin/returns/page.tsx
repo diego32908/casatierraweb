@@ -10,12 +10,12 @@ type ReturnRequest = {
   order_ref: string;
   email: string;
   request_type: "return" | "exchange";
-  status: "pending" | "approved" | "rejected" | "completed";
+  status: "pending" | "approved" | "paid" | "label_sent" | "completed" | "rejected";
   items_json: Array<{ name: string; variant: string | null; quantity: number }>;
   reason: string;
   notes: string | null;
   replacement_size: string | null;
-  label_option: "prepaid" | "own_label";
+  label_option: "prepaid" | "own_label" | "in_store";
   fee_cents: number | null;
   created_at: string;
 };
@@ -48,10 +48,12 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
   const requests = (data ?? []) as ReturnRequest[];
 
   const counts = {
-    pending:   requests.filter((r) => r.status === "pending").length,
-    approved:  requests.filter((r) => r.status === "approved").length,
-    rejected:  requests.filter((r) => r.status === "rejected").length,
-    completed: requests.filter((r) => r.status === "completed").length,
+    pending:    requests.filter((r) => r.status === "pending").length,
+    approved:   requests.filter((r) => r.status === "approved").length,
+    paid:       requests.filter((r) => r.status === "paid").length,
+    label_sent: requests.filter((r) => r.status === "label_sent").length,
+    rejected:   requests.filter((r) => r.status === "rejected").length,
+    completed:  requests.filter((r) => r.status === "completed").length,
   };
 
   return (
@@ -63,10 +65,20 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
             Returns &amp; Exchanges
           </h1>
         </div>
-        <div className="flex gap-4 text-[12px] text-stone-500">
+        <div className="flex gap-2 text-[12px] text-stone-500">
           {counts.pending > 0 && (
             <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] uppercase tracking-[0.12em]">
               {counts.pending} pending
+            </span>
+          )}
+          {counts.paid > 0 && (
+            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-[11px] uppercase tracking-[0.12em]">
+              {counts.paid} paid
+            </span>
+          )}
+          {counts.label_sent > 0 && (
+            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] uppercase tracking-[0.12em]">
+              {counts.label_sent} label sent
             </span>
           )}
         </div>

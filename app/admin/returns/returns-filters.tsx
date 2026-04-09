@@ -1,11 +1,13 @@
 "use client";
 
 const STATUS_FILTER_OPTS = [
-  { value: "", label: "All statuses" },
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "completed", label: "Completed" },
+  { value: "",           label: "All statuses" },
+  { value: "pending",    label: "Pending" },
+  { value: "approved",   label: "Approved" },
+  { value: "paid",       label: "Paid" },
+  { value: "label_sent", label: "Label Sent" },
+  { value: "completed",  label: "Completed" },
+  { value: "rejected",   label: "Rejected" },
 ];
 
 const TYPE_FILTER_OPTS = [

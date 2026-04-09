@@ -49,7 +49,7 @@ export async function submitReturnRequest(
   if (!["return", "exchange"].includes(input.requestType)) {
     return { error: "Invalid request type." };
   }
-  if (!["prepaid", "own_label"].includes(input.labelOption)) {
+  if (!["prepaid", "own_label", "in_store"].includes(input.labelOption)) {
     return { error: "Invalid label option." };
   }
   if (!input.items.length) {
@@ -100,7 +100,7 @@ export async function submitReturnRequest(
 
 export async function updateReturnStatus(
   id: string,
-  status: "pending" | "approved" | "rejected" | "completed"
+  status: "pending" | "approved" | "paid" | "label_sent" | "completed" | "rejected"
 ): Promise<{ error?: string }> {
   await requireAdmin();
   const supabase = createServerSupabaseClient();
