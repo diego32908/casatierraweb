@@ -51,7 +51,7 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
   const supabase = createServerSupabaseClient();
   let query = supabase
     .from("return_requests")
-    .select("*, orders(customer_name, shipping_address)")
+    .select("*, orders!left(customer_name, shipping_address)")
     .order("created_at", { ascending: false });
 
   if (statusFilter) query = query.eq("status", statusFilter);
