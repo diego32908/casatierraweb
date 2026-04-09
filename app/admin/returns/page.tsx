@@ -54,8 +54,8 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
     .select("*, orders!left(customer_name, shipping_address)")
     .order("created_at", { ascending: false });
 
-  if (statusFilter) query = query.eq("status", statusFilter);
-  if (typeFilter) query = query.eq("request_type", typeFilter);
+  if (statusFilter && statusFilter !== "all") query = query.eq("status", statusFilter);
+  if (typeFilter && typeFilter !== "all") query = query.eq("request_type", typeFilter);
 
   const { data, error } = await query;
 
