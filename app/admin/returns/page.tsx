@@ -5,14 +5,6 @@ import { requireAdmin } from "@/lib/supabase/server-auth";
 import { ReturnsStatusSelect } from "./returns-status-select";
 import { ReturnsFilters } from "./returns-filters";
 
-type ShippingAddress = {
-  line1?: string | null;
-  line2?: string | null;
-  city?: string | null;
-  state?: string | null;
-  postal_code?: string | null;
-};
-
 type ReturnRequest = {
   id: string;
   order_ref: string;
@@ -26,10 +18,6 @@ type ReturnRequest = {
   label_option: "prepaid" | "own_label" | "in_store";
   fee_cents: number | null;
   created_at: string;
-  orders: {
-    customer_name: string | null;
-    shipping_address: ShippingAddress | null;
-  } | null;
 };
 
 const LABEL_OPTION_LABEL: Record<string, string> = {
@@ -51,7 +39,7 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
   const supabase = createServerSupabaseClient();
   let query = supabase
     .from("return_requests")
-    .select("*, orders!left(customer_name, shipping_address)")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (statusFilter && statusFilter !== "all") query = query.eq("status", statusFilter);
@@ -178,34 +166,15 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
                 </p>
               )}
 
-              {/* Shipping address from original order (for label generation) */}
+              {/* Shipping source guidance for label generation */}
               {(req.label_option === "prepaid" || req.label_option === "own_label") && (
                 <div className="mt-3 border-t border-stone-100 pt-3">
                   <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400 mb-1">
-                    Shipping source — use original order address
+                    Shipping source
                   </p>
-                  {req.orders?.shipping_address ? (
-                    <p className="text-[12px] text-stone-600 leading-relaxed">
-                      {req.orders.customer_name && (
-                        <span className="block">{req.orders.customer_name}</span>
-                      )}
-                      {[
-                        req.orders.shipping_address.line1,
-                        req.orders.shipping_address.line2,
-                        [
-                          req.orders.shipping_address.city,
-                          req.orders.shipping_address.state,
-                          req.orders.shipping_address.postal_code,
-                        ].filter(Boolean).join(", "),
-                      ].filter(Boolean).map((line, i) => (
-                        <span key={i} className="block">{line}</span>
-                      ))}
-                    </p>
-                  ) : (
-                    <p className="text-[12px] text-stone-400 italic">
-                      Address not available — look up original order #{req.order_ref} in /admin/orders
-                    </p>
-                  )}
+                  <p className="text-[12px] text-stone-400 italic">
+                    Use shipping address from original order #{req.order_ref} in /admin/orders
+                  </p>
                 </div>
               )}
             </div>
