@@ -5,6 +5,14 @@ import { requireAdmin } from "@/lib/supabase/server-auth";
 import { ReturnsStatusSelect } from "./returns-status-select";
 import { ReturnsFilters } from "./returns-filters";
 
+type ShippingAddress = {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+};
+
 type ReturnRequest = {
   id: string;
   order_ref: string;
@@ -18,6 +26,16 @@ type ReturnRequest = {
   label_option: "prepaid" | "own_label" | "in_store";
   fee_cents: number | null;
   created_at: string;
+  orders: {
+    customer_name: string | null;
+    shipping_address: ShippingAddress | null;
+  } | null;
+};
+
+const LABEL_OPTION_LABEL: Record<string, string> = {
+  prepaid:   "Prepaid label",
+  own_label: "Own label",
+  in_store:  "In-store (free)",
 };
 
 
@@ -33,7 +51,7 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
   const supabase = createServerSupabaseClient();
   let query = supabase
     .from("return_requests")
-    .select("*")
+    .select("*, orders(customer_name, shipping_address)")
     .order("created_at", { ascending: false });
 
   if (statusFilter) query = query.eq("status", statusFilter);
@@ -141,10 +159,10 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
                   {req.reason}
                 </span>
                 <span>
-                  <span className="text-stone-400 uppercase tracking-[0.1em] text-[10px] mr-1.5">Label</span>
+                  <span className="text-stone-400 uppercase tracking-[0.1em] text-[10px] mr-1.5">Method</span>
                   {req.label_option === "prepaid"
-                    ? `Prepaid (${req.fee_cents != null ? `$${(req.fee_cents / 100).toFixed(2)}` : "—"})`
-                    : "Own label"}
+                    ? `${LABEL_OPTION_LABEL.prepaid} (${req.fee_cents != null ? `$${(req.fee_cents / 100).toFixed(2)}` : "—"})`
+                    : (LABEL_OPTION_LABEL[req.label_option] ?? req.label_option)}
                 </span>
                 {req.replacement_size && (
                   <span>
@@ -158,6 +176,37 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
                 <p className="mt-3 text-[12px] text-stone-500 italic leading-relaxed border-t border-stone-100 pt-3">
                   &ldquo;{req.notes}&rdquo;
                 </p>
+              )}
+
+              {/* Shipping address from original order (for label generation) */}
+              {(req.label_option === "prepaid" || req.label_option === "own_label") && (
+                <div className="mt-3 border-t border-stone-100 pt-3">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400 mb-1">
+                    Shipping source — use original order address
+                  </p>
+                  {req.orders?.shipping_address ? (
+                    <p className="text-[12px] text-stone-600 leading-relaxed">
+                      {req.orders.customer_name && (
+                        <span className="block">{req.orders.customer_name}</span>
+                      )}
+                      {[
+                        req.orders.shipping_address.line1,
+                        req.orders.shipping_address.line2,
+                        [
+                          req.orders.shipping_address.city,
+                          req.orders.shipping_address.state,
+                          req.orders.shipping_address.postal_code,
+                        ].filter(Boolean).join(", "),
+                      ].filter(Boolean).map((line, i) => (
+                        <span key={i} className="block">{line}</span>
+                      ))}
+                    </p>
+                  ) : (
+                    <p className="text-[12px] text-stone-400 italic">
+                      Address not available — look up original order #{req.order_ref} in /admin/orders
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ))}

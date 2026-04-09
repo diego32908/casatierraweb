@@ -48,6 +48,17 @@ type Order = {
   order_items: OrderItem[];
 };
 
+// Stripe Payment Link orders are identifiable by exact total only.
+// 899 = $8.99 return prepaid label, 1599 = $15.99 exchange prepaid label.
+const RETURN_PAYMENT_CENTS  = 899;
+const EXCHANGE_PAYMENT_CENTS = 1599;
+
+function returnPaymentType(totalCents: number): "return" | "exchange" | null {
+  if (totalCents === RETURN_PAYMENT_CENTS)   return "return";
+  if (totalCents === EXCHANGE_PAYMENT_CENTS) return "exchange";
+  return null;
+}
+
 const STATUS_STYLES: Record<string, string> = {
   PAID:              "bg-stone-900 text-white",
   PREPARING:         "bg-amber-100 text-amber-800",
@@ -156,6 +167,16 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <span className="text-[10px] uppercase tracking-[0.16em] text-stone-400">
                     {order.fulfillment === "pickup" ? "Pickup" : "Shipping"}
                   </span>
+                  {returnPaymentType(order.total_cents) === "return" && (
+                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-1 bg-orange-50 text-orange-700 border border-orange-200 font-semibold">
+                      Return Payment
+                    </span>
+                  )}
+                  {returnPaymentType(order.total_cents) === "exchange" && (
+                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                      Exchange Payment
+                    </span>
+                  )}
                   <span
                     className={`text-[9px] uppercase tracking-[0.16em] px-2 py-1 ${STATUS_STYLES[order.status] ?? "bg-stone-100 text-stone-500"}`}
                   >
@@ -264,6 +285,21 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 <div className="rounded border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
                   <span className="font-semibold uppercase tracking-wide">Stock conflict — </span>
                   {order.notes}
+                </div>
+              )}
+
+              {/* Return / exchange payment instruction block */}
+              {returnPaymentType(order.total_cents) !== null && (
+                <div className="border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-800 space-y-1.5">
+                  <p className="font-semibold uppercase tracking-[0.1em] text-[10px]">
+                    {returnPaymentType(order.total_cents) === "exchange" ? "Exchange" : "Return"} payment received — action required
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-orange-700 leading-relaxed">
+                    <li>Find the matching request in <strong>/admin/returns</strong> by customer email or order ref</li>
+                    <li>Use the <strong>original order&rsquo;s shipping address</strong> as the customer &ldquo;from&rdquo; address for the label</li>
+                    <li>Generate the {returnPaymentType(order.total_cents) === "exchange" ? "return + reship" : "return"} label manually</li>
+                    <li>Send label to customer and mark the return request as <strong>Label Sent</strong></li>
+                  </ol>
                 </div>
               )}
 
