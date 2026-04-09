@@ -51,6 +51,63 @@ export async function POST(request: Request) {
 
   const supabase = createServerSupabaseClient();
 
+  // ── Return / exchange payment detection ────────────────────────────────────
+  // Payment Links for return labels ($8.99) and exchange labels ($15.99) are
+  // not product orders. Intercept them here, update the matching return_request
+  // to 'paid', and return 200 without creating an order.
+  const amountTotal = session.amount_total;
+  const isReturnPayment   = amountTotal === 899;
+  const isExchangePayment = amountTotal === 1599;
+
+  if (isReturnPayment || isExchangePayment) {
+    const paymentKind = isReturnPayment ? "return" : "exchange";
+    console.log("[WEBHOOK] detected return/exchange payment →", paymentKind, "amount:", amountTotal);
+
+    // client_reference_id is the return_request UUID appended to the Stripe
+    // Payment Link URL (?client_reference_id=<uuid>) at email send time.
+    // This is the only reliable way to identify the exact request — do not
+    // fall back to email matching.
+    const requestId = session.client_reference_id;
+
+    if (!requestId) {
+      console.warn(
+        "[WEBHOOK] return payment: session has no client_reference_id — cannot identify exact request.",
+        "Session id:", session.id, "Amount:", amountTotal,
+        "This payment was likely made via a bare payment link without a request identifier."
+      );
+      return NextResponse.json({ received: true });
+    }
+
+    // Update exactly the identified row — only if it is in an expected pre-paid state.
+    // The .in("status") guard makes this safe to replay: if status is already
+    // 'paid', 'label_sent', or 'completed', no rows are updated (idempotent).
+    const { data: updated, error: updateError } = await supabase
+      .from("return_requests")
+      .update({ status: "paid", updated_at: new Date().toISOString() })
+      .eq("id", requestId)
+      .in("status", ["pending", "approved"])
+      .select("id, order_ref, request_type, status")
+      .single();
+
+    if (updateError) {
+      // .single() errors when 0 rows match — request may already be paid/completed
+      console.warn(
+        "[WEBHOOK] return payment: update matched 0 rows for request_id:", requestId,
+        "— already paid, completed, or ID invalid. Error:", updateError.message
+      );
+      return NextResponse.json({ received: true });
+    }
+
+    console.log(
+      "[WEBHOOK] return payment: marked return_request as paid →",
+      "id:", updated.id,
+      "order_ref:", updated.order_ref,
+      "type:", updated.request_type
+    );
+    return NextResponse.json({ received: true });
+  }
+  // ── End return payment handling ─────────────────────────────────────────────
+
   // Idempotency guard — Stripe retries webhooks on timeout; return 200 if already processed
   const { data: existingOrder } = await supabase
     .from("orders")

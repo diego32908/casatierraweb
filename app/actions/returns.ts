@@ -142,6 +142,7 @@ export async function updateReturnStatus(
       };
 
       void sendReturnApprovedEmail({
+        requestId:           id,
         orderRef:            current.order_ref,
         email:               current.email,
         requestType:         current.request_type as "return" | "exchange",

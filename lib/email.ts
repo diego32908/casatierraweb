@@ -723,6 +723,7 @@ export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
 // ── Customer return approval email ──────────────────────────────────────────
 
 export interface ReturnApprovedEmailData {
+  requestId: string;       // return_request UUID — appended to Stripe link as client_reference_id
   orderRef: string;
   email: string;
   requestType: "return" | "exchange";
@@ -741,7 +742,9 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
 
   if (data.labelOption === "prepaid") {
     if (data.requestType === "return") {
-      const link = data.returnPrepaidLink;
+      const link = data.returnPrepaidLink
+        ? `${data.returnPrepaidLink}?client_reference_id=${data.requestId}`
+        : null;
       const payBlock = link
         ? `<div style="margin:24px 0;text-align:center;">
             <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
@@ -762,7 +765,9 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
           We&rsquo;ll send your label and full return instructions once payment is confirmed.
         </p>`;
     } else {
-      const link = data.exchangePrepaidLink;
+      const link = data.exchangePrepaidLink
+        ? `${data.exchangePrepaidLink}?client_reference_id=${data.requestId}`
+        : null;
       const payBlock = link
         ? `<div style="margin:24px 0;text-align:center;">
             <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
