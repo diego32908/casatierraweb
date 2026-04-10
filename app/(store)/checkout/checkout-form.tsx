@@ -302,14 +302,19 @@ export function CheckoutForm({
 
               {/* Heavy shipping note */}
               {hasHeavy && shippingOption !== "pickup" && (
-                <p className="mt-3 text-xs text-stone-400">
-                  Shipping calculated based on weight for fragile items
-                </p>
+                <div className="mt-3">
+                  <p className="text-xs text-stone-500">
+                    Shipping for fragile items is calculated based on weight to ensure safe delivery.
+                  </p>
+                  <p className="mt-0.5 text-xs text-stone-400">
+                    Larger or heavier orders may incur higher shipping.
+                  </p>
+                </div>
               )}
               {/* Free standard shipping nudge (not shown for heavy carts) */}
               {amountUntilFreeShipping > 0 && (
                 <p className="mt-3 text-xs text-stone-400">
-                  Add {formatPrice(amountUntilFreeShipping)} more for free standard shipping.
+                  Add {formatPrice(amountUntilFreeShipping)} more for free standard shipping. Heavy or fragile items excluded.
                 </p>
               )}
               {qualifiesForFreeShipping && (

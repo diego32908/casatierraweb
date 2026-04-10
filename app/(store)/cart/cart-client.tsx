@@ -309,13 +309,18 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
                 ))}
               </div>
               {hasHeavy && shippingOption !== "pickup" && (
-                <p className="mt-2 px-2 text-[11px] text-stone-400">
-                  Shipping calculated based on weight for fragile items
-                </p>
+                <div className="mt-2 px-2">
+                  <p className="text-[11px] text-stone-500">
+                    Shipping for fragile items is calculated based on weight to ensure safe delivery.
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-stone-400">
+                    Larger or heavier orders may incur higher shipping.
+                  </p>
+                </div>
               )}
               {!hasHeavy && shippingOption === "standard" && !qualifiesForFreeShipping && (
                 <p className="mt-2 px-2 text-[11px] text-stone-400">
-                  Free on orders {formatPrice(freeThresholdCents)}+
+                  Free standard shipping on orders {formatPrice(freeThresholdCents)}+. Heavy or fragile items excluded.
                 </p>
               )}
             </div>
