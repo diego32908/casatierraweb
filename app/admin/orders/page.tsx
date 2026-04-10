@@ -131,6 +131,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
 
   // For return/exchange payment rows, look up the original order_ref from return_requests
   // so admins can match the payment to the correct request in /admin/returns.
+  // Key is "email::request_type" so a customer with both a return and exchange request
+  // gets the correct ref for each payment row — they never collide.
   let returnRefMap: Record<string, string> = {};
   const returnPaymentOrders = orders.filter((o) => returnPaymentType(o.total_cents) !== null);
   if (returnPaymentOrders.length > 0) {
@@ -138,11 +140,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
     const emails = [...new Set(returnPaymentOrders.map((o) => o.email.toLowerCase()))];
     const { data: returnRequests } = await supabase
       .from("return_requests")
-      .select("email, order_ref")
+      .select("email, order_ref, request_type")
       .in("email", emails)
       .order("created_at", { ascending: false });
     for (const req of (returnRequests ?? [])) {
-      const key = req.email.toLowerCase();
+      const key = `${req.email.toLowerCase()}::${req.request_type}`;
       if (!returnRefMap[key]) returnRefMap[key] = req.order_ref;
     }
   }
@@ -184,7 +186,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         const renderOrder = (order: Order) => {
           const paymentType = returnPaymentType(order.total_cents);
           const originalRef = paymentType !== null
-            ? (returnRefMap[order.email.toLowerCase()] ?? null)
+            ? (returnRefMap[`${order.email.toLowerCase()}::${paymentType}`] ?? null)
             : null;
           return (
             <div key={order.id} className="panel p-6 space-y-4">

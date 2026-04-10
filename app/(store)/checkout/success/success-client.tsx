@@ -99,11 +99,13 @@ export function SuccessClient({
           Order Confirmed
         </p>
         <h1 className="text-xl font-medium text-stone-900 mb-1">
-          Thank you{firstName ? `, ${firstName}` : ""}.
+          {firstName ? `Thank you, ${firstName}.` : "Thank you."}
         </h1>
         <p className="text-sm text-stone-500 leading-relaxed">
-          A confirmation is on its way to{" "}
-          <span className="font-medium text-stone-700">{email}</span>.
+          {email
+            ? <>A confirmation is on its way. We&rsquo;ll send an email to{" "}<span className="font-medium text-stone-700">{email}</span>{" "}with your order details shortly.</>
+            : "A confirmation is on its way. We\u2019ll send your order details shortly."
+          }
         </p>
       </div>
 
@@ -196,8 +198,9 @@ export function SuccessClient({
 
       {/* ── Brand note ── */}
       <p className="mt-8 text-center text-[12px] text-stone-400 leading-relaxed px-2">
-        Thank you for your support — it means a lot to our small team and helps keep
-        Mexican craft and tradition alive.
+        As an immigrant-owned brand, Tierra Oaxaca exists between two homes &mdash; our
+        roots in Mexico and our life here. Each piece carries that story forward. Thank
+        you for being part of it.
       </p>
 
       {/* ── Actions ── */}

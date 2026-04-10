@@ -137,6 +137,7 @@ export interface OrderEmailData {
 
 function orderConfirmationHtml(order: OrderEmailData): string {
   const orderRef = order.orderId.slice(0, 8).toUpperCase();
+  const firstName = order.customerName.split(" ")[0] || null;
 
   const itemRows = order.items
     .map(
@@ -199,9 +200,13 @@ function orderConfirmationHtml(order: OrderEmailData): string {
   return emailLayout(`
     <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
       color:#a8a29e;font-family:Arial,sans-serif;">Order confirmed</p>
-    <h1 style="margin:0 0 24px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
-      Thank you, ${order.customerName}.
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
+      ${firstName ? `Hi ${firstName},` : "Hello,"}
     </h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#78716c;line-height:1.7;font-family:Arial,sans-serif;">
+      We&rsquo;ve received your order. A summary is below, and our team is already
+      preparing your items with care.
+    </p>
 
     <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
       color:#a8a29e;font-family:Arial,sans-serif;">Order #${orderRef}</p>
@@ -256,10 +261,29 @@ function orderConfirmationHtml(order: OrderEmailData): string {
     </div>
 
     <p style="margin:0 0 16px;font-size:13px;color:#78716c;line-height:1.7;font-family:Arial,sans-serif;">
-      Thank you for your support &mdash; it means a lot to our small team and helps keep
-      Mexican craft and tradition alive.
+      As an immigrant-owned brand, Tierra Oaxaca exists between two homes &mdash; our
+      roots in Mexico and our life here. Each piece carries that story forward. Thank
+      you for being part of it.
     </p>
-    <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
+
+    <!-- Returns & Exchanges -->
+    <div style="margin:24px 0 0;padding:20px 24px;background:#fafaf9;border:1px solid #f0eeec;">
+      <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+        color:#a8a29e;font-family:Arial,sans-serif;">Returns &amp; Exchanges</p>
+      <ul style="margin:0;padding:0 0 0 16px;font-size:13px;color:#78716c;
+        font-family:Arial,sans-serif;line-height:1.8;">
+        <li style="margin-bottom:6px;"><strong style="color:#57534e;">14-day return window.</strong>
+          Items must be returned within 14 days of delivery, unworn and in original condition.</li>
+        <li style="margin-bottom:6px;"><strong style="color:#57534e;">Prepaid return label available for $8.99.</strong>
+          Paid separately before the label is issued, or use your own label at no charge.</li>
+        <li style="margin-bottom:6px;"><strong style="color:#57534e;">Exchanges.</strong>
+          $15.99 for prepaid label + reship, paid before the label is issued.</li>
+        <li><strong style="color:#57534e;">Refunds.</strong>
+          Processed to the original payment method within 5&ndash;7 business days of receipt.</li>
+      </ul>
+    </div>
+
+    <p style="margin:24px 0 0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
       Questions? Reply to this email or visit our store.
     </p>
   `);
@@ -679,11 +703,16 @@ export async function sendOrderConfirmationEmail(
   const from = getFrom();
   if (!from) return;
 
+  const firstName = order.customerName.split(" ")[0] || null;
+  const subject = firstName
+    ? `Order #${orderRef} Confirmed — Thank you, ${firstName}.`
+    : `Order #${orderRef} Confirmed — Thank you.`;
+
   try {
     await resend.emails.send({
       from,
       to: order.email,
-      subject: `Order confirmed — ${orderRef}`,
+      subject,
       html: orderConfirmationHtml(order),
     });
     console.log("[CUSTOMER ORDER EMAIL] sent OK → order:", orderRef, "to:", order.email);
