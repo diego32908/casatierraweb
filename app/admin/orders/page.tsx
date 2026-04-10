@@ -177,13 +177,16 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
             <p className="text-xs text-stone-300 mt-1">Try adjusting your filters.</p>
           )}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order) => {
-            const originalRef = returnPaymentType(order.total_cents) !== null
-              ? (returnRefMap[order.email.toLowerCase()] ?? null)
-              : null;
-            return (
+      ) : (() => {
+        // Split return/exchange payment rows to the top — they require manual action
+        const actionRows = orders.filter((o) => returnPaymentType(o.total_cents) !== null);
+        const regularRows = orders.filter((o) => returnPaymentType(o.total_cents) === null);
+        const renderOrder = (order: Order) => {
+          const paymentType = returnPaymentType(order.total_cents);
+          const originalRef = paymentType !== null
+            ? (returnRefMap[order.email.toLowerCase()] ?? null)
+            : null;
+          return (
             <div key={order.id} className="panel p-6 space-y-4">
 
               {/* Top row */}
@@ -192,7 +195,9 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <p className="text-sm font-medium text-stone-900">{order.customer_name}</p>
                     {originalRef ? (
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-orange-700 font-mono font-semibold">
+                      <p className={`text-[10px] uppercase tracking-[0.12em] font-mono font-semibold ${
+                        paymentType === "exchange" ? "text-blue-700" : "text-orange-700"
+                      }`}>
                         Original: #{originalRef}
                       </p>
                     ) : (
@@ -215,12 +220,12 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <span className="text-[10px] uppercase tracking-[0.16em] text-stone-400">
                     {order.fulfillment === "pickup" ? "Pickup" : "Shipping"}
                   </span>
-                  {returnPaymentType(order.total_cents) === "return" && (
+                  {paymentType === "return" && (
                     <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-1 bg-orange-50 text-orange-700 border border-orange-200 font-semibold">
                       Return Payment
                     </span>
                   )}
-                  {returnPaymentType(order.total_cents) === "exchange" && (
+                  {paymentType === "exchange" && (
                     <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
                       Exchange Payment
                     </span>
@@ -337,15 +342,15 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               )}
 
               {/* Return / exchange payment instruction block */}
-              {returnPaymentType(order.total_cents) !== null && (
+              {paymentType !== null && (
                 <div className="border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-800 space-y-1.5">
                   <p className="font-semibold uppercase tracking-[0.1em] text-[10px]">
-                    {returnPaymentType(order.total_cents) === "exchange" ? "Exchange" : "Return"} payment received — action required
+                    {paymentType === "exchange" ? "Exchange" : "Return"} payment received — action required
                   </p>
                   <ol className="list-decimal list-inside space-y-1 text-orange-700 leading-relaxed">
                     <li>Find the matching request in <strong>/admin/returns</strong> by customer email or order ref</li>
                     <li>Use the <strong>original order&rsquo;s shipping address</strong> as the customer &ldquo;from&rdquo; address for the label</li>
-                    <li>Generate the {returnPaymentType(order.total_cents) === "exchange" ? "return + reship" : "return"} label manually</li>
+                    <li>Generate the {paymentType === "exchange" ? "return + reship" : "return"} label manually</li>
                     <li>Send label to customer and mark the return request as <strong>Label Sent</strong></li>
                   </ol>
                 </div>
@@ -372,10 +377,38 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               </div>
 
             </div>
-            );
-          })}
-        </div>
-      )}
+          );
+        };
+        return (
+          <div className="space-y-6">
+            {/* Action required — return/exchange payment rows pinned to top */}
+            {actionRows.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-orange-700 font-semibold">
+                    Action Required
+                  </p>
+                  <span className="text-[9px] bg-orange-100 text-orange-700 px-2 py-0.5 font-semibold uppercase tracking-wide">
+                    {actionRows.length} return/exchange payment{actionRows.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                {actionRows.map(renderOrder)}
+              </div>
+            )}
+            {/* Regular orders */}
+            {regularRows.length > 0 && (
+              <div className="space-y-4">
+                {actionRows.length > 0 && (
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400">
+                    All Orders
+                  </p>
+                )}
+                {regularRows.map(renderOrder)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </section>
   );
 }

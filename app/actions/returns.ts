@@ -179,7 +179,7 @@ export async function updateReturnStatus(
                 payment_purpose:   "return_fee",
                 return_request_id: id,
               },
-              success_url: `${siteUrl}/returns?payment=success`,
+              success_url: `${siteUrl}/returns?payment=success&type=${current.request_type}`,
               cancel_url:  `${siteUrl}/returns`,
             });
             paymentUrl = checkoutSession.url;

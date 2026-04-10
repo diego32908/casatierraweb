@@ -194,8 +194,14 @@ export function SuccessClient({
         )}
       </div>
 
+      {/* ── Brand note ── */}
+      <p className="mt-8 text-center text-[12px] text-stone-400 leading-relaxed px-2">
+        Thank you for your support — it means a lot to our small team and helps keep
+        Mexican craft and tradition alive.
+      </p>
+
       {/* ── Actions ── */}
-      <div className="mt-8 flex flex-col items-center gap-5">
+      <div className="mt-6 flex flex-col items-center gap-5">
         <Link
           href="/account"
           className="text-xs uppercase tracking-[0.14em] text-stone-500 underline underline-offset-4 hover:text-stone-900 transition-colors"

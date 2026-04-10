@@ -255,6 +255,10 @@ function orderConfirmationHtml(order: OrderEmailData): string {
       ${addressBlock}
     </div>
 
+    <p style="margin:0 0 16px;font-size:13px;color:#78716c;line-height:1.7;font-family:Arial,sans-serif;">
+      Thank you for your support &mdash; it means a lot to our small team and helps keep
+      Mexican craft and tradition alive.
+    </p>
     <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
       Questions? Reply to this email or visit our store.
     </p>

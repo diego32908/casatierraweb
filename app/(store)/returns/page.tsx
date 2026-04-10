@@ -91,16 +91,83 @@ async function lookupOrder(rawRef: string, rawZip: string): Promise<FoundOrder |
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; zip?: string; action?: string }>;
+  searchParams: Promise<{ q?: string; zip?: string; action?: string; payment?: string; type?: string }>;
 }
 
 export default async function ReturnsPage({ searchParams }: PageProps) {
-  const { q, zip, action } = await searchParams;
+  const { q, zip, action, payment, type } = await searchParams;
   const lookupAttempted = !!(q?.trim() && zip?.trim());
   const order = lookupAttempted ? await lookupOrder(q!, zip!) : null;
 
   const orderRef = order ? order.id.slice(0, 8).toUpperCase() : null;
   const formType = action === "exchange" ? "exchange" : action === "return" ? "return" : null;
+
+  // ── Return fee payment success ─────────────────────────────────────────────
+  if (payment === "success") {
+    const isExchange = type === "exchange";
+    return (
+      <div className="px-4 md:px-12 lg:px-20 xl:px-28 py-16 md:py-24">
+        <div className="max-w-lg">
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: "50%",
+              border: "1px solid #e7e5e4",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 24,
+            }}
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
+              style={{ width: 18, height: 18, color: "#57534e" }}>
+              <path d="M2.5 8.5l4 4 7-8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+
+          <p className="text-[11px] uppercase tracking-[0.2em] text-stone-400 mb-2">
+            Payment Confirmed
+          </p>
+          <h1
+            className="font-serif text-stone-900 mb-4"
+            style={{ fontSize: 28, fontWeight: 400, lineHeight: 1.2 }}
+          >
+            {isExchange ? "Exchange fee received." : "Return fee received."}
+          </h1>
+          <p className="text-[14px] text-stone-500 leading-relaxed mb-8">
+            {isExchange
+              ? "We\u2019ll prepare your return label and ship your replacement once we receive your item. Look for a follow-up email with your label and instructions."
+              : "We\u2019ll send your prepaid return label shortly. Look for a follow-up email with your label and full instructions."}
+          </p>
+
+          <div className="panel p-5 mb-8 space-y-2 text-[13px] text-stone-500 leading-relaxed">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-3">What happens next</p>
+            {isExchange ? (
+              <ol className="list-decimal list-inside space-y-2">
+                <li>We&rsquo;ll email your return label within 1 business day.</li>
+                <li>Pack and ship the item using the label provided.</li>
+                <li>Once we receive and inspect it, we&rsquo;ll ship your replacement.</li>
+              </ol>
+            ) : (
+              <ol className="list-decimal list-inside space-y-2">
+                <li>We&rsquo;ll email your prepaid return label within 1 business day.</li>
+                <li>Pack and ship the item using the label provided.</li>
+                <li>Your refund is processed within 5–7 business days of receiving your item.</li>
+              </ol>
+            )}
+          </div>
+
+          <a
+            href="/shop"
+            className="inline-block rounded-full border border-stone-900 px-8 py-3 text-xs font-medium uppercase tracking-[0.14em] text-stone-900 transition-colors hover:bg-stone-900 hover:text-white"
+          >
+            Continue Shopping
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 md:px-12 lg:px-20 xl:px-28 py-16 md:py-24">
@@ -126,20 +193,20 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
             <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400">Return Policy</p>
             <div className="space-y-3 text-[13px] text-stone-600 leading-relaxed">
               <p>
-                <span className="text-stone-900 font-medium">30-day return window.</span>{" "}
-                Items must be returned within 30 days of delivery, unworn and in original condition.
+                <span className="text-stone-900 font-medium">14-day return window.</span>{" "}
+                Items must be returned within 14 days of delivery, unworn and in original condition.
               </p>
               <p>
                 <span className="text-stone-900 font-medium">Prepaid label available.</span>{" "}
-                We offer a prepaid return label for $8.99 (deducted from your refund) or you can use your own label at no charge.
+                We offer a prepaid return label for a one-time $8.99 fee, paid separately before the label is sent. Or use your own label at no charge.
               </p>
               <p>
                 <span className="text-stone-900 font-medium">Exchanges.</span>{" "}
-                Need a different size or color? Exchanges are processed quickly — prepaid label + reship is $15.99.
+                Need a different size or color? Exchanges are processed quickly — prepaid label + reship is $15.99, paid before the label is issued.
               </p>
               <p>
                 <span className="text-stone-900 font-medium">Refunds.</span>{" "}
-                Approved returns are refunded to the original payment method within 5–7 business days of receiving your item.
+                Approved returns are refunded in full to the original payment method within 5–7 business days of receiving your item.
               </p>
             </div>
           </div>
@@ -245,7 +312,7 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
                         Get a refund for items you&rsquo;d like to send back.
                       </p>
                       <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-stone-500">
-                        Prepaid label $8.99 &middot; Own label free
+                        Prepaid label fee $8.99 &middot; Own label free
                       </p>
                     </div>
                   </div>
@@ -267,7 +334,7 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
                         Swap for a different size or color.
                       </p>
                       <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-stone-500">
-                        Prepaid label + reship $15.99 &middot; Own label free
+                        Prepaid label + reship fee $15.99 &middot; Own label free
                       </p>
                     </div>
                   </div>

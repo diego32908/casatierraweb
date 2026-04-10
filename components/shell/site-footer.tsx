@@ -127,8 +127,14 @@ export async function SiteFooter() {
             </ul>
           </div>
 
-          {/* RIGHT — Newsletter */}
-          <FooterNewsletter />
+          {/* RIGHT — Newsletter + shipping note */}
+          <div>
+            <FooterNewsletter />
+            <p className="mt-5 text-[11px] text-stone-400 leading-relaxed">
+              Free standard shipping on US orders $150+.<br />
+              Does not apply to heavy or fragile items.
+            </p>
+          </div>
 
         </div>
       </div>

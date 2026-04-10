@@ -7,11 +7,11 @@ export const PACKAGING_BUFFER_OZ = 8; // 0.5 lb packaging buffer added to every 
 
 /** Weight-based shipping tiers for heavy / fragile carts (standard and priority). */
 export const HEAVY_TIERS: ReadonlyArray<{ maxLb: number; cents: number }> = [
-  { maxLb: 3,   cents: 1299 }, // 0–3 lb  → $12.99
-  { maxLb: 8,   cents: 1899 }, // 3–8 lb  → $18.99
-  { maxLb: 15,  cents: 2499 }, // 8–15 lb → $24.99
-  { maxLb: 30,  cents: 3499 }, // 15–30 lb → $34.99
-  { maxLb: 999, cents: 4999 }, // 30+ lb  → $49.99
+  { maxLb: 5,   cents: 1299 }, // 0–5 lb   → $12.99
+  { maxLb: 10,  cents: 1899 }, // >5–10 lb → $18.99
+  { maxLb: 20,  cents: 2499 }, // >10–20 lb → $24.99
+  { maxLb: 35,  cents: 3499 }, // >20–35 lb → $34.99
+  { maxLb: 999, cents: 4999 }, // >35 lb   → $49.99
 ];
 
 /** Returns the shipping charge in cents for a given total cart weight in ounces. */
