@@ -197,7 +197,7 @@ export function SuccessClient({
       </div>
 
       {/* ── Brand note ── */}
-      <p className="mt-8 text-center text-[12px] text-stone-400 leading-relaxed px-2">
+      <p className="mt-8 text-center text-[12px] text-stone-600 leading-relaxed px-2">
         As an immigrant-owned brand, Tierra Oaxaca exists between two homes &mdash; our
         roots in Mexico and our life here. Each piece carries that story forward. Thank
         you for being part of it.

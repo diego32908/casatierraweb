@@ -200,7 +200,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                       <p className={`text-[10px] uppercase tracking-[0.12em] font-mono font-semibold ${
                         paymentType === "exchange" ? "text-blue-700" : "text-orange-700"
                       }`}>
-                        {originalRef ? `Original: #${originalRef}` : "Original: Unresolved"}
+                        {originalRef ? `Original: #${originalRef}` : "Original: Manual Match"}
                       </p>
                     ) : (
                       <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 font-mono">

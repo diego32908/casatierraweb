@@ -100,7 +100,12 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
     <SuccessClient
       orderId={order?.id ?? null}
       sessionId={sessionId}
-      customerName={session.metadata?.customerName ?? ""}
+      customerName={
+        session.metadata?.customerName ||
+        session.shipping_details?.name ||
+        session.customer_details?.name ||
+        ""
+      }
       email={session.metadata?.email ?? session.customer_email ?? ""}
       fulfillment={
         ((order?.fulfillment ?? session.metadata?.fulfillment ?? "shipping") as "shipping" | "pickup")
