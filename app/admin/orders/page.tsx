@@ -73,7 +73,7 @@ interface PageProps {
   searchParams: Promise<{ q?: string; status?: string; fulfillment?: string }>;
 }
 
-async function getOrders(filters: { q?: string; status?: string; fulfillment?: string }): Promise<Order[]> {
+async function getOrders(filters: { q?: string; status?: string; fulfillment?: string }): Promise<Order[] | null> {
   try {
     const supabase = createServerSupabaseClient();
     let query = supabase
@@ -94,17 +94,30 @@ async function getOrders(filters: { q?: string; status?: string; fulfillment?: s
     }
 
     const { data, error } = await query;
-    if (error) { console.error("[admin/orders]", error.message); return []; }
+    if (error) { console.error("[admin/orders]", error.message); return null; }
     return (data ?? []) as Order[];
   } catch (e) {
     console.error("[admin/orders] query failed:", e);
-    return [];
+    return null;
   }
 }
 
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   const filters = await searchParams;
   const orders = await getOrders(filters);
+
+  if (orders === null) {
+    return (
+      <section className="space-y-8 max-w-5xl">
+        <header>
+          <h1 className="text-3xl font-semibold">Orders</h1>
+        </header>
+        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load orders. Refresh to try again.
+        </div>
+      </section>
+    );
+  }
 
   const counts = {
     total:         orders.length,
@@ -113,6 +126,24 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
     open:          orders.filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status)).length,
     stockConflict: orders.filter((o) => o.status === "STOCK_CONFLICT").length,
   };
+
+  // For return/exchange payment rows, look up the original order_ref from return_requests
+  // so admins can match the payment to the correct request in /admin/returns.
+  let returnRefMap: Record<string, string> = {};
+  const returnPaymentOrders = orders.filter((o) => returnPaymentType(o.total_cents) !== null);
+  if (returnPaymentOrders.length > 0) {
+    const supabase = createServerSupabaseClient();
+    const emails = [...new Set(returnPaymentOrders.map((o) => o.email.toLowerCase()))];
+    const { data: returnRequests } = await supabase
+      .from("return_requests")
+      .select("email, order_ref")
+      .in("email", emails)
+      .order("created_at", { ascending: false });
+    for (const req of (returnRequests ?? [])) {
+      const key = req.email.toLowerCase();
+      if (!returnRefMap[key]) returnRefMap[key] = req.order_ref;
+    }
+  }
 
   return (
     <section className="space-y-8 max-w-5xl">
@@ -146,18 +177,33 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
+          {orders.map((order) => {
+            const originalRef = returnPaymentType(order.total_cents) !== null
+              ? (returnRefMap[order.email.toLowerCase()] ?? null)
+              : null;
+            return (
             <div key={order.id} className="panel p-6 space-y-4">
 
               {/* Top row */}
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="space-y-0.5">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-baseline gap-2 flex-wrap">
                     <p className="text-sm font-medium text-stone-900">{order.customer_name}</p>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 font-mono">
-                      #{order.id.slice(0, 8).toUpperCase()}
-                    </p>
+                    {originalRef ? (
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-orange-700 font-mono font-semibold">
+                        Original: #{originalRef}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 font-mono">
+                        #{order.id.slice(0, 8).toUpperCase()}
+                      </p>
+                    )}
                   </div>
+                  {originalRef && (
+                    <p className="text-[10px] font-mono text-stone-300">
+                      payment #{order.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  )}
                   <p className="text-xs text-stone-400">{order.email}</p>
                   {order.phone && (
                     <p className="text-xs text-stone-400">{order.phone}</p>
@@ -324,7 +370,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               </div>
 
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

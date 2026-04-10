@@ -14,23 +14,36 @@ type Customer = {
   created_at: string;
 };
 
-async function getCustomers(): Promise<Customer[]> {
+async function getCustomers(): Promise<Customer[] | null> {
   try {
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("customers")
       .select("id, email, full_name, phone, birthday, first_order_at, first_order_completed, order_count, total_spent_cents, created_at")
       .order("created_at", { ascending: false });
-    if (error) { console.error("[admin/customers]", error.message); return []; }
+    if (error) { console.error("[admin/customers]", error.message); return null; }
     return (data ?? []) as Customer[];
   } catch (e) {
     console.error("[admin/customers] query failed:", e);
-    return [];
+    return null;
   }
 }
 
 export default async function AdminCustomersPage() {
   const customers = await getCustomers();
+
+  if (customers === null) {
+    return (
+      <section className="space-y-8 max-w-5xl">
+        <header>
+          <h1 className="text-3xl font-semibold">Customers</h1>
+        </header>
+        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load customers. Refresh to try again.
+        </div>
+      </section>
+    );
+  }
 
   const counts = {
     total:     customers.length,

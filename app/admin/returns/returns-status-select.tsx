@@ -31,28 +31,41 @@ interface Props {
 
 export function ReturnsStatusSelect({ id, currentStatus }: Props) {
   const [status, setStatus] = useState<Status>(currentStatus);
+  const [err, setErr] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const next = e.target.value as Status;
+    const prev = status;
     setStatus(next);
+    setErr(null);
     startTransition(async () => {
-      await updateReturnStatus(id, next);
+      const result = await updateReturnStatus(id, next);
+      if (result?.error) {
+        setStatus(prev);
+        setErr("Failed to update status");
+        console.error("[returns-status-select] update failed:", result.error);
+      }
     });
   }
 
   return (
-    <select
-      value={status}
-      onChange={handleChange}
-      disabled={isPending}
-      className={`text-[11px] uppercase tracking-[0.12em] border px-2.5 py-1.5 focus:outline-none transition-colors duration-150 disabled:opacity-50 ${STATUS_CLS[status]}`}
-    >
-      {STATUSES.map((s) => (
-        <option key={s} value={s}>
-          {STATUS_LABEL[s]}
-        </option>
-      ))}
-    </select>
+    <div className="flex flex-col items-end gap-1">
+      <select
+        value={status}
+        onChange={handleChange}
+        disabled={isPending}
+        className={`text-[11px] uppercase tracking-[0.12em] border px-2.5 py-1.5 focus:outline-none transition-colors duration-150 disabled:opacity-50 ${STATUS_CLS[status]}`}
+      >
+        {STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {STATUS_LABEL[s]}
+          </option>
+        ))}
+      </select>
+      {err && (
+        <p className="text-[10px] text-red-600">{err}</p>
+      )}
+    </div>
   );
 }

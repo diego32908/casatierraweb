@@ -79,6 +79,13 @@ export async function createProduct(
   const supabase = createServerSupabaseClient();
   const data     = parseProductFields(formData);
 
+  const { data: existing } = await supabase
+    .from("products")
+    .select("id")
+    .eq("slug", data.slug)
+    .maybeSingle();
+  if (existing) return { error: `Slug "${data.slug}" is already in use by another product.` };
+
   const { data: inserted, error } = await supabase
     .from("products")
     .insert(data)
@@ -98,6 +105,14 @@ export async function updateProduct(
   await requireAdmin();
   const supabase = createServerSupabaseClient();
   const data     = parseProductFields(formData);
+
+  const { data: existing } = await supabase
+    .from("products")
+    .select("id")
+    .eq("slug", data.slug)
+    .neq("id", id)
+    .maybeSingle();
+  if (existing) return { error: `Slug "${data.slug}" is already in use by another product.` };
 
   const { error } = await supabase.from("products").update(data).eq("id", id);
 

@@ -28,6 +28,7 @@ export async function uploadProductImage(
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+  if (file.size > 5 * 1024 * 1024) return { error: "File must be under 5 MB" };
 
   const supabase = createServerSupabaseClient();
   const path = `products/${productId}/${makeFilename(file.name)}`;
@@ -170,6 +171,7 @@ export async function uploadCategoryCardImage(
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+  if (file.size > 5 * 1024 * 1024) return { error: "File must be under 5 MB" };
 
   const supabase = createServerSupabaseClient();
   const path = `category_cards/${cardKey}/${makeFilename(file.name)}`;
@@ -258,6 +260,7 @@ export async function uploadSiteImage(
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
   if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+  if (file.size > 5 * 1024 * 1024) return { error: "File must be under 5 MB" };
 
   const supabase = createServerSupabaseClient();
   const path = `${settingKey}/${makeFilename(file.name)}`;

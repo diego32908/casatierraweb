@@ -435,7 +435,7 @@ export async function POST(request: Request) {
             }
           : null,
         pickupLocation: fulfillment === "pickup" ? PICKUP_LOCATION_LABEL : null,
-        status: createdOrder.status,
+        status: oversoldVariantIds.length > 0 ? "STOCK_CONFLICT" : createdOrder.status,
       }),
     ]);
 

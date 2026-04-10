@@ -62,6 +62,18 @@ export async function submitReturnRequest(
   const feeCents = FEE_CENTS[input.requestType]?.[input.labelOption] ?? null;
 
   const supabase = createServerSupabaseClient();
+
+  // Block duplicate active requests for the same order
+  const { data: activeRequest } = await supabase
+    .from("return_requests")
+    .select("id")
+    .eq("order_id", input.orderId)
+    .in("status", ["pending", "approved", "paid", "label_sent"])
+    .maybeSingle();
+  if (activeRequest) {
+    return { error: "A return/exchange request for this order is already in progress." };
+  }
+
   const { error } = await supabase.from("return_requests").insert({
     order_id:         input.orderId,
     order_ref:        input.orderRef,

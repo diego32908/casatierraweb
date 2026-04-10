@@ -24,23 +24,37 @@ interface PageProps {
   searchParams: Promise<{ source?: string; promo_sent?: string }>;
 }
 
-async function getSubscribers(): Promise<Subscriber[]> {
+async function getSubscribers(): Promise<Subscriber[] | null> {
   try {
     const supabase = createServerSupabaseClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("subscribers")
       .select("id, email, source, status, promo_code, promo_sent, created_at")
       .order("created_at", { ascending: false });
+    if (error) { console.error("[subscribers admin] query error:", error.message); return null; }
     return (data ?? []) as Subscriber[];
   } catch (e) {
     console.error("[subscribers admin] query error:", e);
-    return [];
+    return null;
   }
 }
 
 export default async function AdminSubscribersPage({ searchParams }: PageProps) {
   const filters = await searchParams;
   const allSubscribers = await getSubscribers();
+
+  if (allSubscribers === null) {
+    return (
+      <section className="space-y-8 max-w-4xl">
+        <header>
+          <h1 className="text-3xl font-semibold">Subscribers</h1>
+        </header>
+        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load subscribers. Refresh to try again.
+        </div>
+      </section>
+    );
+  }
 
   const counts = {
     total:     allSubscribers.length,

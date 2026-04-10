@@ -24,21 +24,36 @@ const STATUS_STYLES: Record<string, string> = {
   resolved: "bg-stone-100 text-stone-400",
 };
 
-async function getSubmissions(): Promise<Submission[]> {
+async function getSubmissions(): Promise<Submission[] | null> {
   try {
     const supabase = createServerSupabaseClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("contact_submissions")
       .select("id, name, email, inquiry_type, message, status, created_at")
       .order("created_at", { ascending: false });
+    if (error) { console.error("[admin/leads]", error.message); return null; }
     return (data ?? []) as Submission[];
-  } catch {
-    return [];
+  } catch (e) {
+    console.error("[admin/leads] query failed:", e);
+    return null;
   }
 }
 
 export default async function AdminLeadsPage() {
   const submissions = await getSubmissions();
+
+  if (submissions === null) {
+    return (
+      <section className="space-y-8 max-w-4xl">
+        <header>
+          <h1 className="text-3xl font-semibold">Inquiries</h1>
+        </header>
+        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load inquiries. Refresh to try again.
+        </div>
+      </section>
+    );
+  }
 
   const counts = {
     new:      submissions.filter((s) => s.status === "new").length,
