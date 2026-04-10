@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getShippingSettings, computeShippingCents } from "@/lib/shipping";
-import { PICKUP_LOCATION_LABEL } from "@/lib/constants";
+import { PICKUP_LOCATION_LABEL, HEAVY_CATEGORIES, PACKAGING_BUFFER_OZ } from "@/lib/constants";
 import type { CheckoutRequestBody } from "@/types/store";
 
 // Stripe tax code for general tangible goods.
@@ -43,6 +43,8 @@ interface VariantRow {
   size_label:           string;
   stock:                number;
   price_override_cents: number | null;
+  weight_oz:            number | null;
+  length_in:            number | null;
 }
 
 interface ProductRow {
@@ -50,6 +52,9 @@ interface ProductRow {
   name_en:           string;
   base_price_cents:  number;
   primary_image_url: string | null;
+  category:          string;
+  weight_oz:         number | null;
+  length_in:         number | null;
 }
 
 // ── Response shape ────────────────────────────────────────────────────────────
@@ -91,13 +96,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       variantIds.length > 0
         ? supabase
             .from("product_variants")
-            .select("id, size_label, stock, price_override_cents")
+            .select("id, size_label, stock, price_override_cents, weight_oz, length_in")
             .in("id", variantIds)
         : Promise.resolve({ data: [] as VariantRow[], error: null }),
 
       supabase
         .from("products")
-        .select("id, name_en, base_price_cents, primary_image_url")
+        .select("id, name_en, base_price_cents, primary_image_url, category, weight_oz, length_in")
         .in("id", productIds),
     ]);
 
@@ -153,6 +158,31 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       );
     }
 
+    // ── Detect heavy / fragile cart and compute weight ────────────────────────
+    // Triggers when any valid item has: heavy category, product weight, or dimensions.
+    // Variant-level weight/dimensions take precedence over product-level when set.
+    let heavyCartWeightOz = 0;
+    const isHeavy = validItems.some((cartItem) => {
+      const product = productMap.get(cartItem.productId)!;
+      const variant  = cartItem.variantId ? variantMap.get(cartItem.variantId) : null;
+      if ((HEAVY_CATEGORIES as readonly string[]).includes(product.category)) return true;
+      const effectiveWeight = variant?.weight_oz ?? product.weight_oz;
+      if (effectiveWeight && effectiveWeight > 0) return true;
+      const effectiveLength = variant?.length_in ?? product.length_in;
+      if (effectiveLength && effectiveLength > 0) return true;
+      return false;
+    });
+
+    if (isHeavy) {
+      const itemWeight = validItems.reduce((sum, cartItem) => {
+        const product = productMap.get(cartItem.productId)!;
+        const variant  = cartItem.variantId ? variantMap.get(cartItem.variantId) : null;
+        const oz = variant?.weight_oz ?? product.weight_oz ?? 0;
+        return sum + oz * cartItem.quantity;
+      }, 0);
+      heavyCartWeightOz = itemWeight + PACKAGING_BUFFER_OZ;
+    }
+
     // ── Build Stripe line items ───────────────────────────────────────────────
     let subtotalCents = 0;
 
@@ -184,7 +214,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
       subtotalCents,
       body.fulfillment,
       shippingSettings,
-      body.shippingSpeed
+      body.shippingSpeed,
+      heavyCartWeightOz
     );
     const shippingIsFree = shippingAmountCents === 0 && body.fulfillment === "shipping";
 
@@ -238,7 +269,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckoutR
             shipping_options: [
               {
                 shipping_rate_data: {
-                  display_name: body.shippingSpeed === "priority"
+                  // Heavy carts always use weight-tier rates regardless of shippingSpeed.
+                  // Never show "Priority Shipping" for heavy carts — the rate is identical.
+                  display_name: heavyCartWeightOz > 0
+                    ? "Standard Shipping"
+                    : body.shippingSpeed === "priority"
                     ? "Priority Shipping"
                     : shippingIsFree
                     ? "Free Shipping"

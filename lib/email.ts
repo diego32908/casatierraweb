@@ -723,14 +723,17 @@ export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
 // ── Customer return approval email ──────────────────────────────────────────
 
 export interface ReturnApprovedEmailData {
-  requestId: string;       // return_request UUID — appended to Stripe link as client_reference_id
   orderRef: string;
   email: string;
   requestType: "return" | "exchange";
   labelOption: "prepaid" | "own_label" | "in_store";
   replacementSize: string | null;
-  returnPrepaidLink: string | null;
-  exchangePrepaidLink: string | null;
+  /**
+   * Stripe Checkout Session URL for prepaid label payment.
+   * Null when label is free (own_label / in_store) or if session creation failed.
+   * Used directly — no client_reference_id appended (request ID is in session metadata).
+   */
+  paymentUrl: string | null;
   returnAddress: string;
 }
 
@@ -741,54 +744,40 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
   let nextStepsBlock = "";
 
   if (data.labelOption === "prepaid") {
-    if (data.requestType === "return") {
-      const link = data.returnPrepaidLink
-        ? `${data.returnPrepaidLink}?client_reference_id=${data.requestId}`
-        : null;
-      const payBlock = link
-        ? `<div style="margin:24px 0;text-align:center;">
-            <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
-              font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
-              text-transform:uppercase;text-decoration:none;padding:14px 28px;">
-              Pay $8.99 — Get Return Label
-            </a>
-          </div>`
-        : `<p style="margin:16px 0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-            We will follow up with payment instructions and your return label shortly.
-          </p>`;
-      nextStepsBlock = `
-        <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
-          To receive your prepaid return label, please complete a one-time payment of <strong>$8.99</strong>.
-        </p>
-        ${payBlock}
-        <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-          We&rsquo;ll send your label and full return instructions once payment is confirmed.
+    // paymentUrl is the Stripe Checkout Session URL with payment_purpose metadata embedded.
+    // No client_reference_id query param needed — the request ID is in session metadata.
+    const feeCopy = data.requestType === "return" ? "$8.99" : "$15.99";
+    const ctaCopy = data.requestType === "return"
+      ? `Pay ${feeCopy} — Get Return Label`
+      : `Pay ${feeCopy} — Start Exchange`;
+    const introCopy = data.requestType === "return"
+      ? `To receive your prepaid return label, please complete a one-time payment of <strong>${feeCopy}</strong>.`
+      : `To proceed, please complete the prepaid label and reship fee of <strong>${feeCopy}</strong>.`;
+    const payBlock = data.paymentUrl
+      ? `<div style="margin:24px 0;text-align:center;">
+          <a href="${data.paymentUrl}" style="display:inline-block;background:#1c1917;color:#ffffff;
+            font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
+            text-transform:uppercase;text-decoration:none;padding:14px 28px;">
+            ${ctaCopy}
+          </a>
+        </div>`
+      : `<p style="margin:16px 0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+          We will follow up with payment instructions shortly.
         </p>`;
-    } else {
-      const link = data.exchangePrepaidLink
-        ? `${data.exchangePrepaidLink}?client_reference_id=${data.requestId}`
-        : null;
-      const payBlock = link
-        ? `<div style="margin:24px 0;text-align:center;">
-            <a href="${link}" style="display:inline-block;background:#1c1917;color:#ffffff;
-              font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;
-              text-transform:uppercase;text-decoration:none;padding:14px 28px;">
-              Pay $15.99 — Start Exchange
-            </a>
-          </div>`
-        : `<p style="margin:16px 0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-            We will follow up with payment instructions shortly.
-          </p>`;
-      nextStepsBlock = `
-        <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
-          To proceed, please complete the prepaid label and reship fee of <strong>$15.99</strong>.
-        </p>
-        ${payBlock}
-        <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-          We&rsquo;ll send your return label and ship your replacement after payment is confirmed.
-          ${data.replacementSize ? `Requested size: <strong>${data.replacementSize}</strong>.` : ""}
-        </p>`;
-    }
+    const outroExtra = data.requestType === "exchange" && data.replacementSize
+      ? ` Requested size: <strong>${data.replacementSize}</strong>.`
+      : "";
+    const outroCopy = data.requestType === "return"
+      ? "We&rsquo;ll send your label and full return instructions once payment is confirmed."
+      : `We&rsquo;ll send your return label and ship your replacement after payment is confirmed.${outroExtra}`;
+    nextStepsBlock = `
+      <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
+        ${introCopy}
+      </p>
+      ${payBlock}
+      <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
+        ${outroCopy}
+      </p>`;
   } else if (data.labelOption === "own_label") {
     const afterReceived =
       data.requestType === "exchange"

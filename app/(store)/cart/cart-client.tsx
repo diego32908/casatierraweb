@@ -7,6 +7,8 @@ import { useCart } from "@/components/cart/cart-context";
 import { BackLink } from "@/components/shell/back-link";
 import { formatPrice } from "@/lib/utils";
 import { loadPromo, isSubscribed } from "@/lib/promo";
+import { isHeavyCart, cartHeavyWeightOz } from "@/lib/cart";
+import { heavyTierCents } from "@/lib/constants";
 
 interface Props {
   flatShippingCents: number;
@@ -27,14 +29,20 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
     if (isSubscribed(promo) && promo.promoCode) setSavedPromoCode(promo.promoCode);
   }, []);
 
+  // ── Heavy shipping detection ──────────────────────────────────────────────
+  const hasHeavy = isHeavyCart(items);
+  const heavyWeightOz = cartHeavyWeightOz(items);
+  const effectiveStandardCents = hasHeavy ? heavyTierCents(heavyWeightOz) : flatShippingCents;
+  const effectivePriorityCents = hasHeavy ? heavyTierCents(heavyWeightOz) : priorityShippingCents;
+
   // ── Shipping calc (mirrors computeShippingCents + checkout form) ──────────
   const qualifiesForFreeShipping =
-    shippingOption === "standard" && subtotalCents >= freeThresholdCents;
+    !hasHeavy && shippingOption === "standard" && subtotalCents >= freeThresholdCents;
   const shippingCents =
     shippingOption === "pickup" ? 0
-    : shippingOption === "priority" ? priorityShippingCents
+    : shippingOption === "priority" ? effectivePriorityCents
     : qualifiesForFreeShipping ? 0
-    : flatShippingCents;
+    : effectiveStandardCents;
   const estimatedTotal = subtotalCents + shippingCents;
 
   // ── Direct-to-Stripe checkout ─────────────────────────────────────────────
@@ -262,13 +270,13 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
                   {
                     value: "standard" as const,
                     label: "Standard",
-                    desc: qualifiesForFreeShipping ? "Free" : formatPrice(flatShippingCents),
+                    desc: qualifiesForFreeShipping ? "Free" : formatPrice(effectiveStandardCents),
                     sub: "5–8 business days",
                   },
                   {
                     value: "priority" as const,
                     label: "Priority",
-                    desc: formatPrice(priorityShippingCents),
+                    desc: formatPrice(effectivePriorityCents),
                     sub: "2–3 business days",
                   },
                   {
@@ -300,7 +308,12 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
                   </label>
                 ))}
               </div>
-              {shippingOption === "standard" && !qualifiesForFreeShipping && (
+              {hasHeavy && shippingOption !== "pickup" && (
+                <p className="mt-2 px-2 text-[11px] text-stone-400">
+                  Shipping calculated based on weight for fragile items
+                </p>
+              )}
+              {!hasHeavy && shippingOption === "standard" && !qualifiesForFreeShipping && (
                 <p className="mt-2 px-2 text-[11px] text-stone-400">
                   Free on orders {formatPrice(freeThresholdCents)}+
                 </p>

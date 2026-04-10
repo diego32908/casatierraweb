@@ -8,6 +8,8 @@ import { BackLink } from "@/components/shell/back-link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { CheckoutPromo } from "@/components/popups/checkout-promo";
 import { loadPromo } from "@/lib/promo";
+import { isHeavyCart, cartHeavyWeightOz } from "@/lib/cart";
+import { heavyTierCents } from "@/lib/constants";
 import type { FulfillmentType } from "@/types/store";
 
 const inputCls =
@@ -148,18 +150,30 @@ export function CheckoutForm({
 
   // Shipping: mirrors computeShippingCents() in /lib/shipping.ts exactly.
   const fulfillment: FulfillmentType = shippingOption === "pickup" ? "pickup" : "shipping";
+  const hasHeavy = isHeavyCart(items);
+  const heavyWeightOz = cartHeavyWeightOz(items);
+
+  // If the cart becomes heavy while priority is selected, reset to standard —
+  // priority does not change price or behavior for heavy carts.
+  useEffect(() => {
+    if (hasHeavy && shippingOption === "priority") {
+      setShippingOption("standard");
+    }
+  }, [hasHeavy, shippingOption]);
+  const effectiveStandardCents = hasHeavy ? heavyTierCents(heavyWeightOz) : flatShippingCents;
+  const effectivePriorityCents = hasHeavy ? heavyTierCents(heavyWeightOz) : priorityShippingCents;
   const qualifiesForFreeShipping =
-    shippingOption === "standard" && subtotalCents >= freeThresholdCents;
+    !hasHeavy && shippingOption === "standard" && subtotalCents >= freeThresholdCents;
   const shippingCents =
     shippingOption === "pickup" ? 0
-    : shippingOption === "priority" ? priorityShippingCents
+    : shippingOption === "priority" ? effectivePriorityCents
     : qualifiesForFreeShipping ? 0
-    : flatShippingCents;
+    : effectiveStandardCents;
   const totalCents = subtotalCents + shippingCents;
 
-  // How many cents away from free standard shipping
+  // How many cents away from free standard shipping (only applies when not heavy)
   const amountUntilFreeShipping =
-    shippingOption === "standard" && !qualifiesForFreeShipping
+    !hasHeavy && shippingOption === "standard" && !qualifiesForFreeShipping
       ? freeThresholdCents - subtotalCents
       : 0;
 
@@ -248,19 +262,23 @@ export function CheckoutForm({
                     label: "Standard Shipping",
                     description: qualifiesForFreeShipping
                       ? `Free · Ships within 5–8 business days`
+                      : hasHeavy
+                      ? `${formatPrice(effectiveStandardCents)} · Ships within 5–8 business days`
                       : `${formatPrice(flatShippingCents)} · Ships within 5–8 business days · Free on orders ${formatPrice(freeThresholdCents)}+`,
                   },
-                  {
+                  // Priority is hidden for heavy carts — weight tier applies to both speeds,
+                  // so showing priority would present an identical price as a fake choice.
+                  ...(!hasHeavy ? [{
                     value: "priority" as const,
                     label: "Priority Shipping",
                     description: `${formatPrice(priorityShippingCents)} · Ships within 2–3 business days`,
-                  },
+                  }] : []),
                   {
                     value: "pickup" as const,
                     label: "Local Pickup",
                     description: "Free — pick up at 1600 E Holt Ave, Pomona, CA",
                   },
-                ] as const).map(({ value, label, description }) => (
+                ] as { value: "standard" | "priority" | "pickup"; label: string; description: string }[]).map(({ value, label, description }) => (
                   <label
                     key={value}
                     className="flex cursor-pointer items-start gap-3 border border-stone-200 px-4 py-3 transition-colors hover:border-stone-400"
@@ -282,7 +300,13 @@ export function CheckoutForm({
                 ))}
               </div>
 
-              {/* Free standard shipping nudge */}
+              {/* Heavy shipping note */}
+              {hasHeavy && shippingOption !== "pickup" && (
+                <p className="mt-3 text-xs text-stone-400">
+                  Shipping calculated based on weight for fragile items
+                </p>
+              )}
+              {/* Free standard shipping nudge (not shown for heavy carts) */}
               {amountUntilFreeShipping > 0 && (
                 <p className="mt-3 text-xs text-stone-400">
                   Add {formatPrice(amountUntilFreeShipping)} more for free standard shipping.

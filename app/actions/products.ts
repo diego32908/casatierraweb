@@ -95,6 +95,15 @@ export async function createProduct(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/inventory");
+  // Revalidate all storefront pages that list products
+  revalidatePath("/shop");
+  revalidatePath("/women");
+  revalidatePath("/men");
+  revalidatePath("/kids");
+  revalidatePath("/accessories");
+  revalidatePath("/home");
+  revalidatePath("/sale");
+  revalidatePath(`/products/${data.slug}`);
   return { id: inserted.id };
 }
 
@@ -120,6 +129,15 @@ export async function updateProduct(
 
   revalidatePath("/admin/inventory");
   revalidatePath(`/admin/inventory/${id}`);
+  // Revalidate all storefront pages — covers is_active toggle, category change, price update
+  revalidatePath("/shop");
+  revalidatePath("/women");
+  revalidatePath("/men");
+  revalidatePath("/kids");
+  revalidatePath("/accessories");
+  revalidatePath("/home");
+  revalidatePath("/sale");
+  revalidatePath(`/products/${data.slug}`);
   return {};
 }
 

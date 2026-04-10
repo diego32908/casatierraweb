@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/server-auth";
 import { checkRateLimit, clientIP } from "@/lib/rate-limit";
+import { stripe } from "@/lib/stripe";
 import {
   sendAdminReturnNotification,
   sendReturnApprovedEmail,
@@ -141,28 +142,62 @@ export async function updateReturnStatus(
   // Fire customer email only when status actually changes to approved/rejected
   if (current && current.status !== status) {
     if (status === "approved") {
-      // Read Stripe payment links + return address from site_settings
+      // Read return address from site_settings (still needed for own_label / in_store emails)
       const { data: settingRow } = await supabase
         .from("site_settings")
         .select("value")
         .eq("key", "returns_config")
         .single();
       const cfg = (settingRow?.value ?? {}) as {
-        return_prepaid_link?: string | null;
-        exchange_prepaid_link?: string | null;
         return_address?: string | null;
       };
 
+      // For prepaid label options, create a dynamic Stripe Checkout Session so the
+      // webhook can detect the payment via metadata (payment_purpose: "return_fee")
+      // rather than fragile amount matching — works correctly with taxes and any currency.
+      let paymentUrl: string | null = null;
+      if (current.label_option === "prepaid") {
+        const feeCents = FEE_CENTS[current.request_type]?.["prepaid"] ?? null;
+        if (feeCents) {
+          try {
+            const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+            const checkoutSession = await stripe.checkout.sessions.create({
+              mode: "payment",
+              line_items: [{
+                quantity: 1,
+                price_data: {
+                  currency: "usd",
+                  unit_amount: feeCents,
+                  product_data: {
+                    name: current.request_type === "exchange"
+                      ? "Exchange Return Label Fee"
+                      : "Return Prepaid Label Fee",
+                  },
+                },
+              }],
+              metadata: {
+                payment_purpose:   "return_fee",
+                return_request_id: id,
+              },
+              success_url: `${siteUrl}/returns?payment=success`,
+              cancel_url:  `${siteUrl}/returns`,
+            });
+            paymentUrl = checkoutSession.url;
+          } catch (err) {
+            // Non-fatal — email will show fallback text; admin can follow up manually
+            console.error("[returns] Stripe session creation failed for return fee:", err);
+          }
+        }
+      }
+
       void sendReturnApprovedEmail({
-        requestId:           id,
-        orderRef:            current.order_ref,
-        email:               current.email,
-        requestType:         current.request_type as "return" | "exchange",
-        labelOption:         current.label_option as "prepaid" | "own_label" | "in_store",
-        replacementSize:     current.replacement_size ?? null,
-        returnPrepaidLink:   cfg.return_prepaid_link ?? null,
-        exchangePrepaidLink: cfg.exchange_prepaid_link ?? null,
-        returnAddress:       cfg.return_address ?? "1600 E Holt Ave, Pomona, CA 91767",
+        orderRef:        current.order_ref,
+        email:           current.email,
+        requestType:     current.request_type as "return" | "exchange",
+        labelOption:     current.label_option as "prepaid" | "own_label" | "in_store",
+        replacementSize: current.replacement_size ?? null,
+        paymentUrl,
+        returnAddress:   cfg.return_address ?? "1600 E Holt Ave, Pomona, CA 91767",
       });
     } else if (status === "rejected") {
       void sendReturnRejectedEmail({

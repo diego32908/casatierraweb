@@ -1,3 +1,5 @@
+import { HEAVY_CATEGORIES, PACKAGING_BUFFER_OZ } from "@/lib/constants";
+
 // ── Cart item shape ───────────────────────────────────────────────────────────
 
 export interface CartItem {
@@ -16,6 +18,32 @@ export interface CartItem {
   selected_color_hex: string | null;
   selected_size: string | null;
   quantity: number;
+  /** Stored so cart/checkout can detect heavy/fragile items without a DB round-trip. */
+  category?: string;
+  /** Weight in ounces (variant-level takes precedence over product-level). */
+  weight_oz?: number;
+}
+
+/** Returns true if any item in the cart requires heavy/fragile shipping. */
+export function isHeavyCart(items: CartItem[]): boolean {
+  return items.some(
+    (i) =>
+      (i.category && (HEAVY_CATEGORIES as readonly string[]).includes(i.category)) ||
+      (i.weight_oz != null && i.weight_oz > 0)
+  );
+}
+
+/**
+ * Returns the total cart weight in ounces for heavy carts, including a
+ * packaging buffer. Returns 0 for non-heavy carts.
+ */
+export function cartHeavyWeightOz(items: CartItem[]): number {
+  if (!isHeavyCart(items)) return 0;
+  const itemWeight = items.reduce(
+    (sum, i) => sum + (i.weight_oz ?? 0) * i.quantity,
+    0
+  );
+  return itemWeight + PACKAGING_BUFFER_OZ;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

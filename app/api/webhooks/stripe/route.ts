@@ -52,27 +52,24 @@ export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
 
   // ── Return / exchange payment detection ────────────────────────────────────
-  // Payment Links for return labels ($8.99) and exchange labels ($15.99) are
-  // not product orders. Intercept them here, update the matching return_request
-  // to 'paid', and return 200 without creating an order.
-  const amountTotal = session.amount_total;
-  const isReturnPayment   = amountTotal === 899;
-  const isExchangePayment = amountTotal === 1599;
+  // Return fee sessions are created dynamically at approval time with metadata
+  // payment_purpose: "return_fee". Detecting by metadata is robust against taxes,
+  // currency differences, and any future price changes — unlike amount matching.
+  const isReturnFeePayment = session.metadata?.payment_purpose === "return_fee";
 
-  if (isReturnPayment || isExchangePayment) {
-    const paymentKind = isReturnPayment ? "return" : "exchange";
-    console.log("[WEBHOOK] detected return/exchange payment →", paymentKind, "amount:", amountTotal);
+  if (isReturnFeePayment) {
+    console.log("[WEBHOOK] detected return fee payment via metadata");
 
-    // client_reference_id is the return_request UUID appended to the Stripe
-    // Payment Link URL (?client_reference_id=<uuid>) at email send time.
-    // This is the only reliable way to identify the exact request — do not
-    // fall back to email matching.
-    const requestId = session.client_reference_id;
+    // return_request_id is set in session metadata by the dynamic session created
+    // at approval time. Fall back to client_reference_id for any legacy sessions
+    // created before this approach was introduced.
+    const requestId =
+      session.metadata?.return_request_id ?? session.client_reference_id;
 
     if (!requestId) {
       console.warn(
         "[WEBHOOK] return payment: session has no client_reference_id — cannot identify exact request.",
-        "Session id:", session.id, "Amount:", amountTotal,
+        "Session id:", session.id, "Amount:", session.amount_total,
         "This payment was likely made via a bare payment link without a request identifier."
       );
       return NextResponse.json({ received: true });

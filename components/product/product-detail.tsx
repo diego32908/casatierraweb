@@ -139,6 +139,8 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
       selected_color_name: isNone ? null : (selectedVariant?.color_name ?? null),
       selected_color_hex: isNone ? null : (selectedVariant?.color_hex ?? null),
       selected_size: isNone ? null : (selectedVariant?.size_label ?? null),
+      category: product.category,
+      weight_oz: (selectedVariant?.weight_oz ?? product.weight_oz) ?? undefined,
     });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);

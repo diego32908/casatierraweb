@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { FLAT_SHIPPING_RATE_CENTS } from "@/lib/constants";
+import { FLAT_SHIPPING_RATE_CENTS, heavyTierCents } from "@/lib/constants";
 
 export interface ShippingSettings {
   flatRateCents: number;
@@ -56,16 +56,21 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
 
 /**
  * Compute the shipping charge for a given cart.
- * Returns 0 for pickup orders, 0 if the subtotal meets or exceeds the free
- * threshold, otherwise the flat rate.
+ * - Returns 0 for pickup orders.
+ * - When heavyWeightOz > 0: uses weight-tier rates and disables the free-shipping threshold.
+ * - Otherwise: applies free threshold and standard/priority rates.
  */
 export function computeShippingCents(
   subtotalCents: number,
   fulfillment: "shipping" | "pickup",
   settings: ShippingSettings,
-  shippingSpeed?: "standard" | "priority"
+  shippingSpeed?: "standard" | "priority",
+  heavyWeightOz?: number
 ): number {
   if (fulfillment === "pickup") return 0;
+  if (heavyWeightOz && heavyWeightOz > 0) {
+    return heavyTierCents(heavyWeightOz);
+  }
   if (shippingSpeed === "priority") return settings.priorityRateCents;
   if (subtotalCents >= settings.freeThresholdCents) return 0;
   return settings.flatRateCents;

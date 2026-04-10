@@ -48,8 +48,10 @@ type Order = {
   order_items: OrderItem[];
 };
 
-// Stripe Payment Link orders are identifiable by exact total only.
-// 899 = $8.99 return prepaid label, 1599 = $15.99 exchange prepaid label.
+// Legacy: return fee sessions are now created dynamically with metadata so the webhook
+// intercepts them before order creation (see app/api/webhooks/stripe/route.ts).
+// These constants handle any orders that leaked into the DB before that approach was
+// introduced. New return fee payments no longer produce order rows.
 const RETURN_PAYMENT_CENTS  = 899;
 const EXCHANGE_PAYMENT_CENTS = 1599;
 
