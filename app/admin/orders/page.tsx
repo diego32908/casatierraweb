@@ -196,11 +196,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 <div className="space-y-0.5">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <p className="text-sm font-medium text-stone-900">{order.customer_name}</p>
-                    {originalRef ? (
+                    {paymentType !== null ? (
                       <p className={`text-[10px] uppercase tracking-[0.12em] font-mono font-semibold ${
                         paymentType === "exchange" ? "text-blue-700" : "text-orange-700"
                       }`}>
-                        Original: #{originalRef}
+                        {originalRef ? `Original: #${originalRef}` : "Original: Unresolved"}
                       </p>
                     ) : (
                       <p className="text-[10px] uppercase tracking-[0.16em] text-stone-400 font-mono">
