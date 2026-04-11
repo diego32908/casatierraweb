@@ -15,15 +15,14 @@ type ReturnRequest = {
   reason: string;
   notes: string | null;
   replacement_size: string | null;
-  label_option: "prepaid" | "own_label" | "in_store";
+  label_option: "prepaid" | "in_store";
   fee_cents: number | null;
   created_at: string;
 };
 
 const LABEL_OPTION_LABEL: Record<string, string> = {
-  prepaid:   "Prepaid label",
-  own_label: "Own label",
-  in_store:  "In-store (free)",
+  prepaid:  "Prepaid label",
+  in_store: "In-store (free)",
 };
 
 
@@ -167,7 +166,7 @@ export default async function AdminReturnsPage({ searchParams }: PageProps) {
               )}
 
               {/* Shipping source guidance for label generation */}
-              {(req.label_option === "prepaid" || req.label_option === "own_label") && (
+              {req.label_option === "prepaid" && (
                 <div className="mt-3 border-t border-stone-100 pt-3">
                   <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400 mb-1">
                     Shipping source

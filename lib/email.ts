@@ -274,8 +274,8 @@ function orderConfirmationHtml(order: OrderEmailData): string {
         font-family:Arial,sans-serif;line-height:1.8;">
         <li style="margin-bottom:6px;"><strong style="color:#57534e;">14-day return window.</strong>
           Items must be returned within 14 days of delivery, unworn and in original condition.</li>
-        <li style="margin-bottom:6px;"><strong style="color:#57534e;">Prepaid return label available for $8.99.</strong>
-          Paid separately before the label is issued, or use your own label at no charge.</li>
+        <li style="margin-bottom:6px;"><strong style="color:#57534e;">Prepaid return label.</strong>
+          A prepaid return label is provided for $8.99, paid before the label is issued.</li>
         <li style="margin-bottom:6px;"><strong style="color:#57534e;">Exchanges.</strong>
           $15.99 for prepaid label + reship, paid before the label is issued.</li>
         <li><strong style="color:#57534e;">Refunds.</strong>
@@ -759,11 +759,11 @@ export interface ReturnApprovedEmailData {
   orderRef: string;
   email: string;
   requestType: "return" | "exchange";
-  labelOption: "prepaid" | "own_label" | "in_store";
+  labelOption: "prepaid" | "in_store";
   replacementSize: string | null;
   /**
    * Stripe Checkout Session URL for prepaid label payment.
-   * Null when label is free (own_label / in_store) or if session creation failed.
+   * Null for in_store or if session creation failed.
    * Used directly — no client_reference_id appended (request ID is in session metadata).
    */
   paymentUrl: string | null;
@@ -811,26 +811,6 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
       <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
         ${outroCopy}
       </p>`;
-  } else if (data.labelOption === "own_label") {
-    const afterReceived =
-      data.requestType === "exchange"
-        ? "Once we receive and inspect the item(s), we&rsquo;ll process your exchange and ship your replacement."
-        : "Once we receive and inspect the item(s), we&rsquo;ll process your refund.";
-    nextStepsBlock = `
-      <p style="margin:0 0 12px;font-size:14px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
-        Please ship the item(s) to us using your own label at the address below. We recommend using a trackable shipping method.
-      </p>
-      <div style="margin:20px 0;padding:16px 20px;background:#fafaf9;border:1px solid #e7e5e4;">
-        <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
-          color:#a8a29e;font-family:Arial,sans-serif;">Return address</p>
-        <p style="margin:0;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
-          ${BRAND}<br />${data.returnAddress}
-        </p>
-      </div>
-      <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
-        Please include your order number <strong>#${data.orderRef}</strong> inside the package so we can match it to your request.
-        ${afterReceived}
-      </p>`;
   } else {
     // in_store
     nextStepsBlock = `
@@ -841,7 +821,7 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
         <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
           color:#a8a29e;font-family:Arial,sans-serif;">Our store</p>
         <p style="margin:0;font-size:13px;color:#1c1917;font-family:Arial,sans-serif;line-height:1.7;">
-          ${BRAND}<br />1600 E Holt Ave, Pomona, CA
+          ${BRAND}<br />1600 E Holt Ave Ste D24&ndash;D26<br />Pomona, CA 91767
         </p>
       </div>
       <p style="margin:0;font-size:13px;color:#78716c;font-family:Arial,sans-serif;line-height:1.7;">
@@ -962,14 +942,14 @@ export interface AdminReturnNotificationData {
   reason: string;
   notes: string | null;
   replacementSize: string | null;
-  labelOption: "prepaid" | "own_label" | "in_store";
+  labelOption: "prepaid" | "in_store";
   feeCents: number | null;
   createdAt: string;
 }
 
 function adminReturnNotificationHtml(data: AdminReturnNotificationData): string {
   const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
-  const labelLabel = data.labelOption === "prepaid" ? "Prepaid label" : "Own label";
+  const labelLabel = data.labelOption === "prepaid" ? "Prepaid label" : "In-store";
 
   const itemRows = data.items
     .map(

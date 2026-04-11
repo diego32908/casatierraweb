@@ -26,12 +26,12 @@ export interface SubmitReturnRequestInput {
   reason: string;
   notes: string;
   replacementSize: string | null;
-  labelOption: "prepaid" | "own_label" | "in_store";
+  labelOption: "prepaid" | "in_store";
 }
 
 const FEE_CENTS: Record<string, Record<string, number | null>> = {
-  return:   { prepaid: 899,  own_label: null, in_store: null },
-  exchange: { prepaid: 1599, own_label: null, in_store: null },
+  return:   { prepaid: 899,  in_store: null },
+  exchange: { prepaid: 1599, in_store: null },
 };
 
 export async function submitReturnRequest(
@@ -50,7 +50,7 @@ export async function submitReturnRequest(
   if (!["return", "exchange"].includes(input.requestType)) {
     return { error: "Invalid request type." };
   }
-  if (!["prepaid", "own_label", "in_store"].includes(input.labelOption)) {
+  if (!["prepaid", "in_store"].includes(input.labelOption)) {
     return { error: "Invalid label option." };
   }
   if (!input.items.length) {
@@ -142,7 +142,7 @@ export async function updateReturnStatus(
   // Fire customer email only when status actually changes to approved/rejected
   if (current && current.status !== status) {
     if (status === "approved") {
-      // Read return address from site_settings (still needed for own_label / in_store emails)
+      // Read return address from site_settings (needed for in_store emails)
       const { data: settingRow } = await supabase
         .from("site_settings")
         .select("value")
@@ -194,10 +194,10 @@ export async function updateReturnStatus(
         orderRef:        current.order_ref,
         email:           current.email,
         requestType:     current.request_type as "return" | "exchange",
-        labelOption:     current.label_option as "prepaid" | "own_label" | "in_store",
+        labelOption:     current.label_option as "prepaid" | "in_store",
         replacementSize: current.replacement_size ?? null,
         paymentUrl,
-        returnAddress:   cfg.return_address ?? "1600 E Holt Ave, Pomona, CA 91767",
+        returnAddress:   cfg.return_address ?? "1600 E Holt Ave Ste D24\u2013D26, Pomona, CA 91767",
       });
     } else if (status === "rejected") {
       void sendReturnRejectedEmail({

@@ -197,8 +197,8 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
                 Items must be returned within 14 days of delivery, unworn and in original condition.
               </p>
               <p>
-                <span className="text-stone-900 font-medium">Prepaid label available.</span>{" "}
-                We offer a prepaid return label for a one-time $8.99 fee, paid separately before the label is sent. Or use your own label at no charge.
+                <span className="text-stone-900 font-medium">Prepaid return label.</span>{" "}
+                A prepaid return label is provided for $8.99, paid before the label is issued.
               </p>
               <p>
                 <span className="text-stone-900 font-medium">Exchanges.</span>{" "}
@@ -312,7 +312,7 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
                         Get a refund for items you&rsquo;d like to send back.
                       </p>
                       <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-stone-500">
-                        Prepaid label fee $8.99 &middot; Own label free
+                        Prepaid return label — $8.99
                       </p>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export default async function ReturnsPage({ searchParams }: PageProps) {
                         Swap for a different size or color.
                       </p>
                       <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-stone-500">
-                        Prepaid label + reship fee $15.99 &middot; Own label free
+                        Prepaid label + reship fee — $15.99
                       </p>
                     </div>
                   </div>
