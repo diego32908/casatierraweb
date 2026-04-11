@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -39,7 +39,22 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // When the user confirms in the other tab, Supabase fires SIGNED_IN here too
+  // via shared browser storage. Switch to the verified success state.
+  useEffect(() => {
+    if (!confirmed) return;
+    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_IN") {
+          setVerified(true);
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, [confirmed]);
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -97,6 +112,66 @@ export default function SignupPage() {
   }
 
   if (confirmed) {
+    const socials = (
+      <div className="mt-12 text-center">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-4">Follow us</p>
+        <div className="flex items-center justify-center gap-6">
+          <a href="https://www.instagram.com/yolotl_artemexicano" target="_blank" rel="noopener noreferrer" className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors">Instagram</a>
+          <span className="text-stone-200">·</span>
+          <a href="https://www.tiktok.com/@yolotlarte" target="_blank" rel="noopener noreferrer" className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors">TikTok</a>
+          <span className="text-stone-200">·</span>
+          <a href="https://www.etsy.com/shop/elzapatiadofolklor" target="_blank" rel="noopener noreferrer" className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors">Etsy</a>
+        </div>
+      </div>
+    );
+
+    if (verified) {
+      // User confirmed in the other tab — show success state here too
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
+          <div style={{ width: "100%", maxWidth: 420 }}>
+
+            <div className="text-center mb-12">
+              <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">
+                Tierra Oaxaca
+              </Link>
+            </div>
+
+            <div className="bg-white border border-stone-200 px-10 py-12 text-center">
+              <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-stone-100 bg-stone-50">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#78716c" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">
+                Your account has been verified
+              </h1>
+              <p className="text-[13px] text-stone-400 mb-10 leading-relaxed">
+                You&apos;re all set. Continue shopping or sign in to your account.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/shop"
+                  className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors text-center"
+                >
+                  Continue shopping
+                </Link>
+                <Link
+                  href="/account"
+                  className="w-full rounded-full border border-stone-200 py-3 text-xs font-medium tracking-[0.12em] uppercase text-stone-700 hover:border-stone-400 transition-colors text-center"
+                >
+                  Go to account
+                </Link>
+              </div>
+            </div>
+
+            {socials}
+          </div>
+        </div>
+      );
+    }
+
+    // Waiting for confirmation
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
         <div style={{ width: "100%", maxWidth: 420 }}>
@@ -108,15 +183,12 @@ export default function SignupPage() {
           </div>
 
           <div className="bg-white border border-stone-200 px-10 py-12 text-center">
-
-            {/* Envelope mark */}
             <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-stone-100 bg-stone-50">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#78716c" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="2" y="4" width="20" height="16" rx="2"/>
                 <path d="M2 7l10 7 10-7"/>
               </svg>
             </div>
-
             <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">
               Check your inbox
             </h1>
@@ -124,18 +196,15 @@ export default function SignupPage() {
               We sent a confirmation link to<br />
               <span className="text-stone-700 font-medium">{form.email}</span>
             </p>
-
             <div className="border-t border-stone-100 pt-6 mb-6">
               <p className="text-[13px] text-stone-600 leading-relaxed">
                 Click the link in that email to activate your account.
                 You&apos;ll be signed in automatically.
               </p>
             </div>
-
             <p className="text-xs text-stone-400 leading-relaxed">
               Don&apos;t see it? Check your spam or promotions folder.
             </p>
-
           </div>
 
           <div className="mt-8 text-center">
@@ -147,38 +216,7 @@ export default function SignupPage() {
             </Link>
           </div>
 
-          <div className="mt-12 text-center">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-4">Follow us</p>
-            <div className="flex items-center justify-center gap-6">
-              <a
-                href="https://www.instagram.com/yolotl_artemexicano"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors"
-              >
-                Instagram
-              </a>
-              <span className="text-stone-200">·</span>
-              <a
-                href="https://www.tiktok.com/@yolotlarte"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors"
-              >
-                TikTok
-              </a>
-              <span className="text-stone-200">·</span>
-              <a
-                href="https://www.etsy.com/shop/elzapatiadofolklor"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors"
-              >
-                Etsy
-              </a>
-            </div>
-          </div>
-
+          {socials}
         </div>
       </div>
     );
