@@ -335,7 +335,7 @@ export async function POST(request: Request) {
 
     // Upsert customer record — non-fatal if it fails
     try {
-      const customerEmail = (session.metadata?.email || session.customer_email || "").toLowerCase().trim();
+      const customerEmail = (session.metadata?.email || session.customer_email || session.customer_details?.email || "").toLowerCase().trim();
       if (customerEmail) {
         const { data: existing } = await supabase
           .from("customers")
