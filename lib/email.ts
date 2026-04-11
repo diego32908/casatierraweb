@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Lazy-initialized so the constructor never runs when RESEND_API_KEY is absent.
 // The constructor throws "Missing API key" on empty/undefined keys, which would
@@ -27,6 +28,43 @@ function getFrom(): string | null {
 
 const BRAND = "Tierra Oaxaca";
 
+// ── Social links ──────────────────────────────────────────────────────────────
+
+interface EmailSocials {
+  instagram: string;
+  tiktok: string;
+  etsy: string;
+}
+
+const FALLBACK_SOCIAL_URLS: EmailSocials = {
+  instagram: "https://www.instagram.com/yolotl_artemexicano?igsh=NTc4MTIwNjQ2YQ==",
+  tiktok:    "https://www.tiktok.com/@yolotlarte?_r=1&_t=ZT-953J02agR1q",
+  etsy:      "https://www.etsy.com/shop/elzapatiadofolklor/?etsrc=sdt",
+};
+
+async function getSocialLinksForEmail(): Promise<EmailSocials> {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "social_links")
+      .single();
+    const v = (data?.value ?? {}) as {
+      instagram_url?: string | null;
+      tiktok_url?:    string | null;
+      etsy_url?:      string | null;
+    };
+    return {
+      instagram: v.instagram_url || FALLBACK_SOCIAL_URLS.instagram,
+      tiktok:    v.tiktok_url    || FALLBACK_SOCIAL_URLS.tiktok,
+      etsy:      v.etsy_url      || FALLBACK_SOCIAL_URLS.etsy,
+    };
+  } catch {
+    return FALLBACK_SOCIAL_URLS;
+  }
+}
+
 function formatCents(cents: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
     cents / 100
@@ -35,7 +73,17 @@ function formatCents(cents: number): string {
 
 // ── Shared layout wrapper ────────────────────────────────────────────────────
 
-function emailLayout(body: string): string {
+function emailLayout(body: string, socials?: EmailSocials): string {
+  const socialsRow = socials
+    ? `<p style="margin:0 0 8px;font-size:11px;color:#a8a29e;font-family:Arial,sans-serif;">
+        <a href="${socials.instagram}" style="color:#a8a29e;text-decoration:none;">Instagram</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${socials.tiktok}" style="color:#a8a29e;text-decoration:none;">TikTok</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${socials.etsy}" style="color:#a8a29e;text-decoration:none;">Etsy</a>
+      </p>`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,9 +109,10 @@ function emailLayout(body: string): string {
         <!-- Footer -->
         <tr>
           <td style="padding:24px 40px 32px;border-top:1px solid #f0eeec;">
+            ${socialsRow}
             <p style="margin:0;font-size:11px;color:#a8a29e;font-family:Arial,sans-serif;
               line-height:1.6;">
-              ${BRAND} &nbsp;·&nbsp; 1600 E Holt Ave, Pomona, CA<br />
+              ${BRAND} &nbsp;·&nbsp; 1600 E Holt Ave Ste D24-D26, Pomona, CA 91767<br />
               You&rsquo;re receiving this because you interacted with our store.
             </p>
           </td>
@@ -77,7 +126,7 @@ function emailLayout(body: string): string {
 
 // ── Welcome / subscriber email ───────────────────────────────────────────────
 
-function welcomeEmailHtml(promoCode: string | null): string {
+function welcomeEmailHtml(promoCode: string | null, socials?: EmailSocials): string {
   const promoBlock = promoCode
     ? `<div style="margin:24px 0;padding:20px 24px;background:#fafaf9;border:1px dashed #d6d3d1;text-align:center;">
         <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;
@@ -102,7 +151,7 @@ function welcomeEmailHtml(promoCode: string | null): string {
       Each piece in our collection is crafted with care. We look forward to
       finding something you&rsquo;ll love.
     </p>
-  `);
+  `, socials);
 }
 
 // ── Order confirmation email ─────────────────────────────────────────────────
@@ -135,7 +184,7 @@ export interface OrderEmailData {
   pickupLocation: string | null;
 }
 
-function orderConfirmationHtml(order: OrderEmailData): string {
+function orderConfirmationHtml(order: OrderEmailData, socials?: EmailSocials): string {
   const orderRef = order.orderId.slice(0, 8).toUpperCase();
   const firstName = order.customerName.split(" ")[0] || null;
 
@@ -286,7 +335,7 @@ function orderConfirmationHtml(order: OrderEmailData): string {
     <p style="margin:24px 0 0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
       Questions? Reply to this email or visit our store.
     </p>
-  `);
+  `, socials);
 }
 
 // ── Admin order notification email ───────────────────────────────────────────
@@ -445,7 +494,7 @@ export interface ShippedEmailData {
   }>;
 }
 
-function shippedEmailHtml(data: ShippedEmailData): string {
+function shippedEmailHtml(data: ShippedEmailData, socials?: EmailSocials): string {
   const orderRef = data.orderId.slice(0, 8).toUpperCase();
   // NEXT_PUBLIC_SITE_URL is intentionally NOT used here — in Vercel environments it gets
   // set to a preview deployment URL which becomes a DEPLOYMENT_NOT_FOUND link in emails.
@@ -545,7 +594,7 @@ function shippedEmailHtml(data: ShippedEmailData): string {
     <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
       Questions? Reply to this email or visit our store.
     </p>
-  `);
+  `, socials);
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -572,12 +621,13 @@ export async function sendWelcomeEmail(
   const from = getFrom();
   if (!from) return;
 
+  const socials = await getSocialLinksForEmail();
   try {
     await resend.emails.send({
       from,
       to,
       subject: `Welcome to ${BRAND}`,
-      html: welcomeEmailHtml(promoCode),
+      html: welcomeEmailHtml(promoCode, socials),
     });
     console.log("[WELCOME EMAIL] sent OK → to:", to);
   } catch (err) {
@@ -708,12 +758,13 @@ export async function sendOrderConfirmationEmail(
     ? `Order #${orderRef} Confirmed — Thank you, ${firstName}.`
     : `Order #${orderRef} Confirmed — Thank you.`;
 
+  const socials = await getSocialLinksForEmail();
   try {
     await resend.emails.send({
       from,
       to: order.email,
       subject,
-      html: orderConfirmationHtml(order),
+      html: orderConfirmationHtml(order, socials),
     });
     console.log("[CUSTOMER ORDER EMAIL] sent OK → order:", orderRef, "to:", order.email);
   } catch (err) {
@@ -740,12 +791,13 @@ export async function sendShippedEmail(data: ShippedEmailData): Promise<void> {
   const from = getFrom();
   if (!from) return;
 
+  const socials = await getSocialLinksForEmail();
   try {
     await resend.emails.send({
       from,
       to: data.email,
       subject: `Your order has shipped — #${orderRef}`,
-      html: shippedEmailHtml(data),
+      html: shippedEmailHtml(data, socials),
     });
     console.log("[SHIPPED EMAIL] sent OK → order:", orderRef, "to:", data.email);
   } catch (err) {
@@ -770,7 +822,7 @@ export interface ReturnApprovedEmailData {
   returnAddress: string;
 }
 
-function returnApprovedHtml(data: ReturnApprovedEmailData): string {
+function returnApprovedHtml(data: ReturnApprovedEmailData, socials?: EmailSocials): string {
   const typeLabel = data.requestType === "exchange" ? "exchange" : "return";
   const TypeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
 
@@ -843,7 +895,7 @@ function returnApprovedHtml(data: ReturnApprovedEmailData): string {
       Questions? Reply to this email and we&rsquo;ll help you out.<br />
       Thanks for supporting a small business &mdash; it means more than you think.
     </p>
-  `);
+  `, socials);
 }
 
 export interface ReturnRejectedEmailData {
@@ -852,7 +904,7 @@ export interface ReturnRejectedEmailData {
   requestType: "return" | "exchange";
 }
 
-function returnRejectedHtml(data: ReturnRejectedEmailData): string {
+function returnRejectedHtml(data: ReturnRejectedEmailData, socials?: EmailSocials): string {
   const typeLabel = data.requestType === "exchange" ? "exchange" : "return";
   const TypeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
 
@@ -875,7 +927,7 @@ function returnRejectedHtml(data: ReturnRejectedEmailData): string {
     <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;font-family:Arial,sans-serif;line-height:1.6;">
       Thanks for supporting a small business &mdash; it means more than you think.
     </p>
-  `);
+  `, socials);
 }
 
 /**
@@ -891,13 +943,14 @@ export async function sendReturnApprovedEmail(
   if (!from) return;
 
   const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  const socials = await getSocialLinksForEmail();
   try {
     console.log("[RETURNS EMAIL] sendReturnApprovedEmail → to:", data.email, "order:", data.orderRef);
     await resend.emails.send({
       from,
       to:      data.email,
       subject: `[${BRAND}] Your ${typeLabel} Request — Approved (#${data.orderRef})`,
-      html:    returnApprovedHtml(data),
+      html:    returnApprovedHtml(data, socials),
     });
     console.log("[RETURNS EMAIL] sendReturnApprovedEmail → sent OK, order:", data.orderRef);
   } catch (err) {
@@ -918,13 +971,14 @@ export async function sendReturnRejectedEmail(
   if (!from) return;
 
   const typeLabel = data.requestType === "exchange" ? "Exchange" : "Return";
+  const socials = await getSocialLinksForEmail();
   try {
     console.log("[RETURNS EMAIL] sendReturnRejectedEmail → to:", data.email, "order:", data.orderRef);
     await resend.emails.send({
       from,
       to:      data.email,
       subject: `[${BRAND}] Your ${typeLabel} Request — Update (#${data.orderRef})`,
-      html:    returnRejectedHtml(data),
+      html:    returnRejectedHtml(data, socials),
     });
     console.log("[RETURNS EMAIL] sendReturnRejectedEmail → sent OK, order:", data.orderRef);
   } catch (err) {
@@ -1075,5 +1129,72 @@ export async function sendAdminOrderNotification(
     console.log("[ADMIN EMAIL] sendAdminOrderNotification → sent OK, order:", orderRef);
   } catch (err) {
     console.error("[ADMIN EMAIL] sendAdminOrderNotification → FAILED, order:", orderRef, err);
+  }
+}
+
+// ── Waitlist confirmation email ──────────────────────────────────────────────
+
+export interface WaitlistEmailData {
+  email: string;
+  productName: string | null;
+  variantLabel: string | null;
+}
+
+function waitlistConfirmationHtml(data: WaitlistEmailData, socials?: EmailSocials): string {
+  const itemLine = data.productName
+    ? `<p style="margin:0 0 20px;padding:14px 20px;background:#fafaf9;border:1px solid #f0eeec;
+        font-size:14px;color:#1c1917;font-family:Arial,sans-serif;">
+        ${data.productName}${data.variantLabel ? ` <span style="color:#a8a29e;">· ${data.variantLabel}</span>` : ""}
+      </p>`
+    : "";
+
+  return emailLayout(`
+    <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+      color:#a8a29e;font-family:Arial,sans-serif;">You&rsquo;re on the list</p>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:400;color:#1c1917;line-height:1.3;">
+      We&rsquo;ll let you know.
+    </h1>
+    <p style="margin:0 0 20px;font-size:14px;color:#78716c;line-height:1.7;font-family:Arial,sans-serif;">
+      You&rsquo;ve been added to the waitlist${data.productName ? " for" : "."}
+    </p>
+    ${itemLine}
+    <p style="margin:0 0 20px;font-size:14px;color:#57534e;line-height:1.7;font-family:Arial,sans-serif;">
+      When it&rsquo;s back in stock, you&rsquo;ll be among the first to hear about it.
+    </p>
+    <p style="margin:0;font-size:13px;color:#a8a29e;line-height:1.6;font-family:Arial,sans-serif;">
+      Questions? Reply to this email or visit our store.
+    </p>
+  `, socials);
+}
+
+/**
+ * Send a waitlist confirmation email to the subscriber.
+ * Skipped silently if RESEND_API_KEY is not configured.
+ * Never throws — always resolves.
+ */
+export async function sendWaitlistConfirmationEmail(data: WaitlistEmailData): Promise<void> {
+  if (!data.email) return;
+
+  const resend = getResend();
+  if (!resend) return;
+  const from = getFrom();
+  if (!from) return;
+
+  const socials = await getSocialLinksForEmail();
+  const subject = data.productName
+    ? `You're on the waitlist — ${data.productName}`
+    : `You're on the waitlist — ${BRAND}`;
+
+  try {
+    console.log("[WAITLIST EMAIL] sending → to:", data.email);
+    await resend.emails.send({
+      from,
+      to:   data.email,
+      subject,
+      html: waitlistConfirmationHtml(data, socials),
+    });
+    console.log("[WAITLIST EMAIL] sent OK → to:", data.email);
+  } catch (err) {
+    console.error("[WAITLIST EMAIL] failed → to:", data.email, err);
   }
 }

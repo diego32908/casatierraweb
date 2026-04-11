@@ -231,10 +231,19 @@ export function SizeChartSection({ product, variants }: Props) {
     [product, variants]
   );
 
-  if (!chartFamily && !hasFitInfo) return null;
+  if (!chartFamily && !hasFitInfo && !product.size_chart_override) return null;
 
-  const apparelChart = isApparel && chartFamily ? APPAREL_CHARTS[chartFamily as keyof typeof APPAREL_CHARTS] ?? null : null;
-  const shoeChart    = isShoes   && chartFamily ? SHOE_CHARTS[chartFamily as keyof typeof SHOE_CHARTS] ?? null : null;
+  // Use per-product override when present
+  const override = product.size_chart_override;
+  const overrideApparelChart: ApparelChartData | null =
+    override?.type === "apparel" ? { rows: override.rows, note: override.note } : null;
+  const overrideShoeChart: ShoeChartData | null =
+    override?.type === "shoes" ? { entries: override.entries } : null;
+
+  const apparelChart = overrideApparelChart
+    ?? (isApparel && chartFamily ? APPAREL_CHARTS[chartFamily as keyof typeof APPAREL_CHARTS] ?? null : null);
+  const shoeChart = overrideShoeChart
+    ?? (isShoes && chartFamily ? SHOE_CHARTS[chartFamily as keyof typeof SHOE_CHARTS] ?? null : null);
 
   return (
     <div className="space-y-7">
@@ -255,12 +264,18 @@ export function SizeChartSection({ product, variants }: Props) {
         </div>
       )}
 
-      {isApparel && apparelChart && (
-        <ApparelChart chartData={apparelChart} sizeColumns={apparelColumns} />
+      {(isApparel || overrideApparelChart) && apparelChart && (
+        <ApparelChart
+          chartData={apparelChart}
+          sizeColumns={overrideApparelChart ? Object.keys(overrideApparelChart.rows[0]?.valuesIn ?? {}) : apparelColumns}
+        />
       )}
 
-      {isShoes && shoeChart && (
-        <ShoeChart chartData={shoeChart} sizeColumns={shoeColumns} />
+      {(isShoes || overrideShoeChart) && shoeChart && (
+        <ShoeChart
+          chartData={shoeChart}
+          sizeColumns={overrideShoeChart ? shoeChart.entries.map((e) => e.us) : shoeColumns}
+        />
       )}
     </div>
   );

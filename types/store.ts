@@ -69,6 +69,15 @@ export interface Product {
   length_in: number | null;
   width_in: number | null;
   height_in: number | null;
+  // Per-product size chart override (replaces static chart when set)
+  size_chart_override: {
+    type: "apparel";
+    rows: Array<{ label: string; valuesIn: Record<string, number> }>;
+    note?: string;
+  } | {
+    type: "shoes";
+    entries: Array<{ us: string; eu: string; mx: string }>;
+  } | null;
   created_at: string;
   updated_at: string;
 }

@@ -188,7 +188,7 @@ export function SuccessClient({
             <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-1.5">
               Pick up at
             </p>
-            <p className="text-sm text-stone-600">1600 E Holt Ave, Pomona, CA 91767</p>
+            <p className="text-sm text-stone-600">1600 E Holt Ave Ste D24-D26, Pomona, CA 91767</p>
             <p className="mt-1 text-[11px] text-stone-400">
               We&apos;ll contact you when your order is ready.
             </p>

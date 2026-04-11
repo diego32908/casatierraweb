@@ -486,8 +486,8 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                   </p>
                   <p className="text-[13px] text-stone-700" style={{ lineHeight: 1.8 }}>
                     Tierra Oaxaca<br />
-                    1600 E Holt Ave<br />
-                    Pomona, CA
+                    1600 E Holt Ave Ste D24-D26<br />
+                    Pomona, CA 91767
                   </p>
                 </div>
               )}

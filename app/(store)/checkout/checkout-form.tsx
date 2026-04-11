@@ -276,7 +276,7 @@ export function CheckoutForm({
                   {
                     value: "pickup" as const,
                     label: "Local Pickup",
-                    description: "Free — pick up at 1600 E Holt Ave, Pomona, CA",
+                    description: "Free — pick up at 1600 E Holt Ave Ste D24-D26, Pomona, CA 91767",
                   },
                 ] as { value: "standard" | "priority" | "pickup"; label: string; description: string }[]).map(({ value, label, description }) => (
                   <label

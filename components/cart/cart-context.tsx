@@ -15,6 +15,7 @@ import {
   loadCart,
   saveCart,
 } from "@/lib/cart";
+import { trackCartInterest } from "@/app/actions/cart-interests";
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = useCallback(
-    (item: Omit<CartItem, "key" | "quantity">) => dispatch({ type: "ADD", item }),
+    (item: Omit<CartItem, "key" | "quantity">) => {
+      dispatch({ type: "ADD", item });
+      // Fire-and-forget demand tracking — failure must never affect cart UX
+      void trackCartInterest(
+        item.product_id,
+        item.variant_id ?? null,
+        item.product_name,
+        [item.selected_color_name, item.selected_size].filter(Boolean).join(" · ") || null
+      );
+    },
     []
   );
   const removeItem = useCallback(

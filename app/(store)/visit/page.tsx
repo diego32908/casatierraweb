@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Visit Us — Tierra Oaxaca" };
 
-const MAPS_QUERY = "1600+E+Holt+Ave+Ste+D24,+Pomona,+CA+91767";
+const MAPS_QUERY = "1600+E+Holt+Ave+Ste+D24-D26,+Pomona,+CA+91767";
 const MAPS_DIR   = `https://www.google.com/maps/dir/?api=1&destination=${MAPS_QUERY}`;
 
 const MAP_EMBED_SRC =

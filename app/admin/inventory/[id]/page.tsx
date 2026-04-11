@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/admin/product-form";
 import { VariantManager } from "@/components/admin/variant-manager";
 import { ImageManager } from "@/components/admin/image-manager";
+import { SizeChartOverrideEditor } from "@/components/admin/size-chart-override-editor";
 import type { ProductWithVariants } from "@/types/store";
 
 type Props = {
@@ -57,6 +58,13 @@ export default async function EditProductPage({ params }: Props) {
             <span className="font-medium text-stone-700">One size</span> or another mode in the form above.
           </p>
         </div>
+      )}
+
+      {hasSizing && (
+        <SizeChartOverrideEditor
+          productId={product.id}
+          currentOverride={product.size_chart_override ?? null}
+        />
       )}
     </section>
   );

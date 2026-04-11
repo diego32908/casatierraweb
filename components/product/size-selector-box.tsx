@@ -103,28 +103,38 @@ function getDistinctColors(variants: ProductVariant[]): ColorEntry[] {
 function SizeRowNotify({
   productId,
   variantId,
+  productName,
+  variantLabel,
 }: {
   productId: string;
   variantId: string | null;
+  productName?: string;
+  variantLabel?: string | null;
 }) {
-  const [state, setState] = useState<"idle" | "open" | "loading" | "done">("idle");
+  const [state, setState] = useState<"idle" | "open" | "loading" | "done" | "error">("idle");
   const [email, setEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || state === "loading") return;
     setState("loading");
-    try {
-      await joinWaitlist(productId, variantId, email);
+    const result = await joinWaitlist(productId, variantId, email, productName, variantLabel);
+    if (result.error) {
+      setState("error");
+    } else {
       setState("done");
-    } catch {
-      setState("idle");
     }
   }
 
   if (state === "done") {
     return (
       <span className="text-xs text-stone-400">We'll notify you</span>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <span className="text-xs text-red-500">Try again</span>
     );
   }
 
@@ -348,6 +358,10 @@ export function SizeSelectorBox({
                     <SizeRowNotify
                       productId={product.id}
                       variantId={entry.variant?.id ?? null}
+                      productName={product.name_en}
+                      variantLabel={
+                        [selectedColor, entry.label].filter(Boolean).join(" · ") || undefined
+                      }
                     />
                   ) : (
                     <span className="pt-0.5 text-sm text-stone-400">
