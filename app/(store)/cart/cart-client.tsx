@@ -32,6 +32,13 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
   // ── Heavy shipping detection ──────────────────────────────────────────────
   const hasHeavy = isHeavyCart(items);
   const heavyWeightOz = cartHeavyWeightOz(items);
+
+  // Reset priority → standard whenever the cart becomes heavy
+  useEffect(() => {
+    if (hasHeavy && shippingOption === "priority") {
+      setShippingOption("standard");
+    }
+  }, [hasHeavy, shippingOption]);
   const effectiveStandardCents = hasHeavy ? heavyTierCents(heavyWeightOz) : flatShippingCents;
   const effectivePriorityCents = hasHeavy ? heavyTierCents(heavyWeightOz) : priorityShippingCents;
 
@@ -273,19 +280,19 @@ export function CartClient({ flatShippingCents, priorityShippingCents, freeThres
                     desc: qualifiesForFreeShipping ? "Free" : formatPrice(effectiveStandardCents),
                     sub: "5–8 business days",
                   },
-                  {
+                  ...(!hasHeavy ? [{
                     value: "priority" as const,
                     label: "Priority",
                     desc: formatPrice(effectivePriorityCents),
                     sub: "2–3 business days",
-                  },
+                  }] : []),
                   {
                     value: "pickup" as const,
                     label: "Local Pickup",
                     desc: "Free",
                     sub: "Pomona, CA",
                   },
-                ]).map(({ value, label, desc, sub }) => (
+                ] as { value: "standard" | "priority" | "pickup"; label: string; desc: string; sub: string }[]).map(({ value, label, desc, sub }) => (
                   <label
                     key={value}
                     className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 hover:bg-stone-50"
