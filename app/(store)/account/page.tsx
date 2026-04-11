@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { getMyOrders } from "@/app/actions/account-orders";
 import { formatPrice } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
@@ -92,13 +93,10 @@ export default function AccountPage() {
         });
       }
 
-      // Load orders — RLS ensures only own orders (requires 20260331 migration)
-      const { data: ordersData } = await supabaseBrowser
-        .from("orders")
-        .select("id, created_at, status, total_cents, fulfillment, tracking_number, tracking_url, carrier, order_items(id, product_name_snapshot, variant_label_snapshot, quantity, line_total_cents)")
-        .order("created_at", { ascending: false });
-
-      setOrders((ordersData ?? []) as Order[]);
+      // Load orders via server action — auth verified server-side, explicit email
+      // filter applied at the application layer (not solely dependent on RLS).
+      const ordersData = await getMyOrders();
+      setOrders(ordersData as Order[]);
       setLoading(false);
     })();
   }, [router]);
