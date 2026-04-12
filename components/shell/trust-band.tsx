@@ -42,7 +42,7 @@ const items = [
 
 export function TrustBand() {
   return (
-    <section className="w-full bg-[#F6F3EF] py-12">
+    <section className="w-full bg-[#F6F3EF] mt-20 py-14">
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item) => (

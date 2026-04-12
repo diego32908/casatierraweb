@@ -107,6 +107,10 @@ export function FooterNewsletter() {
           </button>
         </div>
       </form>
+
+      <p className="mt-4 text-[11px] text-stone-400 leading-relaxed">
+        15% off your first order when you join.
+      </p>
     </div>
   );
 }
