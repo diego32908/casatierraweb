@@ -48,10 +48,26 @@ export function CheckoutForm({
   const [savedPromoCode, setSavedPromoCode] = useState<string | null>(null);
 
   useEffect(() => {
-    supabaseBrowser.auth.getUser().then(({ data: { user } }) => {
+    supabaseBrowser.auth.getUser().then(async ({ data: { user } }) => {
       if (user?.email) {
         setLockedEmail(user.email);
         setForm((prev) => ({ ...prev, email: user.email! }));
+
+        // Pre-fill name and phone from saved profile (non-blocking, best-effort)
+        const { data: profile } = await supabaseBrowser
+          .from("profiles")
+          .select("first_name, last_name, phone")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
+          setForm((prev) => ({
+            ...prev,
+            customerName: prev.customerName || fullName || prev.customerName,
+            phone:        prev.phone        || profile.phone || prev.phone,
+          }));
+        }
       }
     });
     // Read promo code saved during newsletter signup

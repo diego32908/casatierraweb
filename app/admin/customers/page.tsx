@@ -14,15 +14,36 @@ type Customer = {
   created_at: string;
 };
 
-async function getCustomers(): Promise<Customer[] | null> {
+async function getCustomers(): Promise<(Customer & { profile_name: string | null })[] | null> {
   try {
     const supabase = createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id, email, full_name, phone, birthday, first_order_at, first_order_completed, order_count, total_spent_cents, created_at")
-      .order("created_at", { ascending: false });
-    if (error) { console.error("[admin/customers]", error.message); return null; }
-    return (data ?? []) as Customer[];
+
+    const [customersResult, profilesResult] = await Promise.all([
+      supabase
+        .from("customers")
+        .select("id, email, full_name, phone, birthday, first_order_at, first_order_completed, order_count, total_spent_cents, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("email, first_name, last_name"),
+    ]);
+
+    if (customersResult.error) {
+      console.error("[admin/customers]", customersResult.error.message);
+      return null;
+    }
+
+    // Build email → profile name map for enrichment
+    const profileNameMap = new Map<string, string>();
+    for (const p of (profilesResult.data ?? [])) {
+      const name = [p.first_name, p.last_name].filter(Boolean).join(" ");
+      if (name) profileNameMap.set(p.email.toLowerCase(), name);
+    }
+
+    return (customersResult.data ?? []).map((c) => ({
+      ...(c as Customer),
+      profile_name: profileNameMap.get(c.email.toLowerCase()) ?? null,
+    }));
   } catch (e) {
     console.error("[admin/customers] query failed:", e);
     return null;
@@ -30,7 +51,7 @@ async function getCustomers(): Promise<Customer[] | null> {
 }
 
 export default async function AdminCustomersPage() {
-  const customers = await getCustomers();
+  const customers = await getCustomers() as (Customer & { profile_name: string | null })[] | null;
 
   if (customers === null) {
     return (
@@ -90,7 +111,12 @@ export default async function AdminCustomersPage() {
               {customers.map((c, i) => (
                 <tr key={c.id} className={i % 2 === 0 ? "bg-white" : "bg-stone-50"}>
                   <td className="px-4 py-3 text-stone-800 text-xs">{c.email}</td>
-                  <td className="px-4 py-3 text-stone-500 text-xs">{c.full_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-stone-500 text-xs">
+                    {c.profile_name ?? c.full_name ?? "—"}
+                    {c.profile_name && c.full_name && c.profile_name !== c.full_name && (
+                      <span className="ml-1 text-[10px] text-stone-300" title={`Checkout name: ${c.full_name}`}>*</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-stone-500 text-xs text-center">{c.order_count}</td>
                   <td className="px-4 py-3 text-stone-700 text-xs font-medium">
                     {c.total_spent_cents > 0 ? formatPrice(c.total_spent_cents) : "—"}

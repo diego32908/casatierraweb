@@ -8,6 +8,15 @@ import { getMyOrders } from "@/app/actions/account-orders";
 import { formatPrice } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
+type ShippingAddress = {
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+};
+
 type Profile = {
   id: string;
   email: string;
@@ -15,6 +24,8 @@ type Profile = {
   last_name: string | null;
   phone: string | null;
   birthday: string | null;
+  gender: string | null;
+  default_shipping_address: ShippingAddress | null;
 };
 
 type OrderItem = {
@@ -64,6 +75,13 @@ export default function AccountPage() {
     last_name: "",
     phone: "",
     birthday: "",
+    gender: "",
+    addr_line1: "",
+    addr_line2: "",
+    addr_city: "",
+    addr_state: "",
+    addr_postal_code: "",
+    addr_country: "",
   });
 
   useEffect(() => {
@@ -79,17 +97,26 @@ export default function AccountPage() {
       // Load profile
       const { data: profileData } = await supabaseBrowser
         .from("profiles")
-        .select("id, email, first_name, last_name, phone, birthday")
+        .select("id, email, first_name, last_name, phone, birthday, gender, default_shipping_address")
         .eq("id", session.user.id)
         .single();
 
       if (profileData) {
-        setProfile(profileData as Profile);
+        const p = profileData as Profile;
+        setProfile(p);
+        const addr = p.default_shipping_address;
         setEditForm({
-          first_name: profileData.first_name ?? "",
-          last_name:  profileData.last_name ?? "",
-          phone:      profileData.phone ?? "",
-          birthday:   profileData.birthday ?? "",
+          first_name:       p.first_name ?? "",
+          last_name:        p.last_name ?? "",
+          phone:            p.phone ?? "",
+          birthday:         p.birthday ?? "",
+          gender:           p.gender ?? "",
+          addr_line1:       addr?.line1 ?? "",
+          addr_line2:       addr?.line2 ?? "",
+          addr_city:        addr?.city ?? "",
+          addr_state:       addr?.state ?? "",
+          addr_postal_code: addr?.postal_code ?? "",
+          addr_country:     addr?.country ?? "",
         });
       }
 
@@ -107,13 +134,27 @@ export default function AccountPage() {
     setSaving(true);
     setSaveError(null);
 
+    const hasAddr = !!(editForm.addr_line1.trim() || editForm.addr_city.trim());
+    const shippingAddr: ShippingAddress | null = hasAddr
+      ? {
+          line1:       editForm.addr_line1.trim(),
+          line2:       editForm.addr_line2.trim(),
+          city:        editForm.addr_city.trim(),
+          state:       editForm.addr_state.trim(),
+          postal_code: editForm.addr_postal_code.trim(),
+          country:     editForm.addr_country.trim() || "US",
+        }
+      : null;
+
     const { error } = await supabaseBrowser.from("profiles").upsert({
-      id:         user.id,
-      email:      user.email ?? "",
-      first_name: editForm.first_name.trim() || null,
-      last_name:  editForm.last_name.trim()  || null,
-      phone:      editForm.phone.trim()      || null,
-      birthday:   editForm.birthday          || null,
+      id:                       user.id,
+      email:                    user.email ?? "",
+      first_name:               editForm.first_name.trim() || null,
+      last_name:                editForm.last_name.trim()  || null,
+      phone:                    editForm.phone.trim()      || null,
+      birthday:                 editForm.birthday          || null,
+      gender:                   editForm.gender            || null,
+      default_shipping_address: shippingAddr,
     });
 
     setSaving(false);
@@ -124,10 +165,12 @@ export default function AccountPage() {
 
     setProfile((prev) => prev ? {
       ...prev,
-      first_name: editForm.first_name.trim() || null,
-      last_name:  editForm.last_name.trim()  || null,
-      phone:      editForm.phone.trim()      || null,
-      birthday:   editForm.birthday          || null,
+      first_name:               editForm.first_name.trim() || null,
+      last_name:                editForm.last_name.trim()  || null,
+      phone:                    editForm.phone.trim()      || null,
+      birthday:                 editForm.birthday          || null,
+      gender:                   editForm.gender            || null,
+      default_shipping_address: shippingAddr,
     } : prev);
     setEditing(false);
   }
@@ -221,6 +264,55 @@ export default function AccountPage() {
                   onChange={(e) => setEditForm((p) => ({ ...p, birthday: e.target.value }))}
                 />
               </div>
+              <div>
+                <label className={labelCls}>Gender <span className="normal-case text-stone-400">(optional)</span></label>
+                <select
+                  className={inputCls}
+                  value={editForm.gender}
+                  onChange={(e) => setEditForm((p) => ({ ...p, gender: e.target.value }))}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="woman">Woman</option>
+                  <option value="man">Man</option>
+                  <option value="non_binary">Non-binary</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+
+              {/* Default shipping address */}
+              <div className="pt-2">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-3">Default shipping address <span className="normal-case text-stone-400">(optional)</span></p>
+                <div className="space-y-3">
+                  <div>
+                    <label className={labelCls}>Address line 1</label>
+                    <input className={inputCls} value={editForm.addr_line1} onChange={(e) => setEditForm((p) => ({ ...p, addr_line1: e.target.value }))} placeholder="123 Main St" autoComplete="address-line1" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Address line 2 <span className="normal-case text-stone-400">(apt, suite…)</span></label>
+                    <input className={inputCls} value={editForm.addr_line2} onChange={(e) => setEditForm((p) => ({ ...p, addr_line2: e.target.value }))} placeholder="" autoComplete="address-line2" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>City</label>
+                      <input className={inputCls} value={editForm.addr_city} onChange={(e) => setEditForm((p) => ({ ...p, addr_city: e.target.value }))} autoComplete="address-level2" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>State</label>
+                      <input className={inputCls} value={editForm.addr_state} onChange={(e) => setEditForm((p) => ({ ...p, addr_state: e.target.value }))} placeholder="CA" autoComplete="address-level1" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>ZIP / Postal code</label>
+                      <input className={inputCls} value={editForm.addr_postal_code} onChange={(e) => setEditForm((p) => ({ ...p, addr_postal_code: e.target.value }))} autoComplete="postal-code" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Country</label>
+                      <input className={inputCls} value={editForm.addr_country} onChange={(e) => setEditForm((p) => ({ ...p, addr_country: e.target.value }))} placeholder="US" autoComplete="country" />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {saveError && (
                 <p className="text-xs text-red-600">{saveError}</p>
@@ -251,6 +343,30 @@ export default function AccountPage() {
               <Row label="Birthday" value={profile?.birthday
                 ? new Date(profile.birthday + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })
                 : "—"} />
+              {profile?.gender && (
+                <Row label="Gender" value={
+                  profile.gender === "woman" ? "Woman"
+                  : profile.gender === "man" ? "Man"
+                  : profile.gender === "non_binary" ? "Non-binary"
+                  : "Prefer not to say"
+                } />
+              )}
+              {profile?.default_shipping_address?.line1 && (
+                <div className="flex gap-6">
+                  <span className="w-20 shrink-0 text-[11px] uppercase tracking-[0.14em] text-stone-400">Ship to</span>
+                  <span className="text-sm text-stone-700 leading-relaxed">
+                    {profile.default_shipping_address.line1}
+                    {profile.default_shipping_address.line2 ? `, ${profile.default_shipping_address.line2}` : ""}
+                    <br />
+                    {[
+                      profile.default_shipping_address.city,
+                      profile.default_shipping_address.state,
+                      profile.default_shipping_address.postal_code,
+                    ].filter(Boolean).join(", ")}
+                    {profile.default_shipping_address.country ? `, ${profile.default_shipping_address.country}` : ""}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </section>

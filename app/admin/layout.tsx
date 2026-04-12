@@ -12,6 +12,7 @@ const adminNav = [
   { href: "/admin/waitlist",       label: "Waitlist" },
   { href: "/admin/cart-interests", label: "Cart Demand" },
   { href: "/admin/customers",      label: "Customers" },
+  { href: "/admin/profiles",       label: "Profiles" },
   { href: "/admin/leads",       label: "Leads" },
   { href: "/admin/subscribers", label: "Subscribers" },
   { href: "/admin/content",     label: "Content" },
