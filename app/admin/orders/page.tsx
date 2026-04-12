@@ -20,6 +20,7 @@ type OrderItem = {
 type Order = {
   id: string;
   stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
   customer_name: string;
   email: string;
   phone: string | null;
@@ -377,6 +378,24 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   </p>
                 </div>
               </div>
+
+              {/* Stripe IDs — admin only */}
+              {(order.stripe_payment_intent_id || order.stripe_checkout_session_id) && (
+                <div className="border-t border-stone-100 pt-3 space-y-1">
+                  {order.stripe_payment_intent_id && (
+                    <p className="font-mono text-[10px] text-stone-300">
+                      <span className="text-stone-400 not-italic">PI</span>{" "}
+                      {order.stripe_payment_intent_id}
+                    </p>
+                  )}
+                  {order.stripe_checkout_session_id && (
+                    <p className="font-mono text-[10px] text-stone-300">
+                      <span className="text-stone-400 not-italic">CS</span>{" "}
+                      {order.stripe_checkout_session_id}
+                    </p>
+                  )}
+                </div>
+              )}
 
             </div>
           );
