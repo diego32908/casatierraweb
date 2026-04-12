@@ -159,15 +159,11 @@ export default function SignupPage() {
     setStage("verified");
   }
 
-  // Handle code input changes — strip non-digits, auto-submit at 6
+  // Handle code input changes — strip non-digits, no auto-submit
   function handleCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
     setCode(digits);
     setCodeError(null);
-
-    if (digits.length === 6) {
-      verifyCode(digits);
-    }
   }
 
   // ── Socials footer ───────────────────────────────────────────────────────
@@ -242,7 +238,7 @@ export default function SignupPage() {
                 <>
                   <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Your account has been created.</h1>
                   <p className="text-[13px] text-stone-400 leading-relaxed">
-                    Enter the 6-digit code we sent to{" "}
+                    Enter the confirmation code we emailed to{" "}
                     <span className="font-medium text-stone-700">{form.email}</span>{" "}
                     to activate it.
                   </p>
@@ -257,13 +253,13 @@ export default function SignupPage() {
                 ref={codeInputRef}
                 type="text"
                 inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
+                pattern="\d+"
+                maxLength={10}
                 autoComplete="one-time-code"
                 value={code}
                 onChange={handleCodeChange}
                 disabled={isVerifying}
-                placeholder="000000"
+                placeholder="––––––––"
                 className="w-full border border-stone-200 bg-white px-3 py-3 text-center font-mono text-xl tracking-[0.3em] text-stone-900 placeholder-stone-300 outline-none focus:border-stone-400 transition-colors disabled:opacity-50"
               />
             </div>
@@ -276,7 +272,7 @@ export default function SignupPage() {
             {/* Verify button (fallback for paste / slow typing) */}
             <button
               type="button"
-              onClick={() => code.length === 6 && verifyCode(code)}
+              onClick={() => code.length >= 6 && verifyCode(code)}
               disabled={code.length < 6 || isVerifying}
               className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
