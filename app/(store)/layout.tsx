@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/shell/site-header";
 import { SiteFooter } from "@/components/shell/site-footer";
+import { TrustBand } from "@/components/shell/trust-band";
 import { SignupPopup } from "@/components/popups/signup-popup";
 import { WishlistProvider } from "@/components/wishlist/wishlist-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -44,6 +45,7 @@ export default async function StoreLayout({
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex-1">{children}</main>
+      <TrustBand />
       <SiteFooter />
       {popupEnabled && (
         <SignupPopup
