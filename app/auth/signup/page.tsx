@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -40,23 +40,31 @@ export default function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
+
+  // Flow states
+  const [stage, setStage] = useState<"form" | "codeEntry" | "verified">("form");
   const [existingUnconfirmed, setExistingUnconfirmed] = useState(false);
-  const [verified, setVerified] = useState(false);
+
+  // Code entry
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const codeInputRef = useRef<HTMLInputElement>(null);
+
   const [isPending, startTransition] = useTransition();
 
+  // Auto-focus code input when codeEntry stage is shown
   useEffect(() => {
-    if (!confirmed) return;
-    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
-      (event) => { if (event === "SIGNED_IN") setVerified(true); }
-    );
-    return () => subscription.unsubscribe();
-  }, [confirmed]);
+    if (stage === "codeEntry") {
+      codeInputRef.current?.focus();
+    }
+  }, [stage]);
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  // ── Signup form submit ────────────────────────────────────────────────────
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -73,7 +81,7 @@ export default function SignupPage() {
         email: normalizedEmail,
         password: form.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          // emailRedirectTo omitted — OTP flow, no redirect link needed
           data: {
             first_name: form.firstName.trim(),
             last_name: form.lastName.trim(),
@@ -86,81 +94,80 @@ export default function SignupPage() {
         return;
       }
 
-      if (!data.session) {
-        if ((data.user?.identities?.length ?? 0) === 0) {
-          setExistingUnconfirmed(true);
+      // Already confirmed (e.g. email auto-confirmed in dev)
+      if (data.session) {
+        if (data.user) {
+          await supabaseBrowser.from("profiles").upsert({
+            id: data.user.id,
+            email: normalizedEmail,
+            first_name: form.firstName.trim() || null,
+            last_name: form.lastName.trim() || null,
+          });
         }
-        setConfirmed(true);
+        router.push("/account");
+        router.refresh();
         return;
       }
 
-      if (data.user) {
-        await supabaseBrowser.from("profiles").upsert({
-          id: data.user.id,
-          email: normalizedEmail,
-          first_name: form.firstName.trim() || null,
-          last_name: form.lastName.trim() || null,
-        });
+      // Existing unconfirmed account
+      if ((data.user?.identities?.length ?? 0) === 0) {
+        setExistingUnconfirmed(true);
       }
 
-      router.push("/account");
-      router.refresh();
+      setStage("codeEntry");
     });
   }
 
-  // ── Shared resend button ─────────────────────────────────────────────────
-  function ResendBlock() {
-    if (resendStatus === "sent") {
-      return (
-        <div className="space-y-1">
-          <p className="text-xs text-stone-600">
-            A new confirmation link has been sent.
-          </p>
-          <p className="text-xs text-stone-400">
-            Please use the newest email — previous links are no longer valid.
-          </p>
-          {countdown > 0 && (
-            <p className="text-[11px] text-stone-300 mt-1">
-              Send again in {countdown}s
-            </p>
-          )}
-        </div>
-      );
+  // ── Code verification ─────────────────────────────────────────────────────
+  async function verifyCode(value: string) {
+    if (isVerifying) return;
+    setCodeError(null);
+    setIsVerifying(true);
+
+    const normalizedEmail = form.email.trim().toLowerCase();
+
+    const { data, error: verifyError } = await supabaseBrowser.auth.verifyOtp({
+      email: normalizedEmail,
+      token: value.trim(),
+      type: "signup",
+    });
+
+    if (verifyError) {
+      setIsVerifying(false);
+      const msg = verifyError.message.toLowerCase();
+      if (msg.includes("rate") || msg.includes("attempts")) {
+        setCodeError("Too many attempts. Please request a new code and try again.");
+      } else {
+        setCodeError("That code didn't work. It may have expired — request a new one below.");
+      }
+      setCode("");
+      codeInputRef.current?.focus();
+      return;
     }
 
-    if (resendStatus === "error") {
-      return (
-        <div className="space-y-1">
-          <p className="text-xs text-red-500">
-            We couldn&apos;t send the email right now. Please wait a moment and try again.
-          </p>
-          <button
-            type="button"
-            onClick={() => resend(form.email)}
-            className="text-xs uppercase tracking-[0.14em] text-stone-500 hover:text-stone-700 transition-colors"
-          >
-            Try again
-          </button>
-        </div>
-      );
+    // Upsert profile on successful verification
+    if (data.user) {
+      await supabaseBrowser.from("profiles").upsert({
+        id: data.user.id,
+        email: normalizedEmail,
+        first_name: form.firstName.trim() || null,
+        last_name: form.lastName.trim() || null,
+      });
     }
 
-    return (
-      <button
-        type="button"
-        onClick={() => resend(form.email)}
-        disabled={!canResend || resendStatus === "sending"}
-        className="text-xs uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {resendStatus === "sending"
-          ? "Sending…"
-          : countdown > 0
-          ? `Send again in ${countdown}s`
-          : existingUnconfirmed
-          ? "Send confirmation link"
-          : "Send again"}
-      </button>
-    );
+    setIsVerifying(false);
+    setStage("verified");
+  }
+
+  // Handle code input changes — strip non-digits, auto-submit at 6
+  function handleCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setCode(digits);
+    setCodeError(null);
+
+    if (digits.length === 6) {
+      verifyCode(digits);
+    }
   }
 
   // ── Socials footer ───────────────────────────────────────────────────────
@@ -177,8 +184,8 @@ export default function SignupPage() {
     </div>
   );
 
-  // ── Verified (confirmed from other tab) ──────────────────────────────────
-  if (confirmed && verified) {
+  // ── Verified ──────────────────────────────────────────────────────────────
+  if (stage === "verified") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
         <div style={{ width: "100%", maxWidth: 420 }}>
@@ -191,7 +198,7 @@ export default function SignupPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Your account has been verified</h1>
+            <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Your account is verified.</h1>
             <p className="text-[13px] text-stone-400 mb-10 leading-relaxed">You&apos;re all set. Continue shopping or go to your account.</p>
             <div className="flex flex-col gap-3">
               <Link href="/shop" className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors text-center">Continue shopping</Link>
@@ -204,8 +211,8 @@ export default function SignupPage() {
     );
   }
 
-  // ── Check inbox / existing unconfirmed (waiting) ─────────────────────────
-  if (confirmed) {
+  // ── Code entry ────────────────────────────────────────────────────────────
+  if (stage === "codeEntry") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
         <div style={{ width: "100%", maxWidth: 420 }}>
@@ -214,44 +221,109 @@ export default function SignupPage() {
             <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">Tierra Oaxaca</Link>
           </div>
 
-          <div className="bg-white border border-stone-200 px-10 py-12 text-center">
-            <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-stone-100 bg-stone-50">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#78716c" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                <path d="M2 7l10 7 10-7"/>
-              </svg>
+          <div className="bg-white border border-stone-200 px-10 py-12">
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-stone-100 bg-stone-50">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#78716c" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M2 7l10 7 10-7"/>
+                </svg>
+              </div>
+
+              {existingUnconfirmed ? (
+                <>
+                  <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Confirm your email to continue</h1>
+                  <p className="text-[13px] text-stone-400 leading-relaxed">
+                    <span className="font-medium text-stone-700">{form.email}</span> has a pending account.
+                    Enter the confirmation code we just sent to activate it.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Your account has been created.</h1>
+                  <p className="text-[13px] text-stone-400 leading-relaxed">
+                    Enter the 6-digit code we sent to{" "}
+                    <span className="font-medium text-stone-700">{form.email}</span>{" "}
+                    to activate it.
+                  </p>
+                </>
+              )}
             </div>
 
-            {existingUnconfirmed ? (
-              <>
-                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Email already registered</h1>
-                <p className="text-[13px] text-stone-400 mb-6 leading-relaxed">
-                  <span className="text-stone-700 font-medium">{form.email}</span>{" "}
-                  has a pending account that hasn&apos;t been confirmed yet.
-                </p>
-                <p className="text-[13px] text-stone-600 mb-6 leading-relaxed border-t border-stone-100 pt-6">
-                  We can send you a new confirmation link, or you can sign in if you&apos;ve already confirmed.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Check your inbox</h1>
-                <p className="text-[13px] text-stone-400 mb-6 leading-relaxed">
-                  We sent a confirmation link to<br />
-                  <span className="text-stone-700 font-medium">{form.email}</span>
-                </p>
-                <div className="border-t border-stone-100 pt-6 mb-6">
-                  <p className="text-[13px] text-stone-600 leading-relaxed">
-                    Click the link in that email to activate your account. You&apos;ll be signed in automatically.
-                  </p>
-                </div>
-                <p className="text-xs text-stone-400 leading-relaxed mb-4">
-                  Don&apos;t see it? Check your spam or promotions folder.
-                </p>
-              </>
+            {/* Code input */}
+            <div className="mb-4">
+              <label className={labelCls}>Confirmation code</label>
+              <input
+                ref={codeInputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                autoComplete="one-time-code"
+                value={code}
+                onChange={handleCodeChange}
+                disabled={isVerifying}
+                placeholder="000000"
+                className="w-full border border-stone-200 bg-white px-3 py-3 text-center font-mono text-xl tracking-[0.3em] text-stone-900 placeholder-stone-300 outline-none focus:border-stone-400 transition-colors disabled:opacity-50"
+              />
+            </div>
+
+            {/* Error */}
+            {codeError && (
+              <p className="mb-4 text-xs text-red-500 text-center leading-relaxed">{codeError}</p>
             )}
 
-            <ResendBlock />
+            {/* Verify button (fallback for paste / slow typing) */}
+            <button
+              type="button"
+              onClick={() => code.length === 6 && verifyCode(code)}
+              disabled={code.length < 6 || isVerifying}
+              className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isVerifying ? "Verifying…" : "Confirm account"}
+            </button>
+
+            {/* Spam note */}
+            <p className="mt-5 text-center text-[11px] text-stone-400 leading-relaxed">
+              Don&apos;t see the email? Check your spam or promotions folder.
+            </p>
+
+            {/* Resend */}
+            <div className="mt-4 text-center">
+              {resendStatus === "sent" ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-stone-600">A new code has been sent.</p>
+                  <p className="text-[11px] text-stone-400">Previous codes are no longer valid.</p>
+                  {countdown > 0 && (
+                    <p className="text-[11px] text-stone-300 mt-1">Send again in {countdown}s</p>
+                  )}
+                </div>
+              ) : resendStatus === "error" ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-red-500">Couldn&apos;t send right now. Try again in a moment.</p>
+                  <button
+                    type="button"
+                    onClick={() => resend(form.email)}
+                    className="text-xs uppercase tracking-[0.14em] text-stone-500 hover:text-stone-700 transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => resend(form.email)}
+                  disabled={!canResend || resendStatus === "sending"}
+                  className="text-xs uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {resendStatus === "sending"
+                    ? "Sending…"
+                    : countdown > 0
+                    ? `Send again in ${countdown}s`
+                    : "Send a new code"}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mt-8 text-center">
