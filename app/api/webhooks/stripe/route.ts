@@ -258,7 +258,14 @@ export async function POST(request: Request) {
         // customer_details.email is what Stripe collected in the hosted UI.
         // customer_email is only set when we passed it at session creation (pre-fill flow).
         // metadata.email mirrors body.email but defaults to "" — always falsy for direct-cart flow.
-        email: session.metadata?.email || session.customer_email || session.customer_details?.email || "",
+        // Always normalize to lowercase+trim so getMyOrders (.eq("email", user.email.toLowerCase()))
+        // always finds the order regardless of how Stripe returns the email.
+        email: (
+          session.metadata?.email ||
+          session.customer_email ||
+          session.customer_details?.email ||
+          ""
+        ).toLowerCase().trim(),
         // metadata.phone is empty in direct-cart flow; fall back to Stripe-collected phone.
         phone:
           session.metadata?.phone ||

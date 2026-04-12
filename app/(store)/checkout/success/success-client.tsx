@@ -103,9 +103,12 @@ export function SuccessClient({
         </h1>
         <p className="text-sm text-stone-500 leading-relaxed">
           {email
-            ? <>A confirmation is on its way. We&rsquo;ll send an email to{" "}<span className="font-medium text-stone-700">{email}</span>{" "}with your order details shortly.</>
-            : "A confirmation is on its way. We\u2019ll send your order details shortly."
+            ? <>A confirmation is on its way to{" "}<span className="font-medium text-stone-700">{email}</span>.</>
+            : "A confirmation email is on its way."
           }
+        </p>
+        <p className="mt-2 text-xs text-stone-400">
+          If you don&apos;t see it in a few minutes, check your spam or promotions folder.
         </p>
       </div>
 
