@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useResendConfirmation } from "@/app/auth/use-resend-confirmation";
 
 const inputCls =
   "w-full border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors";
@@ -27,10 +28,9 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-type ResendStatus = "idle" | "sending" | "sent" | "error";
-
 export default function SignupPage() {
   const router = useRouter();
+  const { status: resendStatus, countdown, canResend, resend } = useResendConfirmation();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -40,43 +40,21 @@ export default function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // confirmed = "check inbox" screen is showing
   const [confirmed, setConfirmed] = useState(false);
-  // existingUnconfirmed = this email already has a pending-confirmation account
   const [existingUnconfirmed, setExistingUnconfirmed] = useState(false);
-  // verified = confirmed from the other tab via onAuthStateChange
   const [verified, setVerified] = useState(false);
-  const [resendStatus, setResendStatus] = useState<ResendStatus>("idle");
   const [isPending, startTransition] = useTransition();
 
-  // When the user confirms in the other tab, Supabase fires SIGNED_IN here via
-  // shared browser storage. Switch to the verified success state.
   useEffect(() => {
     if (!confirmed) return;
     const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
-      (event) => {
-        if (event === "SIGNED_IN") {
-          setVerified(true);
-        }
-      }
+      (event) => { if (event === "SIGNED_IN") setVerified(true); }
     );
     return () => subscription.unsubscribe();
   }, [confirmed]);
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  async function handleResend() {
-    setResendStatus("sending");
-    const { error: resendError } = await supabaseBrowser.auth.resend({
-      type: "signup",
-      email: form.email.trim().toLowerCase(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setResendStatus(resendError ? "error" : "sent");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -109,9 +87,6 @@ export default function SignupPage() {
       }
 
       if (!data.session) {
-        // When an email already exists but is unconfirmed, Supabase returns the
-        // user with an empty identities array rather than surfacing an error.
-        // Detect this and offer a targeted resend path instead of a generic wait.
         if ((data.user?.identities?.length ?? 0) === 0) {
           setExistingUnconfirmed(true);
         }
@@ -119,7 +94,6 @@ export default function SignupPage() {
         return;
       }
 
-      // Email confirmation is disabled — create profile and go to account
       if (data.user) {
         await supabaseBrowser.from("profiles").upsert({
           id: data.user.id,
@@ -134,7 +108,62 @@ export default function SignupPage() {
     });
   }
 
-  // ── Socials footer (shared across inbox states) ───────────────────────────
+  // ── Shared resend button ─────────────────────────────────────────────────
+  function ResendBlock() {
+    if (resendStatus === "sent") {
+      return (
+        <div className="space-y-1">
+          <p className="text-xs text-stone-600">
+            A new confirmation link has been sent.
+          </p>
+          <p className="text-xs text-stone-400">
+            Please use the newest email — previous links are no longer valid.
+          </p>
+          {countdown > 0 && (
+            <p className="text-[11px] text-stone-300 mt-1">
+              Send again in {countdown}s
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (resendStatus === "error") {
+      return (
+        <div className="space-y-1">
+          <p className="text-xs text-red-500">
+            We couldn&apos;t send the email right now. Please wait a moment and try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => resend(form.email)}
+            className="text-xs uppercase tracking-[0.14em] text-stone-500 hover:text-stone-700 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => resend(form.email)}
+        disabled={!canResend || resendStatus === "sending"}
+        className="text-xs uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {resendStatus === "sending"
+          ? "Sending…"
+          : countdown > 0
+          ? `Send again in ${countdown}s`
+          : existingUnconfirmed
+          ? "Send confirmation link"
+          : "Send again"}
+      </button>
+    );
+  }
+
+  // ── Socials footer ───────────────────────────────────────────────────────
   const socials = (
     <div className="mt-12 text-center">
       <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-4">Follow us</p>
@@ -154,9 +183,7 @@ export default function SignupPage() {
       <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
         <div style={{ width: "100%", maxWidth: 420 }}>
           <div className="text-center mb-12">
-            <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">
-              Tierra Oaxaca
-            </Link>
+            <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">Tierra Oaxaca</Link>
           </div>
           <div className="bg-white border border-stone-200 px-10 py-12 text-center">
             <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full border border-stone-100 bg-stone-50">
@@ -164,19 +191,11 @@ export default function SignupPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">
-              Your account has been verified
-            </h1>
-            <p className="text-[13px] text-stone-400 mb-10 leading-relaxed">
-              You&apos;re all set. Continue shopping or go to your account.
-            </p>
+            <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Your account has been verified</h1>
+            <p className="text-[13px] text-stone-400 mb-10 leading-relaxed">You&apos;re all set. Continue shopping or go to your account.</p>
             <div className="flex flex-col gap-3">
-              <Link href="/shop" className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors text-center">
-                Continue shopping
-              </Link>
-              <Link href="/account" className="w-full rounded-full border border-stone-200 py-3 text-xs font-medium tracking-[0.12em] uppercase text-stone-700 hover:border-stone-400 transition-colors text-center">
-                Go to account
-              </Link>
+              <Link href="/shop" className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors text-center">Continue shopping</Link>
+              <Link href="/account" className="w-full rounded-full border border-stone-200 py-3 text-xs font-medium tracking-[0.12em] uppercase text-stone-700 hover:border-stone-400 transition-colors text-center">Go to account</Link>
             </div>
           </div>
           {socials}
@@ -185,16 +204,14 @@ export default function SignupPage() {
     );
   }
 
-  // ── Check inbox (waiting for confirmation) ───────────────────────────────
+  // ── Check inbox / existing unconfirmed (waiting) ─────────────────────────
   if (confirmed) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 bg-stone-50">
         <div style={{ width: "100%", maxWidth: 420 }}>
 
           <div className="text-center mb-12">
-            <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">
-              Tierra Oaxaca
-            </Link>
+            <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">Tierra Oaxaca</Link>
           </div>
 
           <div className="bg-white border border-stone-200 px-10 py-12 text-center">
@@ -207,32 +224,25 @@ export default function SignupPage() {
 
             {existingUnconfirmed ? (
               <>
-                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">
-                  Email already registered
-                </h1>
-                <p className="text-[13px] text-stone-400 mb-8 leading-relaxed">
+                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Email already registered</h1>
+                <p className="text-[13px] text-stone-400 mb-6 leading-relaxed">
                   <span className="text-stone-700 font-medium">{form.email}</span>{" "}
                   has a pending account that hasn&apos;t been confirmed yet.
                 </p>
-                <div className="border-t border-stone-100 pt-6 mb-6">
-                  <p className="text-[13px] text-stone-600 leading-relaxed">
-                    We can send you a new confirmation link, or you can sign in if you&apos;ve already confirmed.
-                  </p>
-                </div>
+                <p className="text-[13px] text-stone-600 mb-6 leading-relaxed border-t border-stone-100 pt-6">
+                  We can send you a new confirmation link, or you can sign in if you&apos;ve already confirmed.
+                </p>
               </>
             ) : (
               <>
-                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">
-                  Check your inbox
-                </h1>
-                <p className="text-[13px] text-stone-400 mb-8 leading-relaxed">
+                <h1 className="text-xl font-medium text-stone-900 mb-2 tracking-[-0.01em]">Check your inbox</h1>
+                <p className="text-[13px] text-stone-400 mb-6 leading-relaxed">
                   We sent a confirmation link to<br />
                   <span className="text-stone-700 font-medium">{form.email}</span>
                 </p>
                 <div className="border-t border-stone-100 pt-6 mb-6">
                   <p className="text-[13px] text-stone-600 leading-relaxed">
-                    Click the link in that email to activate your account.
-                    You&apos;ll be signed in automatically.
+                    Click the link in that email to activate your account. You&apos;ll be signed in automatically.
                   </p>
                 </div>
                 <p className="text-xs text-stone-400 leading-relaxed mb-4">
@@ -241,34 +251,11 @@ export default function SignupPage() {
               </>
             )}
 
-            {/* Resend */}
-            <div className="mt-2">
-              {resendStatus === "sent" ? (
-                <p className="text-xs text-stone-500">
-                  A new confirmation link has been sent.
-                </p>
-              ) : resendStatus === "error" ? (
-                <p className="text-xs text-red-500">
-                  Couldn&apos;t send — please try again in a moment.
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={resendStatus === "sending"}
-                  className="text-xs uppercase tracking-[0.14em] text-stone-400 hover:text-stone-700 transition-colors disabled:opacity-50"
-                >
-                  {resendStatus === "sending" ? "Sending…" : existingUnconfirmed ? "Send confirmation link" : "Send again"}
-                </button>
-              )}
-            </div>
+            <ResendBlock />
           </div>
 
-          <div className="mt-8 text-center flex items-center justify-center gap-6">
-            <Link
-              href="/auth/login"
-              className="text-[11px] uppercase tracking-[0.18em] text-stone-400 hover:text-stone-700 transition-colors"
-            >
+          <div className="mt-8 text-center">
+            <Link href="/auth/login" className="text-[11px] uppercase tracking-[0.18em] text-stone-400 hover:text-stone-700 transition-colors">
               Sign in instead
             </Link>
           </div>
@@ -285,88 +272,45 @@ export default function SignupPage() {
       <div style={{ width: "100%", maxWidth: 400 }}>
 
         <div className="mb-10 text-center">
-          <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">
-            Tierra Oaxaca
-          </Link>
+          <Link href="/" className="text-base font-medium tracking-[0.08em] text-stone-900 hover:text-stone-600 transition-colors">Tierra Oaxaca</Link>
           <p className="mt-6 text-xl font-medium text-stone-900">Create account</p>
         </div>
 
-        {error && (
-          <p className="mb-5 text-xs text-red-600 text-center">{error}</p>
-        )}
+        {error && <p className="mb-5 text-xs text-red-600 text-center">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>First name</label>
-              <input
-                className={inputCls}
-                value={form.firstName}
-                onChange={(e) => set("firstName", e.target.value)}
-                placeholder="Jane"
-                autoComplete="given-name"
-              />
+              <input className={inputCls} value={form.firstName} onChange={(e) => set("firstName", e.target.value)} placeholder="Jane" autoComplete="given-name" />
             </div>
             <div>
               <label className={labelCls}>Last name</label>
-              <input
-                className={inputCls}
-                value={form.lastName}
-                onChange={(e) => set("lastName", e.target.value)}
-                placeholder="Doe"
-                autoComplete="family-name"
-              />
+              <input className={inputCls} value={form.lastName} onChange={(e) => set("lastName", e.target.value)} placeholder="Doe" autoComplete="family-name" />
             </div>
           </div>
           <div>
             <label className={labelCls}>Email</label>
-            <input
-              required
-              type="email"
-              className={inputCls}
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
-              placeholder="your@email.com"
-              autoComplete="email"
-            />
+            <input required type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" autoComplete="email" />
           </div>
           <div>
             <label className={labelCls}>Password</label>
             <div className="relative">
-              <input
-                required
-                type={showPassword ? "text" : "password"}
-                className={`${inputCls} pr-10`}
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                placeholder="At least 6 characters"
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
+              <input required type={showPassword ? "text" : "password"} className={`${inputCls} pr-10`} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="At least 6 characters" autoComplete="new-password" />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors" aria-label={showPassword ? "Hide password" : "Show password"}>
                 <EyeIcon open={showPassword} />
               </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="mt-2 w-full rounded-full bg-stone-900 py-3.5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-stone-700 disabled:opacity-60"
-          >
+          <button type="submit" disabled={isPending} className="mt-2 w-full rounded-full bg-stone-900 py-3.5 text-sm font-medium tracking-wide text-white transition-colors hover:bg-stone-700 disabled:opacity-60">
             {isPending ? "Creating account…" : "Create account"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-xs text-stone-400">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-stone-700 underline underline-offset-4 hover:text-stone-900">
-            Sign in
-          </Link>
+          <Link href="/auth/login" className="text-stone-700 underline underline-offset-4 hover:text-stone-900">Sign in</Link>
         </p>
 
       </div>

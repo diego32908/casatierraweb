@@ -1,31 +1,17 @@
 "use client";
 
-// Landing target for Supabase email confirmation links.
-//
-// Why client-side (not a Route Handler):
-//   @supabase/ssr uses PKCE by default. signUp() stores a code_verifier in
-//   localStorage of the originating tab. The confirmation link opens in a new
-//   tab — exchangeCodeForSession() must run in the browser so the client can
-//   read that code_verifier. A server Route Handler has no access to it and
-//   the exchange always fails.
-//
-// URL formats handled:
-//   ?code=xxx          — PKCE exchange (default Supabase flow)
-//   ?token_hash=xxx    — OTP direct verification
-//   #access_token=xxx  — Implicit flow (legacy)
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
-
-type ResendStatus = "idle" | "sending" | "sent" | "error";
+import { useResendConfirmation } from "@/app/auth/use-resend-confirmation";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const { status: resendStatus, countdown, canResend, resend } = useResendConfirmation();
+
   const [failed, setFailed] = useState(false);
   const [resendEmail, setResendEmail] = useState("");
-  const [resendStatus, setResendStatus] = useState<ResendStatus>("idle");
 
   useEffect(() => {
     async function run() {
@@ -59,7 +45,6 @@ export default function AuthCallbackPage() {
           if (!session) throw new Error("No auth params and no existing session");
         }
 
-        // Session established — upsert profile and redirect
         const { data: { user } } = await supabaseBrowser.auth.getUser();
         if (user?.email) {
           const meta = user.user_metadata ?? {};
@@ -74,8 +59,6 @@ export default function AuthCallbackPage() {
           );
         }
 
-        // Writing session to localStorage also fires onAuthStateChange in the
-        // original signup tab, switching it to the verified state automatically.
         router.replace("/auth/confirmed");
       } catch (err) {
         console.error("[auth/callback] error:", err);
@@ -86,22 +69,7 @@ export default function AuthCallbackPage() {
     run();
   }, [router]);
 
-  async function handleResend(e: React.FormEvent) {
-    e.preventDefault();
-    const email = resendEmail.trim().toLowerCase();
-    if (!email) return;
-    setResendStatus("sending");
-    const { error } = await supabaseBrowser.auth.resend({
-      type: "signup",
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setResendStatus(error ? "error" : "sent");
-  }
-
-  // ── Loading state ────────────────────────────────────────────────────────
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (!failed) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -135,21 +103,32 @@ export default function AuthCallbackPage() {
             This link has expired
           </h1>
           <p className="text-[13px] text-stone-400 mb-8 leading-relaxed">
-            Confirmation links are only valid for a short time.<br />
+            Confirmation links are only valid for a short time.
             Enter your email and we&apos;ll send you a fresh one.
           </p>
 
           {resendStatus === "sent" ? (
-            <div className="border-t border-stone-100 pt-6">
+            <div className="border-t border-stone-100 pt-6 space-y-2">
               <p className="text-[13px] text-stone-600">
                 A new confirmation link has been sent.
               </p>
-              <p className="text-xs text-stone-400 mt-2">
-                Check your inbox — and your spam or promotions folder.
+              <p className="text-xs text-stone-400">
+                Please use the newest email — previous links are no longer valid.
               </p>
+              <p className="text-xs text-stone-400">
+                Check your inbox and your spam or promotions folder.
+              </p>
+              {countdown > 0 && (
+                <p className="text-[11px] text-stone-300 pt-1">
+                  Send again in {countdown}s
+                </p>
+              )}
             </div>
           ) : (
-            <form onSubmit={handleResend} className="space-y-3 text-left">
+            <form
+              onSubmit={(e) => { e.preventDefault(); resend(resendEmail); }}
+              className="space-y-3 text-left"
+            >
               <div>
                 <label className="block text-[11px] uppercase tracking-[0.16em] text-stone-500 mb-1.5">
                   Email
@@ -164,17 +143,23 @@ export default function AuthCallbackPage() {
                   className="w-full border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 outline-none focus:border-stone-400 transition-colors"
                 />
               </div>
+
               {resendStatus === "error" && (
-                <p className="text-xs text-red-500">
-                  Couldn&apos;t send — please try again in a moment.
+                <p className="text-xs text-red-500 text-center">
+                  We couldn&apos;t send the email right now. Please wait a moment and try again.
                 </p>
               )}
+
               <button
                 type="submit"
-                disabled={resendStatus === "sending"}
-                className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors disabled:opacity-60"
+                disabled={!canResend || resendStatus === "sending"}
+                className="w-full rounded-full bg-stone-900 py-3 text-xs font-medium tracking-[0.12em] uppercase text-white hover:bg-stone-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {resendStatus === "sending" ? "Sending…" : "Send new confirmation link"}
+                {resendStatus === "sending"
+                  ? "Sending…"
+                  : countdown > 0
+                  ? `Send again in ${countdown}s`
+                  : "Send new confirmation link"}
               </button>
             </form>
           )}
@@ -182,10 +167,7 @@ export default function AuthCallbackPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <Link
-            href="/auth/login"
-            className="text-[11px] uppercase tracking-[0.18em] text-stone-400 hover:text-stone-700 transition-colors"
-          >
+          <Link href="/auth/login" className="text-[11px] uppercase tracking-[0.18em] text-stone-400 hover:text-stone-700 transition-colors">
             Sign in instead
           </Link>
         </div>
