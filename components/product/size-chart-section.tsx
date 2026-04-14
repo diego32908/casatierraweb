@@ -92,7 +92,12 @@ function ApparelChart({
 }) {
   const [unit, setUnit] = useState<"in" | "cm">("in");
 
-  if (sizeColumns.length === 0) return null;
+  if (sizeColumns.length === 0) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[SizeChartSection] ApparelChart: no columns to render — check override rows[0].valuesIn", { chartData, sizeColumns });
+    }
+    return null;
+  }
 
   return (
     <div className="space-y-4">
@@ -173,7 +178,12 @@ function ShoeChart({
   // Show only the rows for sizes this product carries
   const rows = chartData.entries.filter((e) => sizeColumns.includes(e.us));
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[SizeChartSection] ShoeChart: no matching entries — check override entries vs sizeColumns", { chartData, sizeColumns });
+    }
+    return null;
+  }
 
   return (
     <div className="overflow-x-auto">

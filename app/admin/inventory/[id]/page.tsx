@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/admin/product-form";
 import { VariantManager } from "@/components/admin/variant-manager";
 import { ImageManager } from "@/components/admin/image-manager";
-import { SizeChartOverrideEditor } from "@/components/admin/size-chart-override-editor";
+import { CustomSizeChartEditor } from "@/components/admin/custom-size-chart-editor";
 import type { ProductWithVariants } from "@/types/store";
 
 type Props = {
@@ -61,8 +61,9 @@ export default async function EditProductPage({ params }: Props) {
       )}
 
       {hasSizing && (
-        <SizeChartOverrideEditor
+        <CustomSizeChartEditor
           productId={product.id}
+          sizeMode={product.size_mode}
           currentOverride={product.size_chart_override ?? null}
         />
       )}
