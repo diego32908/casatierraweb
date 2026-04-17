@@ -4,13 +4,12 @@ import { FooterNewsletter } from "./footer-newsletter";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const SUPPORT_LINKS = [
-  { label: "Contact Us",         href: "/contact" },
-  { label: "Custom Requests",    href: "/contact?type=custom" },
-  { label: "Bulk Orders",        href: "/contact?type=bulk" },
-  { label: "Shipping & Returns", href: "/shipping" },
-  { label: "Track Order",        href: "/track-order" },
+  { label: "Contact Us",          href: "/contact" },
+  { label: "Custom Requests",     href: "/contact?type=custom" },
+  { label: "Bulk Orders",         href: "/contact?type=bulk" },
+  { label: "Track Order",         href: "/track-order" },
   { label: "Returns & Exchanges", href: "/returns" },
-  { label: "Visit Us",           href: "/visit" },
+  { label: "Visit Us",            href: "/visit" },
 ];
 
 
@@ -65,8 +64,8 @@ export async function SiteFooter() {
               className="text-stone-400 leading-[1.9]"
               style={{ fontSize: 13, marginTop: 20 }}
             >
-              Craft rooted in Oaxaca.<br />
-              Made by artisans, not factories.
+              Crafted by hand in Mexico.<br />
+              Made by Indigenous communities, not factories.
             </p>
 
             <div style={{ marginTop: 40 }} className="space-y-3">
