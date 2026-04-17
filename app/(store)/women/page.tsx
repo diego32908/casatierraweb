@@ -11,7 +11,7 @@ export default async function WomenPage() {
     .from("products")
     .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
     .eq("is_active", true)
-    .eq("category", "women")
+    .in("category", ["women", "dress", "skirt"])
     .order("sort_order", { ascending: true });
 
   return (

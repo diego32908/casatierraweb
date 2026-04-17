@@ -6,13 +6,15 @@ import type { Product, Audience, FitStyle } from "@/types/store";
 import { createProduct, updateProduct } from "@/app/actions/products";
 
 const CATEGORIES: { value: string; label: string }[] = [
-  { value: "women",     label: "Women  →  Women's nav" },
-  { value: "men",       label: "Men  →  Men's nav" },
-  { value: "kids",      label: "Kids & Toddlers  →  Kids nav" },
+  { value: "women",       label: "Women  →  Women's nav" },
+  { value: "dress",       label: "Dress  →  Women's nav" },
+  { value: "skirt",       label: "Skirt  →  Women's nav" },
+  { value: "men",         label: "Men  →  Men's nav" },
+  { value: "kids",        label: "Kids & Toddlers  →  Kids nav" },
   { value: "accessories", label: "Accessories  →  Accessories nav" },
-  { value: "shoes",     label: "Shoes  →  Accessories nav" },
-  { value: "home_decor", label: "Home & Décor  →  Home nav" },
-  { value: "pottery",   label: "Pottery / Ceramics  →  Home nav" },
+  { value: "shoes",       label: "Shoes  →  Accessories nav" },
+  { value: "home_decor",  label: "Home & Décor  →  Home nav" },
+  { value: "pottery",     label: "Pottery / Ceramics  →  Home nav" },
 ];
 
 
@@ -255,6 +257,14 @@ export function ProductForm({ product }: Props) {
               defaultChecked={product?.featured ?? false}
             />
             Featured
+          </label>
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
+            <input
+              type="checkbox"
+              name="show_measurements"
+              defaultChecked={product?.show_measurements ?? true}
+            />
+            Show measurements
           </label>
         </div>
       </div>

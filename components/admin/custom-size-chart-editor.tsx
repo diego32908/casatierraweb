@@ -42,6 +42,8 @@ interface Props {
   productId: string;
   /** Product's size_mode — used to determine apparel vs shoe editor and default sizes. */
   sizeMode: string;
+  /** Product's category — used to pre-populate measurement rows for dress/skirt. */
+  category: string;
   currentOverride: object | null;
 }
 
@@ -61,7 +63,13 @@ function defaultSizes(sizeMode: string) {
   return DEFAULT_APPAREL_SIZES; // alpha, numeric, etc.
 }
 
-function initApparelState(override: object | null, sizeMode: string): ApparelState {
+function categoryDefaultRows(category: string): string[] {
+  if (category === "dress") return ["Bust", "Waist", "Hip", "Length"];
+  if (category === "skirt") return ["Waist", "Hip", "Length"];
+  return DEFAULT_ROW_LABELS; // ["Chest", "Waist", "Hip"]
+}
+
+function initApparelState(override: object | null, sizeMode: string, category: string): ApparelState {
   const defSizes = defaultSizes(sizeMode);
 
   if (override && (override as Record<string, unknown>).type === "apparel") {
@@ -83,9 +91,10 @@ function initApparelState(override: object | null, sizeMode: string): ApparelSta
     };
   }
 
+  const defRowLabels = categoryDefaultRows(category);
   return {
     sizes: defSizes,
-    rows: DEFAULT_ROW_LABELS.map((label) => ({
+    rows: defRowLabels.map((label) => ({
       id: uid(),
       label,
       values: Object.fromEntries(defSizes.map((s) => [s, ""])),
@@ -509,13 +518,13 @@ function ShoeEditor({
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function CustomSizeChartEditor({ productId, sizeMode, currentOverride }: Props) {
+export function CustomSizeChartEditor({ productId, sizeMode, category, currentOverride }: Props) {
   const shoes = isShoeMode(sizeMode);
   const hasExistingOverride = !!currentOverride;
 
   const [mode, setMode]       = useState<ChartMode>(hasExistingOverride ? "custom" : "default");
   const [apparel, setApparel] = useState<ApparelState>(() =>
-    initApparelState(!shoes ? currentOverride : null, sizeMode)
+    initApparelState(!shoes ? currentOverride : null, sizeMode, category)
   );
   const [shoe, setShoe]       = useState<ShoeState>(() =>
     initShoeState(shoes ? currentOverride : null)

@@ -2,6 +2,8 @@ export type ProductCategory =
   | "men"
   | "women"
   | "kids"
+  | "dress"
+  | "skirt"
   | "pottery"
   | "accessories"
   | "home_decor"
@@ -69,6 +71,10 @@ export interface Product {
   length_in: number | null;
   width_in: number | null;
   height_in: number | null;
+  // Whether to render any measurement UI on the PDP (size chart, specs block).
+  // Defaults to true; set to false to suppress all measurement sections.
+  // Optional because older rows may not have this column populated.
+  show_measurements?: boolean;
   // Per-product size chart override (replaces static chart when set)
   size_chart_override: {
     type: "apparel";

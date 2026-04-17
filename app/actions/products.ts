@@ -51,9 +51,10 @@ function parseProductFields(formData: FormData) {
     care_notes:      (formData.get("care_notes") as string)?.trim() || null,
     is_active:       formData.get("is_active") === "on",
     featured:        formData.get("featured") === "on",
-    audience:        (formData.get("audience") as Audience) || "unisex",
-    fit_style:       ((formData.get("fit_style") as string) || null) as FitStyle | null,
-    search_keywords: (formData.get("search_keywords") as string)?.trim() || null,
+    audience:          (formData.get("audience") as Audience) || "unisex",
+    fit_style:         ((formData.get("fit_style") as string) || null) as FitStyle | null,
+    search_keywords:   (formData.get("search_keywords") as string)?.trim() || null,
+    show_measurements: formData.get("show_measurements") === "on",
   };
 
   // Pottery / shipping columns — only included when the admin filled them in.

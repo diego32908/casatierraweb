@@ -64,6 +64,7 @@ export default async function EditProductPage({ params }: Props) {
         <CustomSizeChartEditor
           productId={product.id}
           sizeMode={product.size_mode}
+          category={product.category}
           currentOverride={product.size_chart_override ?? null}
         />
       )}
