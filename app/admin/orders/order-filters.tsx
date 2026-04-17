@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 const STATUSES = [
   { value: "", label: "All statuses" },
@@ -30,6 +30,28 @@ export function OrderFilters() {
   const status = searchParams.get("status") ?? "";
   const fulfillment = searchParams.get("fulfillment") ?? "";
 
+  const [localQ, setLocalQ] = useState(q);
+  // Keep a ref so the debounce timeout always reads the latest searchParams,
+  // avoiding stale-closure issues if the user changes status/fulfillment mid-type.
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const params = new URLSearchParams(searchParamsRef.current.toString());
+      if (localQ) {
+        params.set("q", localQ);
+      } else {
+        params.delete("q");
+      }
+      params.delete("page");
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`);
+      });
+    }, 400);
+    return () => clearTimeout(id);
+  }, [localQ]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function update(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
@@ -48,8 +70,8 @@ export function OrderFilters() {
     <div className="flex gap-3 flex-wrap items-center">
       <input
         type="search"
-        value={q}
-        onChange={(e) => update("q", e.target.value)}
+        value={localQ}
+        onChange={(e) => setLocalQ(e.target.value)}
         placeholder="Search name or email…"
         className="text-[13px] text-stone-700 border border-stone-200 px-3 py-1.5 placeholder-stone-400 focus:outline-none focus:border-stone-400 min-w-[220px]"
       />
@@ -71,9 +93,10 @@ export function OrderFilters() {
           <option key={f.value} value={f.value}>{f.label}</option>
         ))}
       </select>
-      {(q || status || fulfillment) && (
+      {(localQ || status || fulfillment) && (
         <button
           onClick={() => {
+            setLocalQ("");
             startTransition(() => router.push(pathname));
           }}
           className="text-[11px] uppercase tracking-widest text-stone-400 hover:text-stone-700 transition-colors"

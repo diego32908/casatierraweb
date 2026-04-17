@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { ProductWithVariants, ProductVariant } from "@/types/store";
+import type { ProductWithVariants, ProductVariant, Product } from "@/types/store";
 import { formatPrice } from "@/lib/utils";
 import { getStockStatus } from "@/lib/stock";
 import { sizeSelectorLabel } from "@/lib/sizing";
@@ -11,6 +11,43 @@ import { SizeChartSection } from "./size-chart-section";
 import { useCart } from "@/components/cart/cart-context";
 import { HeartButton } from "./heart-button";
 import { useLanguage, localize } from "@/lib/language";
+
+// ── Specs section (pottery / home / accessories) ─────────────────────────────
+
+function formatWeightDisplay(oz: number): string {
+  if (oz >= 16) {
+    const lb = oz / 16;
+    return Number.isInteger(lb) ? `${lb} lb` : `${lb.toFixed(1)} lb`;
+  }
+  return `${oz} oz`;
+}
+
+function SpecsSection({ product }: { product: Product }) {
+  const hasDims    = !!(product.length_in && product.width_in);
+  const hasHeight  = !!(hasDims && product.height_in);
+  const hasWeight  = !!product.weight_oz;
+  const hasDisplay = !!product.dimensions_display;
+
+  if (!hasDisplay && !hasDims && !hasWeight) return null;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
+        Dimensions &amp; Specifications
+      </h2>
+      <div className="space-y-1.5 text-sm text-stone-600">
+        {hasDisplay && <p>{product.dimensions_display}</p>}
+        {hasDims && (
+          <p>
+            {product.length_in}&Prime;&thinsp;L &times; {product.width_in}&Prime;&thinsp;W
+            {hasHeight && <> &times; {product.height_in}&Prime;&thinsp;H</>}
+          </p>
+        )}
+        {hasWeight && <p>{formatWeightDisplay(product.weight_oz!)}</p>}
+      </div>
+    </div>
+  );
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -148,15 +185,34 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
 
   const audienceLabel = productAudienceLabel(product);
 
-  // Show the "Size chart" button and lower chart section for products with
-  // a canonical size context, or any product that has fit/style notes.
-  const hasChartContent =
+  // Master gate — false hides all measurement UI regardless of data.
+  // Defaults true for backwards compat (field may be absent on older rows).
+  const showMeasurements = product.show_measurements !== false;
+
+  // Size chart: apparel, shoes, any product with a custom override or fit info.
+  const hasChartContent = showMeasurements && (
+    !!product.size_chart_override ||
     product.size_mode === "alpha" ||
     product.size_mode === "kids" ||
     product.size_mode === "shoes_us" ||
     product.category === "shoes" ||
+    product.category === "dress" ||
+    product.category === "skirt" ||
     !!product.fit_note ||
-    !!product.fit_style;
+    !!product.fit_style
+  );
+
+  // Specs block: pottery / home. Accessories use specs only when no chart override.
+  const isSpecsCategory  = product.category === "pottery" || product.category === "home_decor";
+  const isAccessories    = product.category === "accessories";
+  const hasSpecsData     =
+    !!product.dimensions_display ||
+    !!(product.length_in && product.width_in) ||
+    !!product.weight_oz;
+  const hasSpecsContent  = showMeasurements && hasSpecsData && (
+    isSpecsCategory ||
+    (isAccessories && !product.size_chart_override)
+  );
 
   return (
     <>
@@ -291,6 +347,13 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           </section>
         )}
 
+        {/* Dimensions & Specifications (pottery, home, accessories fallback) */}
+        {hasSpecsContent && (
+          <section className="py-12">
+            <SpecsSection product={product} />
+          </section>
+        )}
+
         {/* Shipping & Returns */}
         <section className="py-12">
           <h2 className="mb-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
@@ -303,20 +366,18 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
           </div>
         </section>
 
-        {/* Materials */}
-        <section className="py-12">
-          <h2 className="mb-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
-            Materials
-          </h2>
-          {product.material || product.care_notes ? (
+        {/* Materials — only render when data exists */}
+        {(product.material || product.care_notes) && (
+          <section className="py-12">
+            <h2 className="mb-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
+              Materials
+            </h2>
             <div className="max-w-prose space-y-2 text-sm leading-7 text-stone-600">
               {product.material && <p>{product.material}</p>}
               {product.care_notes && <p>{product.care_notes}</p>}
             </div>
-          ) : (
-            <p className="text-sm leading-7 text-stone-400">Material details coming soon.</p>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </>
   );
