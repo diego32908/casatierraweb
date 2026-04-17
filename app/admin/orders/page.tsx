@@ -322,7 +322,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                       )}
                       {order.shipped_at && (
                         <span className="text-[11px] text-stone-300">
-                          shipped {new Date(order.shipped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          shipped {new Date(order.shipped_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}
                         </span>
                       )}
                     </div>
@@ -365,6 +365,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   {new Date(order.created_at).toLocaleDateString("en-US", {
                     month: "short", day: "numeric", year: "numeric",
                     hour: "2-digit", minute: "2-digit",
+                    timeZone: "America/Los_Angeles",
                   })}
                 </p>
                 <div className="text-right space-y-0.5">

@@ -49,14 +49,15 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
         variant_label_snapshot,
         quantity,
         unit_price_cents,
-        line_total_cents
+        line_total_cents,
+        image_url_snapshot
       )
     `)
     .eq("stripe_checkout_session_id", sessionId)
     .single();
 
   // ── Build display data ───────────────────────────────────────────────────
-  type DisplayItem = { name: string; variant: string | null; quantity: number; totalCents: number };
+  type DisplayItem = { name: string; variant: string | null; quantity: number; totalCents: number; imageUrl: string | null };
 
   let displayItems: DisplayItem[];
 
@@ -68,19 +69,22 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
       quantity: number;
       unit_price_cents: number;
       line_total_cents: number;
+      image_url_snapshot: string | null;
     }[]).map((oi) => ({
       name: oi.product_name_snapshot,
       variant: oi.variant_label_snapshot,
       quantity: oi.quantity,
       totalCents: oi.line_total_cents,
+      imageUrl: oi.image_url_snapshot ?? null,
     }));
   } else {
-    // Webhook not yet processed — fall back to Stripe line items
+    // Webhook not yet processed — fall back to Stripe line items (no image available)
     displayItems = (session.line_items?.data ?? []).map((li) => ({
       name: li.description ?? "",
       variant: null,
       quantity: li.quantity ?? 1,
       totalCents: li.amount_total ?? 0,
+      imageUrl: null,
     }));
   }
 

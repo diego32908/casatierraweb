@@ -11,6 +11,7 @@ interface DisplayItem {
   variant: string | null;
   quantity: number;
   totalCents: number;
+  imageUrl: string | null;
 }
 
 interface ShippingAddress {
@@ -131,18 +132,28 @@ export function SuccessClient({
         {items.length > 0 && (
           <div className="px-6 py-4 space-y-2 border-b border-stone-100">
             {items.map((item, i) => (
-              <div key={i} className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm text-stone-700 truncate">{item.name}</p>
-                  {item.variant && (
-                    <p className="text-[11px] text-stone-400">{item.variant}</p>
-                  )}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm text-stone-500">{formatPrice(item.totalCents)}</p>
-                  {item.quantity > 1 && (
-                    <p className="text-[11px] text-stone-400">×{item.quantity}</p>
-                  )}
+              <div key={i} className="flex items-start gap-3">
+                {item.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-14 w-11 shrink-0 object-cover bg-stone-100"
+                  />
+                )}
+                <div className="flex flex-1 items-start justify-between gap-4 min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-sm text-stone-700 truncate">{item.name}</p>
+                    {item.variant && (
+                      <p className="text-[11px] text-stone-400">{item.variant}</p>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm text-stone-500">{formatPrice(item.totalCents)}</p>
+                    {item.quantity > 1 && (
+                      <p className="text-[11px] text-stone-400">×{item.quantity}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
