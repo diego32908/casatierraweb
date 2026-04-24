@@ -6,6 +6,7 @@ import type { ProductCardData } from "@/components/product/product-card";
 
 export interface FilterableProduct extends Omit<ProductCardData, "variants"> {
   created_at: string;
+  category?: string;
   variants?: Array<{
     color_name: string | null;
     color_hex: string | null;
@@ -13,8 +14,9 @@ export interface FilterableProduct extends Omit<ProductCardData, "variants"> {
   }>;
 }
 
-type SortKey = "featured" | "newest" | "price_asc" | "price_desc";
-type PriceKey = "under50" | "50to100" | "over100";
+type SortKey    = "featured" | "newest" | "price_asc" | "price_desc";
+type PriceKey   = "under50" | "50to100" | "over100";
+type SubcatTab  = "all" | "apparel" | "shoes" | "accessories";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "featured",   label: "Featured" },
@@ -29,8 +31,24 @@ const PRICE_OPTIONS: { key: PriceKey; label: string }[] = [
   { key: "over100", label: "$100+" },
 ];
 
-const ALPHA_SIZES  = ["XS", "S", "M", "L", "XL", "XXL"];
-const LIGHT_COLORS = new Set(["#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9"]);
+const SUBCAT_TABS: { value: SubcatTab; label: string }[] = [
+  { value: "all",         label: "All" },
+  { value: "apparel",     label: "Apparel" },
+  { value: "shoes",       label: "Shoes" },
+  { value: "accessories", label: "Accessories" },
+];
+
+const SHOES_CATS     = new Set(["shoes"]);
+const ACCESSOR_CATS  = new Set(["accessories", "home_decor", "pottery"]);
+const ALPHA_SIZES    = ["XS", "S", "M", "L", "XL", "XXL"];
+const LIGHT_COLORS   = new Set(["#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9"]);
+
+function toSubcat(category?: string): Exclude<SubcatTab, "all"> {
+  if (!category)                  return "apparel";
+  if (SHOES_CATS.has(category))   return "shoes";
+  if (ACCESSOR_CATS.has(category)) return "accessories";
+  return "apparel";
+}
 
 function inPriceRange(cents: number, key: PriceKey) {
   if (key === "under50")  return cents < 5000;
@@ -40,12 +58,18 @@ function inPriceRange(cents: number, key: PriceKey) {
 
 interface Props {
   initialProducts: FilterableProduct[];
-  showSizeFilter?: boolean;
+  showSizeFilter?:  boolean;
+  showSubcatTabs?:  boolean;
 }
 
-export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: Props) {
+export function CategoryFilterSort({
+  initialProducts,
+  showSizeFilter  = true,
+  showSubcatTabs  = false,
+}: Props) {
   const [sort, setSort]                 = useState<SortKey>("featured");
   const [sortOpen, setSortOpen]         = useState(false);
+  const [subcatTab, setSubcatTab]       = useState<SubcatTab>("all");
   const [priceFilter, setPriceFilter]   = useState<PriceKey | null>(null);
   const [colorFilters, setColorFilters] = useState<Set<string>>(new Set());
   const [sizeFilters, setSizeFilters]   = useState<Set<string>>(new Set());
@@ -53,11 +77,30 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
 
   const sortRef = useRef<HTMLDivElement>(null);
 
-  // ── Derived option lists ──────────────────────────────────────────────────
+  // ── Subcategory counts (off the full list, for tab visibility) ────────────
+  const subcatCounts = useMemo(() => {
+    const c = { all: initialProducts.length, apparel: 0, shoes: 0, accessories: 0 };
+    for (const p of initialProducts) c[toSubcat(p.category)]++;
+    return c;
+  }, [initialProducts]);
+
+  const visibleTabs = SUBCAT_TABS.filter(
+    t => t.value === "all" || subcatCounts[t.value] > 0
+  );
+
+  // ── Tab-scoped product list (feeds color/size option derivation) ──────────
+  const tabFiltered = useMemo(
+    () => subcatTab === "all"
+      ? initialProducts
+      : initialProducts.filter(p => toSubcat(p.category) === subcatTab),
+    [initialProducts, subcatTab]
+  );
+
+  // ── Derived color / size option lists ─────────────────────────────────────
   const allColors = useMemo(() => {
     const seen = new Set<string>();
     const list: { name: string; hex: string | null }[] = [];
-    for (const p of initialProducts) {
+    for (const p of tabFiltered) {
       for (const v of p.variants ?? []) {
         if (v.color_name && !seen.has(v.color_name)) {
           seen.add(v.color_name);
@@ -66,12 +109,12 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
       }
     }
     return list;
-  }, [initialProducts]);
+  }, [tabFiltered]);
 
   const allSizes = useMemo(() => {
     if (!showSizeFilter) return [];
     const present = new Set<string>();
-    for (const p of initialProducts) {
+    for (const p of tabFiltered) {
       for (const v of p.variants ?? []) {
         if (v.size_label) present.add(v.size_label);
       }
@@ -79,7 +122,7 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
     const ordered = ALPHA_SIZES.filter(s => present.has(s));
     const extras  = [...present].filter(s => !ALPHA_SIZES.includes(s)).sort();
     return [...ordered, ...extras];
-  }, [initialProducts, showSizeFilter]);
+  }, [tabFiltered, showSizeFilter]);
 
   const hasActiveFilters  = priceFilter !== null || colorFilters.size > 0 || sizeFilters.size > 0;
   const activeFilterCount = (priceFilter ? 1 : 0) + colorFilters.size + sizeFilters.size;
@@ -87,7 +130,6 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
   // ── Active tag strip ──────────────────────────────────────────────────────
   const activeTags = useMemo(() => {
     const tags: { id: string; label: string; remove: () => void }[] = [];
-
     if (priceFilter) {
       const label = PRICE_OPTIONS.find(o => o.key === priceFilter)?.label ?? priceFilter;
       tags.push({ id: `p:${priceFilter}`, label, remove: () => setPriceFilter(null) });
@@ -106,26 +148,23 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
         remove: () => setSizeFilters(prev => { const n = new Set(prev); n.delete(size); return n; }),
       });
     }
-
     return tags;
   }, [priceFilter, colorFilters, sizeFilters]);
 
-  // ── Filtered + sorted list ────────────────────────────────────────────────
+  // ── Fully filtered + sorted list ──────────────────────────────────────────
   const filtered = useMemo(() => {
-    let result = [...initialProducts];
+    let result = [...tabFiltered];
 
-    if (priceFilter)      result = result.filter(p => inPriceRange(p.base_price_cents, priceFilter));
-    if (colorFilters.size > 0)
-      result = result.filter(p => p.variants?.some(v => v.color_name && colorFilters.has(v.color_name)));
-    if (sizeFilters.size > 0)
-      result = result.filter(p => p.variants?.some(v => v.size_label  && sizeFilters.has(v.size_label)));
+    if (priceFilter)        result = result.filter(p => inPriceRange(p.base_price_cents, priceFilter));
+    if (colorFilters.size > 0) result = result.filter(p => p.variants?.some(v => v.color_name && colorFilters.has(v.color_name)));
+    if (sizeFilters.size > 0)  result = result.filter(p => p.variants?.some(v => v.size_label  && sizeFilters.has(v.size_label)));
 
     if (sort === "price_asc")  result.sort((a, b) => a.base_price_cents - b.base_price_cents);
     if (sort === "price_desc") result.sort((a, b) => b.base_price_cents - a.base_price_cents);
     if (sort === "newest")     result.sort((a, b) => b.created_at.localeCompare(a.created_at));
 
     return result;
-  }, [initialProducts, priceFilter, colorFilters, sizeFilters, sort]);
+  }, [tabFiltered, priceFilter, colorFilters, sizeFilters, sort]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const clearAll = useCallback(() => {
@@ -168,6 +207,27 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
+      {/* ── Subcategory tab strip ─────────────────────────────────────────── */}
+      {showSubcatTabs && visibleTabs.length > 1 && (
+        <div className="mb-8 flex items-center gap-1" role="tablist" aria-label="Product type">
+          {visibleTabs.map(tab => (
+            <button
+              key={tab.value}
+              role="tab"
+              aria-selected={subcatTab === tab.value}
+              onClick={() => setSubcatTab(tab.value)}
+              className={`px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] border transition-colors duration-200 ${
+                subcatTab === tab.value
+                  ? "border-stone-300 text-stone-900"
+                  : "border-transparent text-stone-400 hover:text-stone-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Controls bar ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <p className="text-[11px] uppercase tracking-[0.18em] text-stone-400">
@@ -209,7 +269,6 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
               </svg>
             </button>
 
-            {/* Dropdown list — opacity/scale fade, stays in DOM */}
             <div
               role="listbox"
               className={`absolute right-0 top-full z-30 mt-3 min-w-[188px] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.07)] transition-all duration-150 origin-top-right ${
@@ -290,13 +349,11 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
             onClick={() => setPanelOpen(false)}
           />
 
-          {/* Bottom sheet on mobile · floating panel on desktop */}
           <div
             role="dialog"
             aria-label="Filter products"
             className="fixed inset-x-0 bottom-0 z-50 bg-white shadow-2xl md:inset-x-auto md:bottom-auto md:right-8 md:top-36 md:w-72"
           >
-            {/* Panel header */}
             <div className="flex items-center justify-between border-b border-stone-100 px-6 py-5">
               <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-stone-900">
                 Filters
@@ -322,10 +379,8 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
               </div>
             </div>
 
-            {/* Scrollable body */}
             <div className="max-h-[72vh] overflow-y-auto px-6 py-7 space-y-9 md:max-h-[65vh]">
 
-              {/* Price */}
               <section>
                 <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400">
                   Price
@@ -341,7 +396,6 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
                           : "text-stone-400 hover:text-stone-700"
                       }`}
                     >
-                      {/* Underline only on selected text — not the full row */}
                       <span className={priceFilter === opt.key ? "border-b border-stone-800 pb-px" : ""}>
                         {opt.label}
                       </span>
@@ -350,7 +404,6 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
                 </div>
               </section>
 
-              {/* Colors */}
               {allColors.length > 0 && (
                 <section>
                   <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400">
@@ -380,7 +433,6 @@ export function CategoryFilterSort({ initialProducts, showSizeFilter = true }: P
                 </section>
               )}
 
-              {/* Sizes */}
               {showSizeFilter && allSizes.length > 0 && (
                 <section>
                   <p className="mb-5 text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400">

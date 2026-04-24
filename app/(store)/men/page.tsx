@@ -10,7 +10,7 @@ export default async function MenPage() {
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, variants:product_variants(color_name, color_hex, size_label)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, category, variants:product_variants(color_name, color_hex, size_label)")
     .eq("is_active", true)
     .eq("category", "men")
     .order("sort_order", { ascending: true });
@@ -25,6 +25,7 @@ export default async function MenPage() {
       <CategoryFilterSort
         initialProducts={(products ?? []) as FilterableProduct[]}
         showSizeFilter
+        showSubcatTabs
       />
     </div>
   );
