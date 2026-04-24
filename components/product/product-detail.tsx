@@ -226,7 +226,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
               <img
                 src={product.primary_image_url}
                 alt={displayName}
-                className="block h-auto max-h-[85vh] w-auto max-w-full"
+                className="block h-auto max-h-[85vh] w-full"
               />
             ) : (
               <div className="flex h-96 items-center justify-center text-[11px] uppercase tracking-[0.22em] text-stone-400">
