@@ -97,6 +97,7 @@ export async function createProduct(
 
   revalidatePath("/admin/inventory");
   // Revalidate all storefront pages that list products
+  revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/women");
   revalidatePath("/men");
@@ -131,6 +132,7 @@ export async function updateProduct(
   revalidatePath("/admin/inventory");
   revalidatePath(`/admin/inventory/${id}`);
   // Revalidate all storefront pages — covers is_active toggle, category change, price update
+  revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/women");
   revalidatePath("/men");
@@ -210,6 +212,7 @@ export async function deleteProduct(id: string): Promise<{ error?: string }> {
   }
 
   revalidatePath("/admin/inventory");
+  revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/women");
   revalidatePath("/men");
@@ -234,6 +237,7 @@ export async function setProductActive(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/inventory");
+  revalidatePath("/");
   revalidatePath("/shop");
   revalidatePath("/women");
   revalidatePath("/men");
