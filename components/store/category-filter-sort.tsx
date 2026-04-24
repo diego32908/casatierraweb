@@ -14,9 +14,11 @@ export interface FilterableProduct extends Omit<ProductCardData, "variants"> {
   }>;
 }
 
-type SortKey    = "featured" | "newest" | "price_asc" | "price_desc";
-type PriceKey   = "under50" | "50to100" | "over100";
-type SubcatTab  = "all" | "apparel" | "shoes" | "accessories";
+type SortKey   = "featured" | "newest" | "price_asc" | "price_desc";
+type PriceKey  = "under50" | "50to100" | "over100";
+// "type" mode: apparel / shoes / accessories
+// "audience" mode: women / men / kids / shoes / accessories / home
+type SubcatTab = "all" | "apparel" | "shoes" | "accessories" | "women" | "men" | "kids" | "home";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "featured",   label: "Featured" },
@@ -31,22 +33,45 @@ const PRICE_OPTIONS: { key: PriceKey; label: string }[] = [
   { key: "over100", label: "$100+" },
 ];
 
-const SUBCAT_TABS: { value: SubcatTab; label: string }[] = [
+// Tab definitions per mode
+const TYPE_TABS: { value: SubcatTab; label: string }[] = [
   { value: "all",         label: "All" },
   { value: "apparel",     label: "Apparel" },
   { value: "shoes",       label: "Shoes" },
   { value: "accessories", label: "Accessories" },
 ];
 
-const SHOES_CATS     = new Set(["shoes"]);
-const ACCESSOR_CATS  = new Set(["accessories", "home_decor", "pottery"]);
-const ALPHA_SIZES    = ["XS", "S", "M", "L", "XL", "XXL"];
-const LIGHT_COLORS   = new Set(["#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9"]);
+const AUDIENCE_TABS: { value: SubcatTab; label: string }[] = [
+  { value: "all",         label: "All" },
+  { value: "women",       label: "Women" },
+  { value: "men",         label: "Men" },
+  { value: "kids",        label: "Kids" },
+  { value: "shoes",       label: "Shoes" },
+  { value: "accessories", label: "Accessories" },
+  { value: "home",        label: "Home & Pottery" },
+];
 
-function toSubcat(category?: string): Exclude<SubcatTab, "all"> {
-  if (!category)                  return "apparel";
-  if (SHOES_CATS.has(category))   return "shoes";
-  if (ACCESSOR_CATS.has(category)) return "accessories";
+const ALPHA_SIZES  = ["XS", "S", "M", "L", "XL", "XXL"];
+const LIGHT_COLORS = new Set(["#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9"]);
+
+const SHOES_CATS    = new Set(["shoes"]);
+const ACCESSOR_CATS = new Set(["accessories", "home_decor", "pottery"]);
+
+function toSubcat(category?: string, mode: "type" | "audience" = "type"): Exclude<SubcatTab, "all"> {
+  if (mode === "audience") {
+    if (!category) return "accessories";
+    if (["women", "dress", "skirt"].includes(category)) return "women";
+    if (category === "men")                              return "men";
+    if (category === "kids")                             return "kids";
+    if (category === "shoes")                            return "shoes";
+    if (category === "accessories")                      return "accessories";
+    if (["home_decor", "pottery"].includes(category))    return "home";
+    return "accessories";
+  }
+  // type mode
+  if (!category)                    return "apparel";
+  if (SHOES_CATS.has(category))     return "shoes";
+  if (ACCESSOR_CATS.has(category))  return "accessories";
   return "apparel";
 }
 
@@ -60,12 +85,14 @@ interface Props {
   initialProducts: FilterableProduct[];
   showSizeFilter?:  boolean;
   showSubcatTabs?:  boolean;
+  subcatMode?:      "type" | "audience";
 }
 
 export function CategoryFilterSort({
   initialProducts,
   showSizeFilter  = true,
   showSubcatTabs  = false,
+  subcatMode      = "type",
 }: Props) {
   const [sort, setSort]                 = useState<SortKey>("featured");
   const [sortOpen, setSortOpen]         = useState(false);
@@ -79,21 +106,24 @@ export function CategoryFilterSort({
 
   // ── Subcategory counts (off the full list, for tab visibility) ────────────
   const subcatCounts = useMemo(() => {
-    const c = { all: initialProducts.length, apparel: 0, shoes: 0, accessories: 0 };
-    for (const p of initialProducts) c[toSubcat(p.category)]++;
+    const c: Record<SubcatTab, number> = {
+      all: initialProducts.length,
+      apparel: 0, shoes: 0, accessories: 0,
+      women: 0, men: 0, kids: 0, home: 0,
+    };
+    for (const p of initialProducts) c[toSubcat(p.category, subcatMode)]++;
     return c;
-  }, [initialProducts]);
+  }, [initialProducts, subcatMode]);
 
-  const visibleTabs = SUBCAT_TABS.filter(
-    t => t.value === "all" || subcatCounts[t.value] > 0
-  );
+  const allTabs    = subcatMode === "audience" ? AUDIENCE_TABS : TYPE_TABS;
+  const visibleTabs = allTabs.filter(t => t.value === "all" || subcatCounts[t.value] > 0);
 
-  // ── Tab-scoped product list (feeds color/size option derivation) ──────────
+  // ── Tab-scoped list (feeds color/size options + further filtering) ─────────
   const tabFiltered = useMemo(
     () => subcatTab === "all"
       ? initialProducts
-      : initialProducts.filter(p => toSubcat(p.category) === subcatTab),
-    [initialProducts, subcatTab]
+      : initialProducts.filter(p => toSubcat(p.category, subcatMode) === subcatTab),
+    [initialProducts, subcatTab, subcatMode]
   );
 
   // ── Derived color / size option lists ─────────────────────────────────────
@@ -155,7 +185,7 @@ export function CategoryFilterSort({
   const filtered = useMemo(() => {
     let result = [...tabFiltered];
 
-    if (priceFilter)        result = result.filter(p => inPriceRange(p.base_price_cents, priceFilter));
+    if (priceFilter)           result = result.filter(p => inPriceRange(p.base_price_cents, priceFilter));
     if (colorFilters.size > 0) result = result.filter(p => p.variants?.some(v => v.color_name && colorFilters.has(v.color_name)));
     if (sizeFilters.size > 0)  result = result.filter(p => p.variants?.some(v => v.size_label  && sizeFilters.has(v.size_label)));
 
@@ -209,7 +239,7 @@ export function CategoryFilterSort({
     <>
       {/* ── Subcategory tab strip ─────────────────────────────────────────── */}
       {showSubcatTabs && visibleTabs.length > 1 && (
-        <div className="mb-8 flex items-center gap-1" role="tablist" aria-label="Product type">
+        <div className="mb-8 flex flex-wrap items-center gap-1" role="tablist" aria-label="Product type">
           {visibleTabs.map(tab => (
             <button
               key={tab.value}
@@ -237,7 +267,6 @@ export function CategoryFilterSort({
         </p>
 
         <div className="flex items-center gap-6">
-          {/* Filter button */}
           <button
             onClick={() => { setPanelOpen(true); setSortOpen(false); }}
             className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-stone-500 hover:text-stone-900 transition-colors duration-200"
@@ -252,7 +281,6 @@ export function CategoryFilterSort({
 
           <span className="h-3 w-px bg-stone-200" />
 
-          {/* Custom sort dropdown */}
           <div ref={sortRef} className="relative">
             <button
               onClick={() => setSortOpen(v => !v)}

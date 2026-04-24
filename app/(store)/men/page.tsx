@@ -5,15 +5,18 @@ import type { FilterableProduct } from "@/components/store/category-filter-sort"
 
 export const metadata = { title: "Men — Tierra Oaxaca" };
 
+const SELECT = "id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, category, variants:product_variants(color_name, color_hex, size_label)";
+
 export default async function MenPage() {
   const supabase = createServerSupabaseClient();
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, category, variants:product_variants(color_name, color_hex, size_label)")
-    .eq("is_active", true)
-    .eq("category", "men")
-    .order("sort_order", { ascending: true });
+  // Fetch men's apparel + shoes/accessories targeting men's audience in parallel
+  const [{ data: apparel }, { data: extras }] = await Promise.all([
+    supabase.from("products").select(SELECT).eq("is_active", true).eq("category", "men").order("sort_order", { ascending: true }),
+    supabase.from("products").select(SELECT).eq("is_active", true).in("category", ["shoes", "accessories"]).eq("audience", "mens").order("sort_order", { ascending: true }),
+  ]);
+
+  const products = [...(apparel ?? []), ...(extras ?? [])];
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-8 py-12">
@@ -23,7 +26,7 @@ export default async function MenPage() {
       </header>
 
       <CategoryFilterSort
-        initialProducts={(products ?? []) as FilterableProduct[]}
+        initialProducts={products as FilterableProduct[]}
         showSizeFilter
         showSubcatTabs
       />

@@ -18,8 +18,56 @@ export interface ProductCardData {
   variants?: ColorStub[];
 }
 
+// Hex fallbacks for color names that may not have a hex stored in the DB
+const COLOR_HEX_FALLBACKS: Record<string, string> = {
+  black:      "#1c1917",
+  white:      "#fafaf9",
+  cream:      "#fef9ef",
+  ivory:      "#fffff0",
+  beige:      "#f5f0e0",
+  sand:       "#e8dcc8",
+  natural:    "#f0ead8",
+  taupe:      "#b5a99a",
+  tan:        "#d2b48c",
+  brown:      "#795548",
+  rust:       "#b7410e",
+  terracotta: "#c46437",
+  burgundy:   "#722f37",
+  wine:       "#6d2b3d",
+  red:        "#c02828",
+  pink:       "#f4a7b9",
+  blush:      "#f2b5b5",
+  coral:      "#ff6b6b",
+  orange:     "#e8651a",
+  yellow:     "#f5d042",
+  mustard:    "#d4a017",
+  olive:      "#6b7c3d",
+  sage:       "#8aab7e",
+  green:      "#2d6a4f",
+  teal:       "#2a7f7f",
+  blue:       "#2563eb",
+  navy:       "#1e3a5f",
+  indigo:     "#3730a3",
+  purple:     "#7c3aed",
+  lavender:   "#c4b5e8",
+  grey:       "#9e9e9e",
+  gray:       "#9e9e9e",
+  charcoal:   "#4a4a4a",
+  multicolor: "#d4a373",
+};
+
 // Light colors that need a visible border so the chip reads on a white background
-const NEEDS_BORDER = new Set(["#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9"]);
+const NEEDS_BORDER = new Set([
+  "#f5f5f5", "#f5f0e8", "#ede8d8", "#d4c5a9",
+  "#fafaf9", "#fef9ef", "#fffff0", "#f5f0e0",
+  "#e8dcc8", "#f0ead8", "#f4a7b9", "#f2b5b5",
+  "#f5d042", "#c4b5e8",
+]);
+
+function resolveHex(name: string, hex: string | null): string | null {
+  if (hex) return hex;
+  return COLOR_HEX_FALLBACKS[name.toLowerCase().trim()] ?? null;
+}
 
 function getDistinctColors(variants: ColorStub[]) {
   const seen = new Set<string>();
@@ -46,16 +94,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     : 0;
 
   const colors = getDistinctColors(product.variants ?? []);
-  const showColors = colors.length > 1;
+  // Show swatches for any product that has color data (single-color included)
+  const showColors = colors.length >= 1;
   const visibleColors = colors.slice(0, 5);
   const overflow = colors.length - 5;
 
   return (
     <div className="group relative">
-      {/* Image area: relative + aspect-ratio defines the positioning context.
-          overflow-hidden is on an inner absolute layer so the heart is never clipped. */}
       <div className="relative aspect-[3/4] mb-3">
-        {/* Image layer — overflow-hidden only here */}
         <div className="absolute inset-0 overflow-hidden bg-stone-100">
           <Link href={`/products/${product.slug}`} className="block h-full w-full">
             {product.primary_image_url ? (
@@ -70,40 +116,37 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             )}
           </Link>
         </div>
-        {/* Heart — top-right of image, never clipped */}
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 20 }}>
           <HeartButton productId={product.id} size={18} />
         </div>
       </div>
 
       <Link href={`/products/${product.slug}`} className="block">
-        {/* Name */}
         <p className="text-sm font-medium text-stone-900 leading-snug">{displayName}</p>
 
-        {/* Color chips — square, shown when 2+ distinct colors */}
         {showColors && (
           <div className="mt-2 flex items-center gap-2">
-            {visibleColors.map((c) => (
-              <span
-                key={c.name}
-                title={c.name}
-                className="h-3.5 w-3.5 shrink-0"
-                style={{
-                  backgroundColor: c.hex ?? "#d6d3d1",
-                  border:
-                    c.hex && NEEDS_BORDER.has(c.hex)
-                      ? "1px solid #d6d3d1"
-                      : "1px solid transparent",
-                }}
-              />
-            ))}
+            {visibleColors.map((c) => {
+              const resolved = resolveHex(c.name, c.hex);
+              const needsBorder = !resolved || NEEDS_BORDER.has(resolved.toLowerCase());
+              return (
+                <span
+                  key={c.name}
+                  title={c.name}
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{
+                    backgroundColor: resolved ?? "#d6d3d1",
+                    border: needsBorder ? "1px solid #d6d3d1" : "1px solid transparent",
+                  }}
+                />
+              );
+            })}
             {overflow > 0 && (
               <span className="text-[10px] text-stone-400 ml-0.5">+{overflow}</span>
             )}
           </div>
         )}
 
-        {/* Price */}
         <div className="mt-1.5 flex items-center gap-3">
           {onSale ? (
             <>
