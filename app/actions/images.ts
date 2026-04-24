@@ -149,6 +149,61 @@ export async function saveGalleryOrder(
   return {};
 }
 
+// ─── Variant image actions ────────────────────────────────────────────────────
+
+export async function uploadVariantImage(
+  variantId: string,
+  productId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "No file provided" };
+  if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+  if (file.size > 5 * 1024 * 1024) return { error: "File must be under 5 MB" };
+
+  const supabase = createServerSupabaseClient();
+  const path = `products/${productId}/variants/${makeFilename(file.name)}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("product-images")
+    .upload(path, await file.arrayBuffer(), {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) return { error: uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("product-images").getPublicUrl(path);
+
+  const { error } = await supabase
+    .from("product_variants")
+    .update({ image_url: publicUrl })
+    .eq("id", variantId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/inventory/${productId}`);
+  revalidatePath(`/products`);
+  return {};
+}
+
+export async function removeVariantImage(
+  variantId: string,
+  productId: string
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase
+    .from("product_variants")
+    .update({ image_url: null })
+    .eq("id", variantId);
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/inventory/${productId}`);
+  return {};
+}
+
 // ─── Category card image action ──────────────────────────────────────────────
 
 type CardRow = { key: string; label: string; hint: string; href: string; image_url: string | null };

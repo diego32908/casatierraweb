@@ -141,6 +141,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
   );
 
   const activePrice = selectedVariant?.price_override_cents ?? product.base_price_cents;
+  const displayImageUrl = selectedVariant?.image_url ?? product.primary_image_url;
 
   const stockStatus = selectedVariant
     ? getStockStatus(selectedVariant.stock, selectedVariant.low_stock_threshold)
@@ -221,10 +222,10 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
         {/* Left: image */}
         <section className="space-y-3">
           <div className="relative aspect-[3/4] border border-stone-200 bg-stone-100">
-            {product.primary_image_url ? (
+            {displayImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={product.primary_image_url}
+                src={displayImageUrl}
                 alt={displayName}
                 className="absolute inset-0 h-full w-full object-contain"
               />

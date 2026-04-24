@@ -132,6 +132,7 @@ export interface ProductVariant {
   length_in: number | null;
   width_in: number | null;
   height_in: number | null;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }

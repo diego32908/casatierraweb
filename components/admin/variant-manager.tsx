@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef } from "react";
 import type { ProductVariant, SizeMode, Audience } from "@/types/store";
 import { upsertVariant, deleteVariant } from "@/app/actions/products";
+import { uploadVariantImage, removeVariantImage } from "@/app/actions/images";
+import { compressImage } from "@/lib/compress-image";
 import { getStockStatus } from "@/lib/stock";
 import { getCanonicalSizes, type CanonicalSize } from "@/lib/sizing";
 import { cn } from "@/lib/utils";
@@ -422,6 +424,74 @@ function VariantFields({ variant, showShoeFields, canonicalSizes }: FieldsProps)
   );
 }
 
+// ── VariantImageButton ─────────────────────────────────────────────────────
+function VariantImageButton({
+  variantId,
+  productId,
+  imageUrl,
+}: {
+  variantId: string;
+  productId: string;
+  imageUrl: string | null;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    startTransition(async () => {
+      const { file: compressed, error: compressError } = await compressImage(file);
+      if (inputRef.current) inputRef.current.value = "";
+      if (compressError || !compressed) { setError(compressError ?? "Compression failed."); return; }
+      const fd = new FormData();
+      fd.append("file", compressed);
+      const result = await uploadVariantImage(variantId, productId, fd);
+      if (result.error) { setError(result.error); return; }
+      router.refresh();
+    });
+  }
+
+  function handleRemove() {
+    if (!confirm("Remove variant image?")) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await removeVariantImage(variantId, productId);
+      if (result.error) setError(result.error);
+      else router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5">
+      {imageUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt="Variant" className="h-8 w-8 border border-stone-200 bg-stone-100 object-contain" />
+          <button type="button" onClick={() => inputRef.current?.click()} disabled={isPending}
+            className="text-[11px] text-stone-500 underline underline-offset-2 hover:text-stone-800 disabled:opacity-60">
+            Replace
+          </button>
+          <button type="button" onClick={handleRemove} disabled={isPending}
+            className="text-[11px] text-red-400 underline underline-offset-2 hover:text-red-600 disabled:opacity-60">
+            Remove
+          </button>
+        </>
+      ) : (
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={isPending}
+          className="text-[11px] text-stone-400 underline underline-offset-2 hover:text-stone-700 disabled:opacity-60">
+          {isPending ? "Uploading…" : "+ Set variant image"}
+        </button>
+      )}
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+    </div>
+  );
+}
+
 // ── StockStatusBadge ───────────────────────────────────────────────────────
 function StockStatusBadge({ stock, threshold }: { stock: number; threshold: number }) {
   const status = getStockStatus(stock, threshold);
@@ -583,6 +653,10 @@ export function VariantManager({ productId, variants, sizeMode, audience }: Prop
               onSubmit={(e) => handleEditSubmit(e, v.id)}
               className="space-y-3 rounded border border-stone-300 bg-stone-50 p-4"
             >
+              <div className="pb-2 border-b border-stone-200">
+                <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-stone-500 mb-1.5">Variant image</p>
+                <VariantImageButton variantId={v.id} productId={productId} imageUrl={v.image_url} />
+              </div>
               <VariantFields variant={v} showShoeFields={showShoeFields} canonicalSizes={canonicalSizes} />
               <div className="flex gap-2">
                 <button
@@ -628,6 +702,11 @@ export function VariantManager({ productId, variants, sizeMode, audience }: Prop
                     <span className="text-[10px] text-stone-400">US {v.us_size}</span>
                   )}
                 </div>
+                <VariantImageButton
+                  variantId={v.id}
+                  productId={productId}
+                  imageUrl={v.image_url}
+                />
               </div>
               <div className="flex items-center gap-4">
                 <button
