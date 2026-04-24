@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils";
 import { getStockStatus } from "@/lib/stock";
 import { InventoryFilters } from "./inventory-filters";
+import { ProductRowActions } from "./product-row-actions";
 
 type VariantStub = { stock: number; low_stock_threshold: number };
 
@@ -140,17 +141,19 @@ export default async function AdminInventoryPage({ searchParams }: PageProps) {
         ) : (
           <div className="divide-y divide-stone-200">
             {filtered.map((product) => (
-              <Link
+              <div
                 key={product.id}
-                href={`/admin/inventory/${product.id}`}
                 className="flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-colors"
               >
-                <div className="min-w-0 space-y-0.5">
+                <Link
+                  href={`/admin/inventory/${product.id}`}
+                  className="min-w-0 flex-1 space-y-0.5"
+                >
                   <p className="truncate text-sm font-medium text-stone-900">
                     {product.name_en}
                   </p>
                   <p className="text-xs text-stone-400">{product.slug}</p>
-                </div>
+                </Link>
 
                 <div className="flex shrink-0 items-center gap-4 pl-4">
                   <div className="hidden text-right sm:block">
@@ -175,14 +178,16 @@ export default async function AdminInventoryPage({ searchParams }: PageProps) {
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         product.is_active
                           ? "bg-green-100 text-green-700"
-                          : "bg-stone-100 text-stone-500"
+                          : "bg-red-100 text-red-600"
                       }`}
                     >
-                      {product.is_active ? "Active" : "Inactive"}
+                      {product.is_active ? "Active" : "Private"}
                     </span>
                   </div>
+
+                  <ProductRowActions id={product.id} isActive={product.is_active} />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

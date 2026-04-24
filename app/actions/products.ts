@@ -194,6 +194,56 @@ export async function upsertVariant(
   return {};
 }
 
+export async function deleteProduct(id: string): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase.from("products").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error:
+          "This product has order history and cannot be permanently deleted. Set it to Private to hide it from the storefront.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/shop");
+  revalidatePath("/women");
+  revalidatePath("/men");
+  revalidatePath("/kids");
+  revalidatePath("/accessories");
+  revalidatePath("/home");
+  revalidatePath("/sale");
+  return {};
+}
+
+export async function setProductActive(
+  id: string,
+  isActive: boolean
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase
+    .from("products")
+    .update({ is_active: isActive })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/shop");
+  revalidatePath("/women");
+  revalidatePath("/men");
+  revalidatePath("/kids");
+  revalidatePath("/accessories");
+  revalidatePath("/home");
+  revalidatePath("/sale");
+  return {};
+}
+
 export async function deleteVariant(
   variantId: string,
   productId: string
