@@ -220,16 +220,16 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
       <div className="grid gap-6 md:gap-10 md:grid-cols-[1.2fr_0.8fr]">
         {/* Left: image */}
         <section className="space-y-3">
-          <div className="aspect-[4/5] overflow-hidden border border-stone-200 bg-stone-100">
+          <div className="flex justify-center border border-stone-200 bg-stone-100 py-6">
             {product.primary_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.primary_image_url}
                 alt={displayName}
-                className="h-full w-full object-cover"
+                className="block h-auto max-h-[85vh] w-auto max-w-full"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-[11px] uppercase tracking-[0.22em] text-stone-400">
+              <div className="flex h-96 items-center justify-center text-[11px] uppercase tracking-[0.22em] text-stone-400">
                 No image
               </div>
             )}
