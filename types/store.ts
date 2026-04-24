@@ -75,6 +75,7 @@ export interface Product {
   // Defaults to true; set to false to suppress all measurement sections.
   // Optional because older rows may not have this column populated.
   show_measurements?: boolean;
+  is_archived: boolean;
   // Per-product size chart override (replaces static chart when set)
   size_chart_override: {
     type: "apparel";

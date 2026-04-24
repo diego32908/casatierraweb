@@ -12,8 +12,8 @@ export default async function MenPage() {
 
   // Fetch men's apparel + shoes/accessories targeting men's audience in parallel
   const [{ data: apparel }, { data: extras }] = await Promise.all([
-    supabase.from("products").select(SELECT).eq("is_active", true).eq("category", "men").order("sort_order", { ascending: true }),
-    supabase.from("products").select(SELECT).eq("is_active", true).in("category", ["shoes", "accessories"]).eq("audience", "mens").order("sort_order", { ascending: true }),
+    supabase.from("products").select(SELECT).eq("is_active", true).eq("is_archived", false).eq("category", "men").order("sort_order", { ascending: true }),
+    supabase.from("products").select(SELECT).eq("is_active", true).eq("is_archived", false).in("category", ["shoes", "accessories"]).eq("audience", "mens").order("sort_order", { ascending: true }),
   ]);
 
   const products = [...(apparel ?? []), ...(extras ?? [])];

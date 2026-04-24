@@ -12,6 +12,7 @@ export default async function SalePage() {
     .from("products")
     .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, category, variants:product_variants(color_name, color_hex, size_label)")
     .eq("is_active", true)
+    .eq("is_archived", false)
     .not("compare_at_price_cents", "is", null)
     .order("sort_order", { ascending: true });
 

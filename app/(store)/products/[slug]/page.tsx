@@ -17,6 +17,7 @@ export default async function ProductPage({
     .select("*, variants:product_variants(*)")
     .eq("slug", slug)
     .eq("is_active", true)
+    .eq("is_archived", false)
     .single();
 
   if (error || !product) return notFound();

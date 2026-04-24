@@ -68,6 +68,7 @@ export function SearchPanel() {
         "id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)"
       )
       .eq("is_active", true)
+      .eq("is_archived", false)
       .eq("featured", true)
       .order("sort_order", { ascending: true })
       .limit(3)
@@ -96,6 +97,7 @@ export function SearchPanel() {
           "id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)"
         )
         .eq("is_active", true)
+        .eq("is_archived", false)
         .or(`name_en.ilike.%${safe}%,search_keywords.ilike.%${safe}%`)
         .limit(6);
       setResults((data ?? []) as ProductCardData[]);

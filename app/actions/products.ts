@@ -248,6 +248,34 @@ export async function setProductActive(
   return {};
 }
 
+export async function setProductArchived(
+  id: string,
+  isArchived: boolean
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = createServerSupabaseClient();
+  const update = isArchived
+    ? { is_archived: true, is_active: false }
+    : { is_archived: false };
+  const { error } = await supabase
+    .from("products")
+    .update(update)
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/");
+  revalidatePath("/shop");
+  revalidatePath("/women");
+  revalidatePath("/men");
+  revalidatePath("/kids");
+  revalidatePath("/accessories");
+  revalidatePath("/home");
+  revalidatePath("/sale");
+  return {};
+}
+
 export async function deleteVariant(
   variantId: string,
   productId: string

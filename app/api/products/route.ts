@@ -9,6 +9,7 @@ export async function GET() {
       .from("products")
       .select("*, variants:product_variants(*)")
       .eq("is_active", true)
+      .eq("is_archived", false)
       .order("sort_order", { ascending: true });
 
     if (error) {

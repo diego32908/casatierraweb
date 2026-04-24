@@ -35,7 +35,8 @@ export default function WishlistPage() {
             "id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)"
           )
           .in("id", ids)
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .eq("is_archived", false);
 
         if (error) {
           console.error("[Wishlist] fetch error — message:", error.message, "| code:", error.code, "| details:", error.details, "| hint:", error.hint);

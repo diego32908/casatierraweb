@@ -12,6 +12,7 @@ export default async function HomePage() {
     .from("products")
     .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
     .eq("is_active", true)
+    .eq("is_archived", false)
     .in("category", ["home_decor", "pottery"])
     .order("sort_order", { ascending: true });
 
