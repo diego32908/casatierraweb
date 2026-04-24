@@ -220,16 +220,16 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
       <div className="grid gap-6 md:gap-10 md:grid-cols-[1.2fr_0.8fr]">
         {/* Left: image */}
         <section className="space-y-3">
-          <div className="flex justify-center border border-stone-200 bg-stone-100 py-6">
+          <div className="relative aspect-[3/4] border border-stone-200 bg-stone-100">
             {product.primary_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={product.primary_image_url}
                 alt={displayName}
-                className="block h-auto max-h-[85vh] w-auto max-w-[80%] md:max-w-[75%]"
+                className="absolute inset-0 h-full w-full object-contain"
               />
             ) : (
-              <div className="flex h-96 items-center justify-center text-[11px] uppercase tracking-[0.22em] text-stone-400">
+              <div className="absolute inset-0 flex items-center justify-center text-[11px] uppercase tracking-[0.22em] text-stone-400">
                 No image
               </div>
             )}
@@ -243,7 +243,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
                   key={i}
                   src={url}
                   alt={`${displayName} view ${i + 1}`}
-                  className="h-16 w-16 border border-stone-200 object-cover"
+                  className="h-16 w-16 border border-stone-200 bg-stone-100 object-contain"
                 />
               ))}
             </div>

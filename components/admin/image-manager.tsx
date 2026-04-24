@@ -175,7 +175,8 @@ export function ImageManager({ productId, primaryImageUrl, galleryUrls }: Props)
 
       {/* Primary image */}
       <div>
-        <p className="mb-3 text-sm font-medium text-stone-700">Main image</p>
+        <p className="mb-1 text-sm font-medium text-stone-700">Main image</p>
+        <p className="mb-3 text-xs text-stone-400">Best results: white/neutral background, product centered, 3:4 or 4:5 portrait, JPG under 2 MB.</p>
 
         {primaryImageUrl ? (
           <div className="flex items-start gap-4">

@@ -109,7 +109,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               <img
                 src={product.primary_image_url}
                 alt={displayName}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
               <div className="h-full w-full bg-stone-200 transition-transform duration-500 group-hover:scale-105" />
