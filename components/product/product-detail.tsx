@@ -221,7 +221,7 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
       <div className="grid gap-6 md:gap-10 md:grid-cols-[1.2fr_0.8fr]">
         {/* Left: image */}
         <section className="space-y-3">
-          <div className="relative aspect-[3/4] border border-stone-200 bg-stone-100">
+          <div className="relative aspect-[3/4] md:max-h-[calc(100vh-220px)] border border-stone-200 bg-stone-100">
             {displayImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
