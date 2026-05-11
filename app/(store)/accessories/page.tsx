@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/shell/back-link";
 import { CategoryFilterSort } from "@/components/store/category-filter-sort";
 import type { FilterableProduct } from "@/components/store/category-filter-sort";
+import { fanOutByColor } from "@/lib/product-fanout";
 
 export const metadata = { title: "Accessories — Tierra Oaxaca" };
 
@@ -11,7 +12,7 @@ export default async function AccessoriesPage() {
   // Accessories nav shows both accessories and shoes categories
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, variants:product_variants(color_name, color_hex, size_label)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, created_at, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default, size_label)")
     .eq("is_active", true)
     .eq("is_archived", false)
     .in("category", ["accessories", "shoes"])
@@ -25,7 +26,7 @@ export default async function AccessoriesPage() {
       </header>
 
       <CategoryFilterSort
-        initialProducts={(products ?? []) as FilterableProduct[]}
+        initialProducts={fanOutByColor(products ?? []) as FilterableProduct[]}
         showSizeFilter={false}
       />
     </div>

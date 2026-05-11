@@ -6,10 +6,13 @@ import type { ProductWithVariants } from "@/types/store";
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ variant?: string }>;
 }) {
   const { slug } = await params;
+  const { variant } = await searchParams;
   const supabase = createServerSupabaseClient();
 
   const { data: product, error } = await supabase
@@ -27,7 +30,7 @@ export default async function ProductPage({
       <div className="mb-8">
         <BackLink fallback="/shop" />
       </div>
-      <ProductDetail product={product as unknown as ProductWithVariants} />
+      <ProductDetail product={product as unknown as ProductWithVariants} initialVariantId={variant} />
     </div>
   );
 }

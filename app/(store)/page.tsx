@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
+import { fanOutByColor } from "@/lib/product-fanout";
 
 // Fallback content — used when site_settings has no value set yet
 const HERO_DEFAULTS = {
@@ -26,7 +27,7 @@ export default async function HomePage() {
       // Best Sellers — featured products, 2 rows of 4 (8 total)
       supabase
         .from("products")
-        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)")
         .eq("is_active", true)
         .eq("is_archived", false)
         .eq("featured", true)
@@ -35,7 +36,7 @@ export default async function HomePage() {
       // Selected Pieces — curated cross-category selection, 2 rows of 4 (8 total)
       supabase
         .from("products")
-        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)")
         .eq("is_active", true)
         .eq("is_archived", false)
         .order("sort_order", { ascending: true })
@@ -122,8 +123,8 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {featured.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {fanOutByColor(featured).map((product) => (
+              <ProductCard key={product.variantId ?? product.id} product={product} />
             ))}
           </div>
         </section>
@@ -160,8 +161,8 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {selected.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {fanOutByColor(selected).map((product) => (
+              <ProductCard key={product.variantId ?? product.id} product={product} />
             ))}
           </div>
         </section>

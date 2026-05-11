@@ -12,6 +12,7 @@ export interface FilterableProduct extends Omit<ProductCardData, "variants"> {
     color_hex: string | null;
     size_label: string | null;
   }>;
+  variantId?: string;
 }
 
 type SortKey   = "featured" | "newest" | "price_asc" | "price_desc";
@@ -363,7 +364,7 @@ export function CategoryFilterSort({
       ) : (
         <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-6 md:gap-y-14">
           {filtered.map(p => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.variantId ?? p.id} product={p} />
           ))}
         </div>
       )}

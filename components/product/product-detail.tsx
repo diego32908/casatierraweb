@@ -105,7 +105,13 @@ function OneSizeStockPill({ stock, threshold }: { stock: number; threshold: numb
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function ProductDetail({ product }: { product: ProductWithVariants }) {
+export function ProductDetail({
+  product,
+  initialVariantId,
+}: {
+  product: ProductWithVariants;
+  initialVariantId?: string;
+}) {
   const { addItem } = useCart();
   const { locale } = useLanguage();
   const displayName = localize(product.name_en, product.name_es, locale);
@@ -125,6 +131,10 @@ export function ProductDetail({ product }: { product: ProductWithVariants }) {
 
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(() => {
     if (product.variants.length === 0) return null;
+    if (initialVariantId) {
+      const found = product.variants.find((v) => v.id === initialVariantId);
+      if (found) return found.id;
+    }
     return (
       product.variants.find((v) => v.is_default)?.id ??
       product.variants[0]?.id ??

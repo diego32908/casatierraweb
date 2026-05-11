@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
+import { fanOutByColor } from "@/lib/product-fanout";
 import { BackLink } from "@/components/shell/back-link";
 
 export const metadata = { title: "Home — Tierra Oaxaca" };
@@ -10,7 +11,7 @@ export default async function HomePage() {
   // Home nav shows home_decor and pottery categories
   const { data: products } = await supabase
     .from("products")
-    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(color_name, color_hex)")
+    .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)")
     .eq("is_active", true)
     .eq("is_archived", false)
     .in("category", ["home_decor", "pottery"])
@@ -30,8 +31,8 @@ export default async function HomePage() {
         <p className="text-sm text-stone-500 py-20 text-center">No products found.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 md:gap-y-14">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {fanOutByColor(products).map((product) => (
+            <ProductCard key={product.variantId ?? product.id} product={product} />
           ))}
         </div>
       )}

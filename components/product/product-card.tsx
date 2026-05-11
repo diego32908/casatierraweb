@@ -15,6 +15,7 @@ export interface ProductCardData {
   base_price_cents: number;
   compare_at_price_cents: number | null;
   primary_image_url: string | null;
+  variantId?: string;
   variants?: ColorStub[];
 }
 
@@ -84,6 +85,9 @@ function getDistinctColors(variants: ColorStub[]) {
 export function ProductCard({ product }: { product: ProductCardData }) {
   const { locale } = useLanguage();
   const displayName = localize(product.name_en, product.name_es, locale);
+  const href = product.variantId
+    ? `/products/${product.slug}?variant=${product.variantId}`
+    : `/products/${product.slug}`;
 
   const onSale =
     product.compare_at_price_cents != null &&
@@ -103,7 +107,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <div className="group relative">
       <div className="relative aspect-[3/4] mb-3">
         <div className="absolute inset-0 overflow-hidden bg-stone-100">
-          <Link href={`/products/${product.slug}`} className="block h-full w-full">
+          <Link href={href} className="block h-full w-full">
             {product.primary_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -121,7 +125,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </div>
       </div>
 
-      <Link href={`/products/${product.slug}`} className="block">
+      <Link href={href} className="block">
         <p className="text-sm font-medium text-stone-900 leading-snug">{displayName}</p>
 
         {showColors && (
