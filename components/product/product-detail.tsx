@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import type { ProductWithVariants, ProductVariant, Product } from "@/types/store";
 import { formatPrice } from "@/lib/utils";
 import { getStockStatus } from "@/lib/stock";
@@ -11,6 +12,12 @@ import { SizeChartSection } from "./size-chart-section";
 import { useCart } from "@/components/cart/cart-context";
 import { HeartButton } from "./heart-button";
 import { useLanguage, localize } from "@/lib/language";
+
+const LIGHT_SWATCH_HEX = new Set([
+  "#fafaf9", "#fef9ef", "#fffff0", "#f5f0e0", "#f5f5f5", "#f5f0e8",
+  "#e8dcc8", "#f0ead8", "#f4a7b9", "#f2b5b5", "#f5d042", "#c4b5e8",
+  "#ede8d8", "#d4c5a9",
+]);
 
 // ── Specs section (pottery / home / accessories) ─────────────────────────────
 
@@ -114,6 +121,8 @@ export function ProductDetail({
 }) {
   const { addItem } = useCart();
   const { locale } = useLanguage();
+  const router = useRouter();
+  const pathname = usePathname();
   const displayName = localize(product.name_en, product.name_es, locale);
   const displayDescription = localize(product.description_en ?? "", product.description_es, locale);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -152,6 +161,36 @@ export function ProductDetail({
 
   const activePrice = selectedVariant?.price_override_cents ?? product.base_price_cents;
   const displayImageUrl = selectedVariant?.image_url ?? product.primary_image_url;
+
+  // Color selector — group variants by color_name
+  const colorGroups = useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    for (const v of product.variants) {
+      if (!v.color_name) continue;
+      if (!map.has(v.color_name)) map.set(v.color_name, []);
+      map.get(v.color_name)!.push(v);
+    }
+    return map;
+  }, [product.variants]);
+
+  const distinctColors = useMemo(() => Array.from(colorGroups.keys()), [colorGroups]);
+  const showColorSelector = distinctColors.length >= 2;
+  const activeColorName = selectedVariant?.color_name ?? null;
+
+  function handleColorSelect(colorName: string) {
+    const variants = colorGroups.get(colorName) ?? [];
+    const currentSize = selectedVariant?.size_label;
+    const sizeMatch = currentSize
+      ? variants.find((v) => v.size_label === currentSize)
+      : undefined;
+    const target =
+      sizeMatch ??
+      variants.find((v) => v.is_default) ??
+      variants[0];
+    if (!target) return;
+    setSelectedVariantId(target.id);
+    router.replace(`${pathname}?variant=${target.id}`, { scroll: false });
+  }
 
   const stockStatus = selectedVariant
     ? getStockStatus(selectedVariant.stock, selectedVariant.low_stock_threshold)
@@ -315,6 +354,44 @@ export function ProductDetail({
           {/* Description */}
           {displayDescription && (
             <p className="text-sm leading-7 text-stone-600">{displayDescription}</p>
+          )}
+
+          {/* Color selector */}
+          {showColorSelector && (
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
+                Color{activeColorName ? ` — ${activeColorName}` : ""}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {distinctColors.map((colorName) => {
+                  const rep = colorGroups.get(colorName)?.[0];
+                  const hex = rep?.color_hex ?? null;
+                  const isActive = colorName === activeColorName;
+                  const needsBorder =
+                    !hex || LIGHT_SWATCH_HEX.has(hex.toLowerCase());
+                  return (
+                    <button
+                      key={colorName}
+                      title={colorName}
+                      aria-label={colorName}
+                      aria-pressed={isActive}
+                      onClick={() => handleColorSelect(colorName)}
+                      className="h-6 w-6 shrink-0 transition-transform duration-150 hover:scale-110 focus:outline-none"
+                      style={{
+                        backgroundColor: hex ?? "#d6d3d1",
+                        border: needsBorder
+                          ? "1px solid #d6d3d1"
+                          : "1px solid transparent",
+                        outline: isActive
+                          ? "1.5px solid #1c1917"
+                          : "1px solid transparent",
+                        outlineOffset: isActive ? "2.5px" : "0",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* One-size stock pill */}
