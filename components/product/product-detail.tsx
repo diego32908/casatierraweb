@@ -162,6 +162,15 @@ export function ProductDetail({
   const activePrice = selectedVariant?.price_override_cents ?? product.base_price_cents;
   const displayImageUrl = selectedVariant?.image_url ?? product.primary_image_url;
 
+  // Show product-level compare price if set; fall back to product base price when
+  // the selected variant is cheaper (variant-only sale, no product compare_at set).
+  const effectiveCompareAt =
+    product.compare_at_price_cents != null && product.compare_at_price_cents > activePrice
+      ? product.compare_at_price_cents
+      : activePrice < product.base_price_cents
+      ? product.base_price_cents
+      : null;
+
   // Color selector — group variants by color_name
   const colorGroups = useMemo(() => {
     const map = new Map<string, ProductVariant[]>();
@@ -333,15 +342,14 @@ export function ProductDetail({
                 </p>
               )}
             </div>
-            {product.compare_at_price_cents &&
-            product.compare_at_price_cents > activePrice ? (
+            {effectiveCompareAt != null ? (
               <div className="flex items-center gap-3">
                 <p className="text-sm text-stone-400 line-through">
-                  {formatPrice(product.compare_at_price_cents)}
+                  {formatPrice(effectiveCompareAt)}
                 </p>
                 <span className="inline-flex items-baseline gap-2 bg-stone-900 px-3 py-1.5 text-white">
                   <span className="text-sm font-semibold">
-                    -{Math.round((1 - activePrice / product.compare_at_price_cents) * 100)}%
+                    -{Math.round((1 - activePrice / effectiveCompareAt) * 100)}%
                   </span>
                   <span className="text-sm font-semibold">{formatPrice(activePrice)}</span>
                 </span>

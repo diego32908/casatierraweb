@@ -344,6 +344,28 @@ function VariantFields({ variant, showShoeFields, canonicalSizes }: FieldsProps)
           className={inputCls}
         />
       </div>
+      <div>
+        <label className={labelCls}>Sale price (optional)</label>
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-stone-400">$</span>
+          <input
+            name="price_override"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={
+              variant?.price_override_cents != null
+                ? (variant.price_override_cents / 100).toFixed(2)
+                : ""
+            }
+            placeholder="Leave blank for no override"
+            className={`${inputCls} pl-6`}
+          />
+        </div>
+        <p className="mt-1 text-[11px] text-stone-400">
+          Sets a per-variant sale price. Leave blank to use the product base price.
+        </p>
+      </div>
 
       {showShoeFields && (
         <>
@@ -695,6 +717,11 @@ export function VariantManager({ productId, variants, sizeMode, audience }: Prop
                 </div>
                 <div className="flex items-center gap-2">
                   <StockStatusBadge stock={v.stock} threshold={v.low_stock_threshold} />
+                  {v.price_override_cents != null && (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                      Sale ${(v.price_override_cents / 100).toFixed(2)}
+                    </span>
+                  )}
                   {v.is_default && (
                     <span className="text-[10px] text-stone-400">Default</span>
                   )}

@@ -87,13 +87,20 @@ export function fanOutByColor(products: FanOutSourceProduct[]): FannedProductCar
       const price =
         defaultVariant?.price_override_cents ?? product.base_price_cents;
 
+      // When this color's price is lower than the base product price, treat
+      // the base price as the strikethrough so the sale badge renders correctly.
+      const compareAt =
+        price < product.base_price_cents
+          ? product.base_price_cents
+          : product.compare_at_price_cents;
+
       result.push({
         id: product.id,
         slug: product.slug,
         name_en: product.name_en,
         name_es: product.name_es,
         base_price_cents: price,
-        compare_at_price_cents: product.compare_at_price_cents,
+        compare_at_price_cents: compareAt,
         primary_image_url: image,
         created_at: product.created_at,
         category: product.category,

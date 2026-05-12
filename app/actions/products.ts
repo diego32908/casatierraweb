@@ -153,20 +153,26 @@ export async function upsertVariant(
   const variantId = (formData.get("variant_id") as string) || null;
 
   // Core variant fields — always sent (columns exist in current schema)
+  const priceOverrideRaw = (formData.get("price_override") as string)?.trim();
+  const price_override_cents = priceOverrideRaw
+    ? Math.round(parseFloat(priceOverrideRaw) * 100)
+    : null;
+
   const base = {
-    product_id:          productId,
-    size_label:          (formData.get("size_label") as string).trim(),
-    size_sort:           parseInt(formData.get("size_sort") as string) || 0,
-    stock:               parseInt(formData.get("stock") as string) || 0,
-    low_stock_threshold: parseInt(formData.get("low_stock_threshold") as string) || 5,
-    is_default:          formData.get("is_default") === "on",
-    us_size:             (formData.get("us_size") as string)?.trim() || null,
-    eu_size:             (formData.get("eu_size") as string)?.trim() || null,
-    uk_size:             (formData.get("uk_size") as string)?.trim() || null,
-    mx_size:             (formData.get("mx_size") as string)?.trim() || null,
-    jp_size:             (formData.get("jp_size") as string)?.trim() || null,
-    color_name:          (formData.get("color_name") as string)?.trim() || null,
-    color_hex:           (formData.get("color_hex") as string)?.trim() || null,
+    product_id:           productId,
+    size_label:           (formData.get("size_label") as string).trim(),
+    size_sort:            parseInt(formData.get("size_sort") as string) || 0,
+    stock:                parseInt(formData.get("stock") as string) || 0,
+    low_stock_threshold:  parseInt(formData.get("low_stock_threshold") as string) || 5,
+    is_default:           formData.get("is_default") === "on",
+    us_size:              (formData.get("us_size") as string)?.trim() || null,
+    eu_size:              (formData.get("eu_size") as string)?.trim() || null,
+    uk_size:              (formData.get("uk_size") as string)?.trim() || null,
+    mx_size:              (formData.get("mx_size") as string)?.trim() || null,
+    jp_size:              (formData.get("jp_size") as string)?.trim() || null,
+    color_name:           (formData.get("color_name") as string)?.trim() || null,
+    color_hex:            (formData.get("color_hex") as string)?.trim() || null,
+    price_override_cents,
   };
 
   // Shipping fields — only sent when non-blank so they don't fail on missing columns.
