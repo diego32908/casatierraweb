@@ -2,7 +2,49 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product/product-card";
-import { fanOutByColor } from "@/lib/product-fanout";
+import { fanOutByColor, type FannedProductCard } from "@/lib/product-fanout";
+
+// Prefer unique parent products first, then allow a second variant per parent,
+// then fall back to anything remaining (tiny-inventory safety net).
+function pickWithDiversity(cards: FannedProductCard[], limit: number): FannedProductCard[] {
+  const cardKey = (c: FannedProductCard) => `${c.id}:${c.variantId ?? ""}`;
+  const selectedKeys = new Set<string>();
+  const countByParent = new Map<string, number>();
+  const selected: FannedProductCard[] = [];
+
+  for (const card of cards) {
+    if (selected.length >= limit) break;
+    if (!countByParent.has(card.id)) {
+      countByParent.set(card.id, 1);
+      selectedKeys.add(cardKey(card));
+      selected.push(card);
+    }
+  }
+
+  if (selected.length < limit) {
+    for (const card of cards) {
+      if (selected.length >= limit) break;
+      if (selectedKeys.has(cardKey(card))) continue;
+      if ((countByParent.get(card.id) ?? 0) === 1) {
+        countByParent.set(card.id, 2);
+        selectedKeys.add(cardKey(card));
+        selected.push(card);
+      }
+    }
+  }
+
+  if (selected.length < limit) {
+    for (const card of cards) {
+      if (selected.length >= limit) break;
+      if (!selectedKeys.has(cardKey(card))) {
+        selectedKeys.add(cardKey(card));
+        selected.push(card);
+      }
+    }
+  }
+
+  return selected;
+}
 
 // Fallback content — used when site_settings has no value set yet
 const HERO_DEFAULTS = {
@@ -22,30 +64,40 @@ const EDITORIAL_DEFAULTS = {
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
 
-  const [{ data: featured }, { data: selected }, { data: siteSettings }] =
+  const SELECT = "id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)";
+
+  const [{ data: featuredRaw }, { data: fillRaw }, { data: siteSettings }] =
     await Promise.all([
-      // Best Sellers — featured products, 2 rows of 4 (8 total)
+      // Featured products anchor the Best Sellers grid (admin-curated)
       supabase
         .from("products")
-        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)")
+        .select(SELECT)
         .eq("is_active", true)
         .eq("is_archived", false)
         .eq("featured", true)
         .order("sort_order", { ascending: true })
         .limit(8),
-      // Selected Pieces — curated cross-category selection, 2 rows of 4 (8 total)
+      // Fill pool — non-featured, shuffled in JS to keep homepage fresh
       supabase
         .from("products")
-        .select("id, slug, name_en, name_es, base_price_cents, compare_at_price_cents, primary_image_url, variants:product_variants(id, color_name, color_hex, image_url, price_override_cents, is_default)")
+        .select(SELECT)
         .eq("is_active", true)
         .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .limit(8),
+        .eq("featured", false)
+        .limit(24),
       supabase
         .from("site_settings")
         .select("key, value")
         .in("key", ["hero", "editorial_break"]),
     ]);
+
+  // Featured cards anchor the grid (sort_order preserved); fill pool is shuffled for variety.
+  // pickWithDiversity caps at 8, preferring one card per parent product first.
+  const allCandidates = [
+    ...fanOutByColor(featuredRaw ?? []),
+    ...fanOutByColor([...(fillRaw ?? [])].sort(() => Math.random() - 0.5)),
+  ];
+  const bestSellers = pickWithDiversity(allCandidates, 8);
 
   // Merge DB values over defaults — falls back gracefully if table is empty
   const settingsMap = Object.fromEntries(
@@ -110,25 +162,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 2. Best Sellers — 2 rows of 4 (8 total) ──────────── */}
-      {featured && featured.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 pb-16 md:px-8">
-          <div className="mb-8 flex items-baseline justify-between">
-            <p className="upper-nav">Best Sellers</p>
-            <Link
-              href="/shop"
-              className="text-[11px] uppercase tracking-[0.22em] text-stone-500 transition-colors hover:text-stone-900"
-            >
-              View All
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {fanOutByColor(featured).map((product) => (
-              <ProductCard key={product.variantId ?? product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* ── 4. Editorial Image Break ───────────────────────── */}
       <section className="bg-stone-100 py-1">
@@ -148,11 +181,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 5. Selected Pieces — 2 rows of 4 (8 total) ────────── */}
-      {selected && selected.length > 0 && (
+      {/* ── 5. Best Sellers — featured first, randomized fill, max 8 cards ── */}
+      {bestSellers.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
           <div className="mb-8 flex items-baseline justify-between">
-            <p className="upper-nav">Selected Pieces</p>
+            <p className="upper-nav">Best Sellers</p>
             <Link
               href="/shop"
               className="text-[11px] uppercase tracking-[0.22em] text-stone-500 transition-colors hover:text-stone-900"
@@ -160,8 +193,8 @@ export default async function HomePage() {
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {fanOutByColor(selected).map((product) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            {bestSellers.map((product) => (
               <ProductCard key={product.variantId ?? product.id} product={product} />
             ))}
           </div>
