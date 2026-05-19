@@ -138,10 +138,10 @@ export default async function HomePage() {
   ];
   const bestSellers = pickWithDiversity(allCandidates, 8);
 
-  // Discovery row: leftover candidates after bestSellers, deduplicated by parent product,
-  // then distributed across categories for maximum visual variety.
-  const bestSellerParentIds = new Set(bestSellers.map((c) => c.id));
-  const discoveryPool = allCandidates.filter((c) => !bestSellerParentIds.has(c.id));
+  // Discovery row: exclude exact rendered cards (by variant identity), NOT entire parent products.
+  // All skirt variants share one parent id — excluding by id would drop them all.
+  const usedCardKeys = new Set(bestSellers.map((c) => `${c.id}:${c.variantId ?? ""}`));
+  const discoveryPool = allCandidates.filter((c) => !usedCardKeys.has(`${c.id}:${c.variantId ?? ""}`));
   const discovered = pickByCategoryDiversity(discoveryPool, 4);
 
   // Merge DB values over defaults — falls back gracefully if table is empty
@@ -280,7 +280,7 @@ export default async function HomePage() {
       {allCandidates.length > 0 && (
         <section className="border-t border-stone-200 mx-auto max-w-7xl px-4 py-14 md:px-8">
           <div className="mb-8 flex items-baseline justify-between">
-            <p className="upper-nav">Handpicked from Oaxaca</p>
+            <p className="upper-nav">More to Love</p>
             <Link
               href="/shop"
               className="text-[11px] uppercase tracking-[0.22em] text-stone-500 transition-colors hover:text-stone-900"
@@ -294,15 +294,15 @@ export default async function HomePage() {
             ))}
             {Array.from({ length: Math.max(0, 4 - discovered.length) }).map((_, i) => (
               <div key={`placeholder-${i}`} className="relative">
-                <div className="relative aspect-[3/4] mb-3 bg-stone-50">
-                  <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative aspect-[3/4] mb-3">
+                  <div className="absolute inset-0 overflow-hidden bg-stone-100 flex items-center justify-center">
                     <span className="select-none text-[10px] uppercase tracking-[0.28em] text-stone-300">
                       Coming Soon
                     </span>
                   </div>
                 </div>
-                <div className="h-[13px] w-24 bg-stone-100" />
-                <div className="mt-2 h-[11px] w-14 bg-stone-100" />
+                <p className="text-sm font-medium leading-snug text-transparent select-none" aria-hidden="true">{" "}</p>
+                <p className="mt-1.5 text-sm text-transparent select-none" aria-hidden="true">{" "}</p>
               </div>
             ))}
           </div>
