@@ -276,8 +276,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 7. Handpicked — category-diverse discovery row, max 4 cards ── */}
-      {discovered.length > 0 && (
+      {/* ── 7. Handpicked — category-diverse discovery row, always 4 slots ── */}
+      {allCandidates.length > 0 && (
         <section className="border-t border-stone-200 mx-auto max-w-7xl px-4 py-14 md:px-8">
           <div className="mb-8 flex items-baseline justify-between">
             <p className="upper-nav">Handpicked from Oaxaca</p>
@@ -291,6 +291,19 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
             {discovered.map((product) => (
               <ProductCard key={product.variantId ?? product.id} product={product} />
+            ))}
+            {Array.from({ length: Math.max(0, 4 - discovered.length) }).map((_, i) => (
+              <div key={`placeholder-${i}`} className="relative">
+                <div className="relative aspect-[3/4] mb-3 bg-stone-50">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="select-none text-[10px] uppercase tracking-[0.28em] text-stone-300">
+                      Coming Soon
+                    </span>
+                  </div>
+                </div>
+                <div className="h-[13px] w-24 bg-stone-100" />
+                <div className="mt-2 h-[11px] w-14 bg-stone-100" />
+              </div>
             ))}
           </div>
         </section>
