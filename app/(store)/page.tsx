@@ -46,6 +46,45 @@ function pickWithDiversity(cards: FannedProductCard[], limit: number): FannedPro
   return selected;
 }
 
+// Round-robin across product categories to maximize visual variety in the discovery row.
+// Dedupes to one card per parent product before distributing.
+function pickByCategoryDiversity(cards: FannedProductCard[], limit: number): FannedProductCard[] {
+  const seen = new Set<string>();
+  const unique = cards.filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
+
+  const byCategory = new Map<string, FannedProductCard[]>();
+  for (const card of unique) {
+    const cat = card.category ?? "other";
+    if (!byCategory.has(cat)) byCategory.set(cat, []);
+    byCategory.get(cat)!.push(card);
+  }
+
+  const result: FannedProductCard[] = [];
+  const cats = [...byCategory.keys()];
+  const cursor = new Map(cats.map((c) => [c, 0]));
+
+  while (result.length < limit) {
+    let added = false;
+    for (const cat of cats) {
+      if (result.length >= limit) break;
+      const pool = byCategory.get(cat)!;
+      const idx = cursor.get(cat)!;
+      if (idx < pool.length) {
+        result.push(pool[idx]);
+        cursor.set(cat, idx + 1);
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+
+  return result;
+}
+
 // Fallback content — used when site_settings has no value set yet
 const HERO_DEFAULTS = {
   image_url: null as string | null,
@@ -98,6 +137,12 @@ export default async function HomePage() {
     ...fanOutByColor([...(fillRaw ?? [])].sort(() => Math.random() - 0.5)),
   ];
   const bestSellers = pickWithDiversity(allCandidates, 8);
+
+  // Discovery row: leftover candidates after bestSellers, deduplicated by parent product,
+  // then distributed across categories for maximum visual variety.
+  const bestSellerParentIds = new Set(bestSellers.map((c) => c.id));
+  const discoveryPool = allCandidates.filter((c) => !bestSellerParentIds.has(c.id));
+  const discovered = pickByCategoryDiversity(discoveryPool, 4);
 
   // Merge DB values over defaults — falls back gracefully if table is empty
   const settingsMap = Object.fromEntries(
@@ -230,6 +275,26 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── 7. Handpicked — category-diverse discovery row, max 4 cards ── */}
+      {discovered.length > 0 && (
+        <section className="border-t border-stone-200 mx-auto max-w-7xl px-4 py-14 md:px-8">
+          <div className="mb-8 flex items-baseline justify-between">
+            <p className="upper-nav">Handpicked from Oaxaca</p>
+            <Link
+              href="/shop"
+              className="text-[11px] uppercase tracking-[0.22em] text-stone-500 transition-colors hover:text-stone-900"
+            >
+              View All
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            {discovered.map((product) => (
+              <ProductCard key={product.variantId ?? product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
